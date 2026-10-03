@@ -1,0 +1,57 @@
+id: notify/feishu
+name: Feishu group notification
+version: 1.0.0
+description: Send a text message to a Feishu custom-bot group; auto-appends the Buz job link when BUZ_* metadata is present.
+description_zh: 向飞书群自定义机器人发送文本消息，自动附带 Buz 任务链接，支持 @全员。
+publisher: official
+license: Apache-2.0
+engine: shell
+default_timeout: 30s
+inputs:
+  webhook:
+    type: string
+    required: true
+    masking: true
+    description: Feishu custom bot webhook URL
+  title:
+    type: string
+    default: Buz job notification
+    description: Message title / first line
+  content:
+    type: string
+    default: ""
+    description: Extra message body appended under the title
+  at_all:
+    type: boolean
+    default: "false"
+    description: Mention everyone in the group
+run: |
+  set -e
+  TEXT="${INPUT_TITLE:-Buz job notification}"
+  if [ -n "${INPUT_CONTENT:-}" ]; then
+    TEXT="${TEXT}
+  ${INPUT_CONTENT}"
+  fi
+  if [ -n "${BUZ_PIPELINE_NAME:-}" ]; then
+    TEXT="${TEXT}
+  Pipeline: ${BUZ_PIPELINE_NAME}"
+  fi
+  if [ -n "${BUZ_TRIGGERED_BY:-}" ]; then
+    TEXT="${TEXT}
+  Trigger: ${BUZ_TRIGGER} by ${BUZ_TRIGGERED_BY}"
+  fi
+  if [ -n "${BUZ_JOB_URL:-}" ]; then
+    TEXT="${TEXT}
+  ${BUZ_JOB_URL}"
+  fi
+  if [ "${INPUT_AT_ALL:-false}" = "true" ]; then
+    TEXT="${TEXT} <at user=all></at>"
+  fi
+  ESCAPED=$(printf '%s' "$TEXT" | sed 's/\\/\\\\/g; s/"/\\"/g')
+  PAYLOAD=$(printf '{"msg_type":"text","content":{"text":"%s"}}' "$ESCAPED")
+  RESULT=$(curl -fsSL -X POST "$INPUT_WEBHOOK" \
+    -H 'Content-Type: application/json' -d "$PAYLOAD")
+  printf '%s\n' "$RESULT" | grep -q '"code":0' || {
+    printf 'feishu rejected: %s\n' "$RESULT" >&2
+    exit 1
+  }

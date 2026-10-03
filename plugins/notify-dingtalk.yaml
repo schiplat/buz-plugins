@@ -1,0 +1,61 @@
+id: notify/dingtalk
+name: DingTalk group notification
+version: 1.0.0
+description: Send a text message to a DingTalk custom-bot group, with optional HMAC signing and @all.
+description_zh: 向钉钉群自定义机器人发送文本消息，支持加签（HmacSHA256）与 @全员。
+publisher: official
+license: Apache-2.0
+engine: shell
+default_timeout: 30s
+inputs:
+  webhook:
+    type: string
+    required: true
+    masking: true
+    description: DingTalk custom bot webhook URL (without sign parameters)
+  secret:
+    type: string
+    masking: true
+    description: Signing secret (SEC...) — omit when the bot uses custom keywords / IP allowlist
+  title:
+    type: string
+    default: Buz job notification
+  content:
+    type: string
+    default: ""
+  at_all:
+    type: boolean
+    default: "false"
+run: |
+  set -e
+  URL="$INPUT_WEBHOOK"
+  if [ -n "${INPUT_SECRET:-}" ]; then
+    TS="$(date +%s)000"
+    SIGN="$(printf '%s\n%s' "$TS" "$INPUT_SECRET" \
+      | openssl dgst -sha256 -hmac "$INPUT_SECRET" -binary | base64)"
+    ENCODED=$(printf '%s' "$SIGN" | sed 's/+/%2B/g; s|/|%2F|g; s/=/%3D/g')
+    URL="${URL}&timestamp=${TS}&sign=${ENCODED}"
+  fi
+  TEXT="${INPUT_TITLE:-Buz job notification}"
+  if [ -n "${INPUT_CONTENT:-}" ]; then
+    TEXT="${TEXT}
+  ${INPUT_CONTENT}"
+  fi
+  if [ -n "${BUZ_PIPELINE_NAME:-}" ]; then
+    TEXT="${TEXT}
+  Pipeline: ${BUZ_PIPELINE_NAME}"
+  fi
+  if [ -n "${BUZ_JOB_URL:-}" ]; then
+    TEXT="${TEXT}
+  ${BUZ_JOB_URL}"
+  fi
+  AT_ALL="${INPUT_AT_ALL:-false}"
+  ESCAPED=$(printf '%s' "$TEXT" | sed 's/\\/\\\\/g; s/"/\\"/g')
+  PAYLOAD=$(printf '{"msgtype":"text","text":{"content":"%s"},"at":{"isAtAll":%s}}' \
+    "$ESCAPED" "$AT_ALL")
+  RESULT=$(curl -fsSL -X POST "$URL" \
+    -H 'Content-Type: application/json' -d "$PAYLOAD")
+  printf '%s\n' "$RESULT" | grep -q '"errcode":0' || {
+    printf 'dingtalk rejected: %s\n' "$RESULT" >&2
+    exit 1
+  }
