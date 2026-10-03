@@ -1,0 +1,50 @@
+id: healthcheck/http
+name: HTTP health check (poll until ready)
+version: 1.0.0
+description: Poll an HTTP endpoint until it returns the expected status (or attempts run out). Useful after a deploy.
+description_zh: 轮询 HTTP 端点直到返回预期状态码或重试耗尽——部署后的就绪等待。
+publisher: official
+license: Apache-2.0
+engine: shell
+default_timeout: 5m
+inputs:
+  url:
+    type: string
+    required: true
+    description: URL to poll
+  expect_status:
+    type: number
+    default: "200"
+    description: Expected HTTP status code
+  interval:
+    type: string
+    default: 5s
+    description: Sleep between attempts (sleep(1) suffix format)
+  attempts:
+    type: number
+    default: "24"
+    description: Total attempts before failing
+  insecure:
+    type: boolean
+    default: "false"
+    description: Skip TLS certificate verification
+run: |
+  set -e
+  CURL_FLAGS="-fsS -o /dev/null -w %{http_code} -m 10"
+  if [ "${INPUT_INSECURE:-false}" = "true" ]; then
+    CURL_FLAGS="$CURL_FLAGS -k"
+  fi
+  i=1
+  while [ "$i" -le "${INPUT_ATTEMPTS:-24}" ]; do
+    STATUS=$(curl $CURL_FLAGS "$INPUT_URL" 2>/dev/null || true)
+    if [ "$STATUS" = "${INPUT_EXPECT_STATUS:-200}" ]; then
+      printf 'ready after %s attempt(s): %s\n' "$i" "$INPUT_URL"
+      exit 0
+    fi
+    printf 'attempt %s/%s: %s -> %s\n' "$i" "${INPUT_ATTEMPTS:-24}" "$INPUT_URL" "${STATUS:-no-response}"
+    sleep "${INPUT_INTERVAL:-5s}"
+    i=$((i + 1))
+  done
+  printf 'health check failed: %s never returned %s after %s attempts\n' \
+    "$INPUT_URL" "${INPUT_EXPECT_STATUS:-200}" "${INPUT_ATTEMPTS:-24}" >&2
+  exit 1

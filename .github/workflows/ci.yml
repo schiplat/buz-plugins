@@ -1,0 +1,67 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint shell scripts
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+          shopt -s nullglob
+          files=(scripts/*.sh)
+          if [ ${#files[@]} -gt 0 ]; then
+            shellcheck "${files[@]}"
+          else
+            echo "no shell scripts yet — nothing to lint"
+          fi
+
+      - name: Install Rust (build buz-manager for step-validate)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: buz
+
+      - name: Checkout buz (validator source)
+        uses: actions/checkout@v4
+        with:
+          repository: schiplat/buz
+          ref: main
+          path: buz
+
+      - name: Build buz-manager
+        run: cargo build --locked --release -p manager
+        working-directory: buz
+
+      - name: Validate step specs
+        run: ./buz/target/release/buz-manager step-validate plugins
+
+      - name: Generate index (dry run)
+        run: python3 scripts/gen_index.py --output /tmp/index.json && head /tmp/index.json
+
+  index:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate index.json
+        run: python3 scripts/gen_index.py --output index.json
+
+      - name: Attach index.json to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: index.json

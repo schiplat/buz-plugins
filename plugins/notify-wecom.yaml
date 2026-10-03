@@ -1,0 +1,52 @@
+id: notify/wecom
+name: WeCom group notification
+version: 1.0.0
+description: Send a text message to a WeCom (WeChat Work) group bot; auto-appends the Buz job link.
+description_zh: 向企业微信群机器人发送文本消息，自动附带 Buz 任务链接，支持 @全员。
+publisher: official
+license: Apache-2.0
+engine: shell
+default_timeout: 30s
+inputs:
+  webhook:
+    type: string
+    required: true
+    masking: true
+    description: WeCom group bot webhook URL (key=...)
+  title:
+    type: string
+    default: Buz job notification
+  content:
+    type: string
+    default: ""
+  at_all:
+    type: boolean
+    default: "false"
+run: |
+  set -e
+  TEXT="${INPUT_TITLE:-Buz job notification}"
+  if [ -n "${INPUT_CONTENT:-}" ]; then
+    TEXT="${TEXT}
+  ${INPUT_CONTENT}"
+  fi
+  if [ -n "${BUZ_PIPELINE_NAME:-}" ]; then
+    TEXT="${TEXT}
+  Pipeline: ${BUZ_PIPELINE_NAME}"
+  fi
+  if [ -n "${BUZ_JOB_URL:-}" ]; then
+    TEXT="${TEXT}
+  ${BUZ_JOB_URL}"
+  fi
+  if [ "${INPUT_AT_ALL:-false}" = "true" ]; then
+    AT_PART=',"mentioned_list":["@all"]'
+  else
+    AT_PART=""
+  fi
+  ESCAPED=$(printf '%s' "$TEXT" | sed 's/\\/\\\\/g; s/"/\\"/g')
+  PAYLOAD=$(printf '{"msgtype":"text","text":{"content":"%s"%s}}' "$ESCAPED" "$AT_PART")
+  RESULT=$(curl -fsSL -X POST "$INPUT_WEBHOOK" \
+    -H 'Content-Type: application/json' -d "$PAYLOAD")
+  printf '%s\n' "$RESULT" | grep -q '"errcode":0' || {
+    printf 'wecom rejected: %s\n' "$RESULT" >&2
+    exit 1
+  }

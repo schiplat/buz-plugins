@@ -1,0 +1,44 @@
+id: deploy/ssh-wait
+name: Wait for SSH host (reboot / rebuild)
+version: 1.0.0
+description: Block until an SSH server answers on the target host — wait out a reboot or cloud-init before the next deploy step. Runs from the runner host.
+description_zh: 等待目标主机 SSH 可登录（重启/重装后），再继续后续部署步骤。利用 Runner 出站网络，无需目标机暴露额外端口。
+publisher: official
+license: Apache-2.0
+engine: shell
+default_timeout: 15m
+inputs:
+  host:
+    type: string
+    required: true
+    description: SSH host to probe
+  port:
+    type: number
+    default: "22"
+  user:
+    type: string
+    default: root
+  interval:
+    type: string
+    default: 10s
+  attempts:
+    type: number
+    default: "60"
+run: |
+  set -e
+  i=1
+  while [ "$i" -le "${INPUT_ATTEMPTS:-60}" ]; do
+    if ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new \
+      -p "${INPUT_PORT:-22}" "${INPUT_USER:-root}@${INPUT_HOST}" true 2>/dev/null; then
+      printf 'ssh ready after %s attempt(s): %s@%s:%s\n' \
+        "$i" "${INPUT_USER:-root}" "$INPUT_HOST" "${INPUT_PORT:-22}"
+      exit 0
+    fi
+    printf 'attempt %s/%s: ssh %s@%s:%s not ready\n' \
+      "$i" "${INPUT_ATTEMPTS:-60}" "${INPUT_USER:-root}" "$INPUT_HOST" "${INPUT_PORT:-22}"
+    sleep "${INPUT_INTERVAL:-10s}"
+    i=$((i + 1))
+  done
+  printf 'ssh never became ready: %s@%s:%s\n' \
+    "${INPUT_USER:-root}" "$INPUT_HOST" "${INPUT_PORT:-22}" >&2
+  exit 1
