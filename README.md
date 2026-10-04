@@ -75,6 +75,20 @@ Full spec: marketplace ADR §5 (`docs/design/step-marketplace.md` in the buz rep
 - **validate**: builds `buz-manager` from source and runs `step-validate plugins/` on every push/PR; also runs `shellcheck` over `scripts/*.sh`.
 - **index**: on tags `v*`, generates `index.json` (id / version / sha256 per template) and attaches it to the GitHub release. The Phase 2 static browse site (`plugins.buz.schiplat.com`) is built from the same file.
 
+## Official review badge / 官方审核徽标
+
+Official templates carry a review record bound to their **content sha256** (`reviews.json`, generated with `scripts/gen_reviews.py` after a maintainer review). Because the badge binds to the hash, any content change invalidates it automatically — a reviewed v1.0 never launders trust for an unreviewed v1.1.
+
+Managers can enforce it:
+
+```toml
+[step_index]
+reviewed_manifest = "/etc/buz/reviews.json"  # hash → "officially reviewed"
+# require_reviewed = true                     # strict: reject unreviewed templates
+```
+
+Unreviewed templates resolve with a warning by default; the review status is recorded with each resolution's provenance. The badge means "static lint + manual review at this hash" — not a runtime-safety guarantee.
+
 ## Namespace note
 
 In Phase 1 (local index) a `uses:` reference is the template `id` plus `@pin` — e.g. `notify/feishu@1.2`. Namespace→index-source bindings (`community/...` pointing at a configured remote index) arrive with Phase 2 `https` indexes.
