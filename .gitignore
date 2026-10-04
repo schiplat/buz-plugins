@@ -1,2 +1,9 @@
+# Generated (gen_index.py / build_site.py — regenerable)
 index.json
+site/site-data.json
+site/index.json
+site/plugins/
+site/reviews.json
+
+# Misc
 .DS_Store
