@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -15,7 +15,7 @@
         <p class="sub" data-i18n="tagline"></p>
       </div>
       <div class="head-actions">
-        <button id="lang-toggle" class="lang-toggle" title="Switch language">EN / 中文</button>
+        <select id="lang-select" aria-label="Language / 语言"></select>
         <input id="search" type="search" autocomplete="off" />
       </div>
     </div>
@@ -24,7 +24,7 @@
 
 <main class="wrap">
   <div id="banner" class="banner hidden"></div>
-  <div class="list-meta"><span id="count"></span><span id="generated"></span></div>
+  <div class="list-meta"><span id="count"></span><span id="generated-line"></span></div>
   <div id="grid" class="grid"></div>
   <p id="empty" class="empty hidden"></p>
 </main>
@@ -35,7 +35,7 @@
     · <a href="https://github.com/schiplat/buz-plugins/issues/new?template=report.yml" target="_blank" rel="noopener" data-i18n="report"></a>
     · <span data-i18n="security"></span>
   </p>
-  <p class="fine" id="generated-line"></p>
+  <p class="fine" id="generated"></p>
 </footer>
 
 <dialog id="detail">

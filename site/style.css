@@ -34,13 +34,13 @@ h1 { font-size: 1.3rem; margin: 0; letter-spacing: -0.01em; }
 h1 .zh { color: var(--dim); font-weight: 400; font-size: 0.85rem; margin-left: 0.4rem; }
 .sub { margin: 0.4rem 0 0; color: var(--dim); font-size: 0.85rem; max-width: 36rem; }
 .head-actions { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
-.lang-toggle {
+#lang-select {
   font: inherit; font-size: 0.78rem; font-weight: 500;
-  padding: 0.4rem 0.75rem; border-radius: 0.6rem;
+  padding: 0.42rem 0.6rem; border-radius: 0.6rem;
   border: 1px solid var(--line); background: var(--card); cursor: pointer;
-  white-space: nowrap;
+  outline: none; white-space: nowrap;
 }
-.lang-toggle:hover { border-color: var(--accent); color: var(--accent); }
+#lang-select:hover { border-color: var(--accent); }
 #search {
   min-width: 17rem; padding: 0.5rem 0.8rem; border: 1px solid var(--line);
   border-radius: 0.6rem; background: var(--bg); font: inherit; outline: none;

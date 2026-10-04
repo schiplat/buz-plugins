@@ -1,6 +1,20 @@
-/* Buz Step Library — bilingual (zh/en) single-page renderer over
-   site-data.json. No framework, no build step. */
+/* Buz Step Library — multi-language single-page renderer over
+   site-data.json. No framework, no build step.
+
+   Adding a UI language = append one entry to I18N + LOCALE_NAMES.
+   Template descriptions: any `description_<lang>` field in the spec is
+   emitted by build_site.py automatically; rendering falls back
+   description_<lang> → description → first available. */
 "use strict";
+
+const LOCALE_NAMES = {
+  en: "English",
+  zh: "中文",
+  // Add UI languages here (translate I18N below + list the code in SUPPORTED):
+  // ja: "日本語", ko: "한국어", es: "Español", ...
+};
+const SUPPORTED = Object.keys(LOCALE_NAMES);
+const DEFAULT_LANG = "en";
 
 const I18N = {
   en: {
@@ -19,16 +33,23 @@ const I18N = {
     description: "Description",
     yes: "yes",
     no: "no",
-    requiredInput: "required",
     inputsCount: (n) => `${n} input${n === 1 ? "" : "s"}`,
     by: "by",
+    templates: (n) => `${n} template${n === 1 ? "" : "s"}`,
     emptySearch: "No templates match your search.",
     empty: "No templates installed yet — clone github.com/schiplat/buz-plugins into the Manager's step directory.",
     loadFail: "Failed to load the step library",
     incompatible: "needs a newer Buz",
     sourceRepo: "Source repository",
+    reportHint: "Report a problem with this template",
+    timeout: "timeout",
+    reviewed: "reviewed",
+    unreviewed: "unreviewed",
+    official: "official",
+    community: "community",
     reviewedTip: "Officially reviewed at this content hash — a point-in-time check, not a runtime-safety guarantee",
     unreviewedTip: "Not in the official review manifest",
+    pinHint: "Review is a point-in-time check of this exact hash — pin with @sha256: to bind a pipeline to it.",
   },
   zh: {
     tagline: "Buz 流水线的可复用步骤模板——在流水线中通过 uses: 引用",
@@ -46,43 +67,68 @@ const I18N = {
     description: "说明",
     yes: "是",
     no: "否",
-    requiredInput: "必填",
     inputsCount: (n) => `${n} 个输入`,
     by: "作者",
+    templates: (n) => `${n} 个模板`,
     emptySearch: "没有匹配的模板。",
     empty: "尚未安装模板——将 github.com/schiplat/buz-plugins 克隆到 Manager 的步骤目录即可。",
     loadFail: "插件库加载失败",
     incompatible: "需要更新版本的 Buz",
     sourceRepo: "源仓库",
+    reportHint: "反馈此模板的问题",
+    timeout: "超时",
+    reviewed: "已审核",
+    unreviewed: "未审核",
+    official: "官方",
+    community: "社区",
     reviewedTip: "官方已审核该内容哈希——时间点检查，不构成运行时安全保证",
     unreviewedTip: "不在官方审核清单中",
   },
 };
 
-let lang = localStorage.getItem("buz-steps-lang") || (navigator.language || "").toLowerCase().startsWith("zh") ? localStorage.getItem("buz-steps-lang") || "zh" : "en";
+let lang = detectLanguage();
 let templates = [];
 
+function detectLanguage() {
+  const saved = localStorage.getItem("buz-steps-lang");
+  if (saved && I18N[saved]) return saved;
+  for (const candidate of navigator.languages || [navigator.language || DEFAULT_LANG]) {
+    const code = String(candidate).toLowerCase();
+    if (I18N[code]) return code; // exact: "zh", "en"
+    const base = code.split("-")[0];
+    if (I18N[base]) return base; // "zh-CN" → zh, "en-US" → en
+  }
+  return DEFAULT_LANG;
+}
+
 const t = (key, ...args) => {
-  const v = I18N[lang][key] ?? I18N.en[key] ?? key;
-  return typeof v === "function" ? v(...args) : v;
+  const value = I18N[lang][key] ?? I18N[DEFAULT_LANG][key] ?? key;
+  return typeof value === "function" ? value(...args) : value;
 };
 
 const esc = (s) =>
   String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-const desc = (tmpl) =>
-  (lang === "zh" ? tmpl.description_zh || tmpl.description : tmpl.description || tmpl.description_zh) || "";
+/** Description for the active locale, with fallback to what exists. */
+function localizedDescription(tmpl) {
+  const candidates =
+    lang === DEFAULT_LANG
+      ? ["description"]
+      : [`description_${lang}`, "description", ...Object.keys(tmpl)
+          .filter((k) => k.startsWith("description_") && k !== `description_${lang}`)];
+  for (const key of candidates) if (tmpl[key]) return tmpl[key];
+  return "";
+}
 
 function reviewedBadge(tmpl) {
   return tmpl.reviewed
-    ? `<span class="badge reviewed" title="${esc(t.reviewedTip)}${tmpl.reviewed_at ? " (" + esc(tmpl.reviewed_at) + ")" : ""}">✓ ${esc(t("name") === "名称" ? "已审核" : "reviewed")}</span>`
-    : `<span class="badge unreviewed" title="${esc(t.unreviewedTip)}">${esc(lang === "zh" ? "未审核" : "unreviewed")}</span>`;
+    ? `<span class="badge reviewed" title="${esc(t.reviewedTip)}${tmpl.reviewed_at ? " (" + esc(tmpl.reviewed_at) + ")" : ""}">✓ ${esc(t("reviewed"))}</span>`
+    : `<span class="badge unreviewed" title="${esc(t("unreviewedTip"))}">${esc(t("unreviewed"))}</span>`;
 }
 
 function publisherBadge(tmpl) {
-  const official = (tmpl.publisher || "community") === "official";
-  const label = official ? (lang === "zh" ? "官方" : "official") : (lang === "zh" ? "社区" : "community");
-  return `<span class="badge ${official ? "official" : "community"}">${esc(label)}</span>`;
+  const publisher = tmpl.publisher || "community";
+  return `<span class="badge ${publisher === "official" ? "official" : "community"}">${esc(t(publisher))}</span>`;
 }
 
 function card(tmpl) {
@@ -95,7 +141,7 @@ function card(tmpl) {
       <span class="badges">${reviewedBadge(tmpl)}${publisherBadge(tmpl)}</span>
     </div>
     <div class="mono dim card-id">${esc(tmpl.id)} <span class="sep">·</span> v${esc(tmpl.version)}</div>
-    <p class="desc">${esc(desc(tmpl))}</p>
+    <p class="desc">${esc(localizedDescription(tmpl))}</p>
     <div class="chips">
       <span class="chip">${esc(tmpl.engine)}</span>
       ${tmpl.default_timeout ? `<span class="chip">${esc(tmpl.default_timeout)}</span>` : ""}
@@ -110,12 +156,13 @@ function card(tmpl) {
 }
 
 function applyI18n() {
-  document.documentElement.lang = lang === "zh" ? "zh" : "en";
+  document.documentElement.lang = lang;
+  document.title = lang === DEFAULT_LANG ? "Buz Step Library" : `${lang === "zh" ? "Buz 插件库" : "Buz Step Library"} · Buz`;
   document.querySelectorAll("[data-i18n]").forEach((el) => {
     el.textContent = t(el.dataset.i18n);
   });
   document.getElementById("search").placeholder = t("search");
-  document.title = lang === "zh" ? "Buz 插件库" : "Buz Step Library";
+  document.getElementById("lang-select").value = lang;
 }
 
 function render() {
@@ -124,16 +171,25 @@ function render() {
   const grid = document.getElementById("grid");
   const list = templates.filter((tmpl) => {
     if (!q) return true;
-    return [tmpl.id, tmpl.name, tmpl.description, tmpl.description_zh, tmpl.author, tmpl.engine, ...(tmpl.keywords || [])]
-      .filter(Boolean)
+    const haystack = Object.entries(tmpl)
+      .filter(([key, value]) => typeof value === "string" || Array.isArray(value) || key === "inputs")
+      .map(([key, value]) =>
+        key === "inputs"
+          ? (value || []).map((i) => `${i.name} ${i.description || ""}`).join(" ")
+          : Array.isArray(value)
+            ? value.join(" ")
+            : key.startsWith("description_") || ["id", "name", "author", "engine"].includes(key)
+              ? value
+              : "",
+      )
       .join(" ")
-      .toLowerCase()
-      .includes(q);
+      .toLowerCase();
+    return haystack.includes(q);
   });
-  document.getElementById("count").textContent =
-    lang === "zh" ? `${list.length} 个模板` : `${list.length} template${list.length === 1 ? "" : "s"}`;
-  document.getElementById("empty").textContent = searchQueryEmpty() ? t("emptySearch") : t("empty");
-  document.getElementById("empty").classList.toggle("hidden", list.length > 0);
+  document.getElementById("count").textContent = t("templates", list.length);
+  const emptyEl = document.getElementById("empty");
+  emptyEl.textContent = document.getElementById("search").value.trim() ? t("emptySearch") : t("empty");
+  emptyEl.classList.toggle("hidden", list.length > 0);
   grid.innerHTML = list.map(card).join("");
   grid.querySelectorAll("[data-open]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -143,8 +199,6 @@ function render() {
     });
   });
 }
-
-const searchQueryEmpty = () => document.getElementById("search").value.trim() !== "";
 
 function openDetail(tmpl) {
   document.getElementById("d-id").textContent = `${tmpl.id}@${tmpl.version}`;
@@ -173,9 +227,9 @@ function openDetail(tmpl) {
   const report = `https://github.com/schiplat/buz-plugins/issues/new?template=report.yml&title=${encodeURIComponent(`[report] ${tmpl.id}@${tmpl.version}`)}`;
 
   document.getElementById("d-body").innerHTML = `
-    <p class="desc-full">${esc(desc(tmpl))}</p>
+    <p class="desc-full">${esc(localizedDescription(tmpl))}</p>
     <div class="facts">
-      ${tmpl.default_timeout ? `<span class="badge plain">${esc(t("usage") !== "Usage" ? "超时" : "timeout")}: ${esc(tmpl.default_timeout)}</span>` : ""}
+      ${tmpl.default_timeout ? `<span class="badge plain">${esc(t("timeout"))}: ${esc(tmpl.default_timeout)}</span>` : ""}
       ${tmpl.license ? `<span class="badge plain">${esc(tmpl.license)}</span>` : ""}
       ${tmpl.author ? `<span class="badge plain">${esc(t("by"))} ${esc(tmpl.author)}</span>` : ""}
     </div>
@@ -184,11 +238,9 @@ function openDetail(tmpl) {
     ${inputRows ? `<h3>${esc(t("inputs"))}</h3><table class="inputs"><thead><tr><th>${esc(t("name"))}</th><th>${esc(t("type"))}</th><th>${esc(t("required"))}</th><th>${esc(t("masking"))}</th><th>${esc(t("description"))}</th></tr></thead><tbody>${inputRows}</tbody></table>` : ""}
     <h3>${esc(t("integrity"))}</h3>
     <p class="dim mono small">sha256: ${esc(tmpl.content_sha256 || "")}</p>
-    <p class="dim small">${esc(lang === "zh"
-      ? "审核是对该哈希的时间点检查——在流水线中用 @sha256: 钉版可绑定到此内容。"
-      : "Review is a point-in-time check of this exact hash — pin with @sha256: to bind a pipeline to it.")}</p>
+    <p class="dim small">${esc(t("pinHint"))}</p>
     <p class="small">
-      <a href="${report}" target="_blank" rel="noopener" class="report">${esc(t("report"))}</a>
+      <a href="${report}" target="_blank" rel="noopener" class="report">${esc(t("reportHint"))}</a>
       ${tmpl.source_repo ? ` · <a href="${esc(tmpl.source_repo)}" target="_blank" rel="noopener">${esc(t("sourceRepo"))}</a>` : ""}
     </p>`;
 
@@ -196,18 +248,30 @@ function openDetail(tmpl) {
 }
 
 function setLang(next) {
+  if (!I18N[next]) return;
   lang = next;
   localStorage.setItem("buz-steps-lang", next);
   render();
 }
 
 async function main() {
+  // Language selector from supported locales (native names).
+  const select = document.getElementById("lang-select");
+  for (const code of SUPPORTED) {
+    const option = document.createElement("option");
+    option.value = code;
+    option.textContent = LOCALE_NAMES[code];
+    select.appendChild(option);
+  }
+  select.value = lang;
+  select.addEventListener("change", () => setLang(select.value));
+
+  document.getElementById("search").addEventListener("input", render);
+  document.getElementById("d-close").addEventListener("click", () => document.getElementById("detail").close());
+
   const data = await (await fetch("site-data.json")).json();
   templates = data.templates || [];
   document.getElementById("generated-line").textContent = `Index generated at ${data.generated_at || ""}`;
-  document.getElementById("lang-toggle").addEventListener("click", () => setLang(lang === "zh" ? "en" : "zh"));
-  document.getElementById("search").addEventListener("input", render);
-  document.getElementById("d-close").addEventListener("click", () => document.getElementById("detail").close());
   render();
 }
 

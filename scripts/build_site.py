@@ -85,6 +85,11 @@ def main() -> None:
         }
         for field in SUMMARY_FIELDS:
             item[field] = spec.get(field)
+        # Any future locale field (description_ja, description_ko, …) flows
+        # into the bundle without touching this script.
+        for key, value in spec.items():
+            if key.startswith("description_") and value:
+                item[key] = value
         templates.append(item)
 
     templates.sort(key=lambda t: (t["id"] or "", t["version"] or ""))
