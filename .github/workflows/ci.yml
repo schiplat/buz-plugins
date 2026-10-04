@@ -12,11 +12,15 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    # buz is private — checking it out cross-repo needs a PAT with read
-    # access to schiplat/buz (`BUZ_REPO_PAT` secret). Without it, only
-    # lint runs and step-validate is skipped.
+    # Validator comes from the buz release assets (no Rust toolchain here).
+    # buz is private — downloading its release assets needs a PAT with read
+    # access to schiplat/buz (`BUZ_REPO_PAT` secret). Without it, only lint
+    # runs and step-validate is skipped.
+    # Optional version pin: repo variable BUZ_VERSION (e.g. v1.5.7).
+    # Empty → latest release.
     env:
       BUZ_REPO_PAT: ${{ secrets.BUZ_REPO_PAT }}
+      BUZ_VERSION: ${{ vars.BUZ_VERSION }}
     steps:
       - uses: actions/checkout@v4
 
@@ -34,39 +38,26 @@ jobs:
       - name: Lint run blocks (heuristic patterns)
         run: python3 scripts/lint_runs.py plugins
 
-      - name: Install Rust (build buz-manager for step-validate)
+      - name: Install buz-manager (release binary)
         if: env.BUZ_REPO_PAT != ''
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache cargo
-        if: env.BUZ_REPO_PAT != ''
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: buz
-
-      - name: Checkout buz (validator source)
-        if: env.BUZ_REPO_PAT != ''
-        uses: actions/checkout@v4
-        with:
-          repository: schiplat/buz
-          ref: master
-          token: ${{ secrets.BUZ_REPO_PAT }}
-          path: buz
-
-      - name: Stub dashboard dist (step-validate needs no real UI)
-        if: env.BUZ_REPO_PAT != ''
+        env:
+          GH_TOKEN: ${{ secrets.BUZ_REPO_PAT }}
         run: |
-          mkdir -p buz/dashboard/dist
-          printf '<!doctype html><title>stub</title>' > buz/dashboard/dist/index.html
-
-      - name: Build buz-manager
-        if: env.BUZ_REPO_PAT != ''
-        run: cargo build --locked --release -p manager
-        working-directory: buz
+          API="https://api.github.com/repos/schiplat/buz/releases"
+          if [ -n "$BUZ_VERSION" ]; then
+            RELEASE=$(curl -sfL -H "Authorization: Bearer $GH_TOKEN" "$API/tags/$BUZ_VERSION")
+          else
+            RELEASE=$(curl -sfL -H "Authorization: Bearer $GH_TOKEN" "$API/latest")
+          fi
+          ASSET_URL=$(RELEASE="$RELEASE" python3 -c 'import sys, json; d = json.load(sys.stdin); print(next(a["browser_download_url"] for a in d["assets"] if a["name"].endswith("linux-x86_64.tar.gz")))')
+          curl -sfL -H "Authorization: Bearer $GH_TOKEN" -o bundle.tgz "$ASSET_URL"
+          tar -xzf bundle.tgz
+          sudo install -m 0755 "$(find . -type f -path '*/bin/buz-manager' | head -1)" /usr/local/bin/buz-manager
+          buz-manager --version
 
       - name: Validate step specs
         if: env.BUZ_REPO_PAT != ''
-        run: ./buz/target/release/buz-manager step-validate plugins
+        run: buz-manager step-validate plugins
 
       - name: Generate index (dry run)
         run: python3 scripts/gen_index.py --output /tmp/index.json && head /tmp/index.json
