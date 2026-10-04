@@ -1,9 +1,11 @@
-# Generated (gen_index.py / build_site.py — regenerable)
+# Generated (regenerable via CI / build scripts)
 index.json
-site/site-data.json
-site/index.json
-site/plugins/
-site/reviews.json
+reviews.json
+site/
+
+# Node
+node_modules/
+website/dist/
 
 # Misc
 .DS_Store
