@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import {
+  Check,
+  Copy,
   ExternalLink,
   Loader2,
   Search,
@@ -16,6 +18,7 @@ import Input from '@/components/ui/Input.vue'
 import Pagination from '@/components/ui/Pagination.vue'
 import Dialog from '@/components/ui/Dialog.vue'
 import FiltersSidebar from '@/components/FiltersSidebar.vue'
+import { copyText } from '@/lib/clipboard'
 import { T } from '@/ui-text'
 import type { StepLibrary, StepTemplate } from '@/types'
 import { REPO_URL } from '@/types'
@@ -33,6 +36,24 @@ const PAGE_SIZE = 6
 const showMobileFilters = ref(false)
 const selected = ref<StepTemplate | null>(null)
 const detailOpen = ref(false)
+const copiedCard = ref<string | null>(null)
+const copiedUsage = ref(false)
+
+async function copyUsesRef(t: StepTemplate) {
+  if (await copyText(`${t.id}@${t.version}`)) {
+    copiedCard.value = `${t.id}@${t.version}`
+    setTimeout(() => {
+      if (copiedCard.value === `${t.id}@${t.version}`) copiedCard.value = null
+    }, 1500)
+  }
+}
+
+async function copyUsage(t: StepTemplate) {
+  if (await copyText(usageSnippet(t))) {
+    copiedUsage.value = true
+    setTimeout(() => (copiedUsage.value = false), 1500)
+  }
+}
 
 function localized(t: StepTemplate): string {
   return t.description || t.description_zh || ''
@@ -252,7 +273,18 @@ onMounted(async () => {
               <div class="flex items-start justify-between gap-2">
                 <div class="min-w-0">
                   <div class="truncate font-semibold">{{ tmpl.name || tmpl.id }}</div>
-                  <div class="mt-0.5 truncate font-mono text-xs text-muted-foreground">{{ tmpl.id }} · v{{ tmpl.version }}</div>
+                  <div class="mt-0.5 flex items-center gap-1">
+                  <span class="truncate font-mono text-xs text-muted-foreground">{{ tmpl.id }} · v{{ tmpl.version }}</span>
+                  <button
+                    class="copy-btn inline-flex h-5 w-5 items-center justify-center rounded border border-transparent text-muted-foreground transition-colors hover:border-border hover:text-foreground"
+                    :title="copiedCard === `${tmpl.id}@${tmpl.version}` ? T.copied : T.copy"
+                    :aria-label="`${T.copy}: ${tmpl.id}@${tmpl.version}`"
+                    @click.stop="copyUsesRef(tmpl)"
+                  >
+                    <Check v-if="copiedCard === `${tmpl.id}@${tmpl.version}`" class="h-3 w-3 text-emerald-600" />
+                    <Copy v-else class="h-3 w-3" />
+                  </button>
+                </div>
                 </div>
                 <div class="flex shrink-0 flex-col items-end gap-1">
                   <Badge :variant="tmpl.reviewed ? 'reviewed' : 'unreviewed'" :title="tmpl.reviewed ? T.reviewedTip : T.unreviewedTip">
@@ -335,7 +367,18 @@ onMounted(async () => {
         </div>
 
         <h3 class="mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{{ T.usage }}</h3>
-        <pre class="overflow-x-auto rounded-md border bg-muted/60 p-3 font-mono text-xs">{{ usageSnippet(selected) }}</pre>
+        <div class="relative">
+          <pre class="overflow-x-auto rounded-md border bg-muted/60 p-3 pr-10 font-mono text-xs">{{ usageSnippet(selected) }}</pre>
+          <button
+            class="copy-btn absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-md border bg-background text-muted-foreground transition-colors hover:text-foreground"
+            :title="copiedUsage ? T.copied : T.copy"
+            aria-label="Copy usage snippet"
+            @click="copyUsage(selected)"
+          >
+            <Check v-if="copiedUsage" class="h-3.5 w-3.5 text-emerald-600" />
+            <Copy v-else class="h-3.5 w-3.5" />
+          </button>
+        </div>
 
         <template v-if="selected.inputs.length">
           <h3 class="mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{{ T.inputs }}</h3>
