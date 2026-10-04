@@ -4,11 +4,14 @@ import {
   Check,
   Copy,
   ExternalLink,
+  Hash,
+  List,
   Loader2,
   Search,
   ShieldAlert,
   SlidersHorizontal,
   Store,
+  Terminal,
   TriangleAlert,
 } from 'lucide-vue-next'
 import Badge from '@/components/ui/Badge.vue'
@@ -390,49 +393,63 @@ onMounted(async () => {
         </div>
 
         <!-- Usage -->
-        <h3 class="mb-2 mt-6 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{{ T.usage }}</h3>
-        <div class="relative">
-          <pre class="overflow-x-auto rounded-md border bg-muted/60 p-3 pr-10 font-mono text-xs">{{ usageSnippet(selected) }}</pre>
-          <button
-            class="copy-btn absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-md border bg-background text-muted-foreground transition-colors hover:text-foreground"
-            :title="copiedUsage ? T.copied : T.copy"
-            aria-label="Copy usage snippet"
-            @click="copyUsage(selected)"
-          >
-            <Check v-if="copiedUsage" class="h-3.5 w-3.5 text-emerald-600" />
-            <Copy v-else class="h-3.5 w-3.5" />
-          </button>
-        </div>
+        <section class="mt-6">
+          <h3 class="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <Terminal class="h-3.5 w-3.5" /> {{ T.usage }}
+          </h3>
+          <div class="relative">
+            <pre class="overflow-x-auto rounded-md border bg-muted/60 p-3 pr-10 font-mono text-xs">{{ usageSnippet(selected) }}</pre>
+            <button
+              class="copy-btn absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-md border bg-background text-muted-foreground transition-colors hover:text-foreground"
+              :title="copiedUsage ? T.copied : T.copy"
+              aria-label="Copy usage snippet"
+              @click="copyUsage(selected)"
+            >
+              <Check v-if="copiedUsage" class="h-3.5 w-3.5 text-emerald-600" />
+              <Copy v-else class="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </section>
 
         <!-- Inputs -->
-        <template v-if="selected.inputs.length">
-          <h3 class="mb-2 mt-6 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{{ T.inputs }}</h3>
-          <table class="w-full text-xs">
-            <thead>
-              <tr class="border-b text-left text-muted-foreground">
-                <th class="py-1.5 pr-3 font-medium">{{ T.name }}</th>
-                <th class="py-1.5 pr-3 font-medium">{{ T.type }}</th>
-                <th class="py-1.5 pr-3 font-medium">{{ T.required }}</th>
-                <th class="py-1.5 pr-3 font-medium">{{ T.masking }}</th>
-                <th class="py-1.5 font-medium">{{ T.description }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="input in selected.inputs" :key="input.name" class="border-b last:border-0">
-                <td class="py-1.5 pr-3 font-mono">{{ input.name }}</td>
-                <td class="py-1.5 pr-3">{{ input.type || 'string' }}</td>
-                <td class="py-1.5 pr-3">{{ input.required ? T.yes : T.no }}</td>
-                <td class="py-1.5 pr-3">{{ input.masking ? T.yes : T.no }}</td>
-                <td class="py-1.5 text-muted-foreground">{{ input.description || '—' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </template>
+        <section v-if="selected.inputs.length" class="mt-6">
+          <h3 class="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <List class="h-3.5 w-3.5" /> {{ T.inputs }}
+          </h3>
+          <div class="overflow-hidden rounded-md border">
+            <table class="w-full text-xs">
+              <thead>
+                <tr class="border-b bg-muted/60 text-left text-muted-foreground">
+                  <th class="py-1.5 pr-3 pl-3 font-medium">{{ T.name }}</th>
+                  <th class="py-1.5 pr-3 font-medium">{{ T.type }}</th>
+                  <th class="py-1.5 pr-3 font-medium">{{ T.required }}</th>
+                  <th class="py-1.5 pr-3 font-medium">{{ T.masking }}</th>
+                  <th class="py-1.5 pr-3 font-medium">{{ T.description }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="input in selected.inputs" :key="input.name" class="border-b last:border-0">
+                  <td class="py-1.5 pr-3 pl-3 font-mono">{{ input.name }}</td>
+                  <td class="py-1.5 pr-3">{{ input.type || 'string' }}</td>
+                  <td class="py-1.5 pr-3">{{ input.required ? T.yes : T.no }}</td>
+                  <td class="py-1.5 pr-3">{{ input.masking ? T.yes : T.no }}</td>
+                  <td class="py-1.5 pr-3 text-muted-foreground">{{ input.description || '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
 
         <!-- Integrity -->
-        <h3 class="mb-2 mt-6 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{{ T.integrity }}</h3>
-        <p class="font-mono text-xs text-muted-foreground">sha256: {{ selected.content_sha256 }}</p>
-        <p class="mt-1 text-xs text-muted-foreground">{{ T.pinHint }}</p>
+        <section class="mt-6">
+          <h3 class="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <Hash class="h-3.5 w-3.5" /> {{ T.integrity }}
+          </h3>
+          <div class="rounded-md border bg-muted/40 p-3">
+            <p class="break-all font-mono text-xs">sha256: {{ selected.content_sha256 }}</p>
+            <p class="mt-1.5 text-xs text-muted-foreground">{{ T.pinHint }}</p>
+          </div>
+        </section>
 
         <!-- Footer links -->
         <div class="mt-6 flex flex-wrap items-center gap-3 border-t pt-4 text-xs">
