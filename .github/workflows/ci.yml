@@ -12,6 +12,11 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    # buz is private — checking it out cross-repo needs a PAT with read
+    # access to schiplat/buz (`BUZ_REPO_PAT` secret). Without it, only
+    # lint runs and step-validate is skipped.
+    env:
+      BUZ_REPO_PAT: ${{ secrets.BUZ_REPO_PAT }}
     steps:
       - uses: actions/checkout@v4
 
@@ -26,29 +31,35 @@ jobs:
             echo "no shell scripts yet — nothing to lint"
           fi
 
+      - name: Lint run blocks (heuristic patterns)
+        run: python3 scripts/lint_runs.py plugins
+
       - name: Install Rust (build buz-manager for step-validate)
+        if: env.BUZ_REPO_PAT != ''
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cache cargo
+        if: env.BUZ_REPO_PAT != ''
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: buz
 
       - name: Checkout buz (validator source)
+        if: env.BUZ_REPO_PAT != ''
         uses: actions/checkout@v4
         with:
           repository: schiplat/buz
-          ref: main
+          ref: master
+          token: ${{ secrets.BUZ_REPO_PAT }}
           path: buz
 
       - name: Build buz-manager
+        if: env.BUZ_REPO_PAT != ''
         run: cargo build --locked --release -p manager
         working-directory: buz
 
-      - name: Lint run blocks (heuristic patterns)
-        run: python3 scripts/lint_runs.py plugins
-
       - name: Validate step specs
+        if: env.BUZ_REPO_PAT != ''
         run: ./buz/target/release/buz-manager step-validate plugins
 
       - name: Generate index (dry run)
