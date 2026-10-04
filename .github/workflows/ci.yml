@@ -107,7 +107,7 @@ jobs:
           npx wrangler pages project create buz-plugins --production-branch=master             || echo "project already exists"
 
       - name: Deploy to Cloudflare Pages
-        if: github.ref == 'refs/heads/dev' && env.CLOUDFLARE_API_TOKEN != ''
+        if: github.ref == 'refs/heads/master' && env.CLOUDFLARE_API_TOKEN != ''
         uses: cloudflare/wrangler-action@v3
         env:
           WRANGLER_LOG: debug
