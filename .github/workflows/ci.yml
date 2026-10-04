@@ -2,7 +2,7 @@ name: ci
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     tags: ["v*"]
   pull_request:
 
@@ -80,7 +80,7 @@ jobs:
       # Custom domain (plugins.buz.schiplat.com) is bound in the CF Pages
       # project settings after the first deploy creates the project.
       - name: Deploy to Cloudflare Pages
-        if: github.ref == 'refs/heads/main' && secrets.CLOUDFLARE_API_TOKEN != ''
+        if: github.ref == 'refs/heads/master' && secrets.CLOUDFLARE_API_TOKEN != ''
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
