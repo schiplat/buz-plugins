@@ -49,7 +49,7 @@ jobs:
           else
             RELEASE=$(curl -sfL -H "Authorization: Bearer $GH_TOKEN" "$API/latest")
           fi
-          ASSET_URL=$(RELEASE="$RELEASE" python3 -c 'import sys, json; d = json.load(sys.stdin); print(next(a["browser_download_url"] for a in d["assets"] if a["name"].endswith("linux-x86_64.tar.gz")))')
+          ASSET_URL=$(printf '%s' "$RELEASE" | python3 -c 'import sys, json; d = json.load(sys.stdin); print(next(a["browser_download_url"] for a in d["assets"] if a["name"].endswith("linux-x86_64.tar.gz")))')
           curl -sfL -H "Authorization: Bearer $GH_TOKEN" -o bundle.tgz "$ASSET_URL"
           tar -xzf bundle.tgz
           sudo install -m 0755 "$(find . -type f -path '*/bin/buz-manager' | head -1)" /usr/local/bin/buz-manager
