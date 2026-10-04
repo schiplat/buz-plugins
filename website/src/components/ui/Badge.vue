@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { cva, type VariantProps } from 'class-variance-authority'
+import { cva } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const badgeVariants = cva(
@@ -21,9 +21,15 @@ const badgeVariants = cva(
   },
 )
 
-const props = defineProps<{ variant?: VariantProps<typeof badgeVariants>; class?: string }>()
+const props = withDefaults(
+  defineProps<{
+    variant?: 'default' | 'secondary' | 'outline' | 'reviewed' | 'unreviewed' | 'official' | 'community' | 'warn'
+    class?: string
+  }>(),
+  { variant: 'default' },
+)
 </script>
 
 <template>
-  <span :class="cn(badgeVariants({ variant }), props?.class)"><slot /></span>
+  <span :class="cn(badgeVariants({ variant }), props.class)"><slot /></span>
 </template>

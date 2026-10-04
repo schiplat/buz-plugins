@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { cva, type VariantProps } from 'class-variance-authority'
+import { cva } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const buttonVariants = cva(
@@ -22,11 +22,18 @@ const buttonVariants = cva(
   },
 )
 
-const props = defineProps<{ variant?: VariantProps<typeof buttonVariants>; size?: VariantProps<typeof buttonVariants>; class?: string }>()
+const props = withDefaults(
+  defineProps<{
+    variant?: 'default' | 'outline' | 'ghost' | 'link'
+    size?: 'default' | 'sm' | 'icon'
+    class?: string
+  }>(),
+  { variant: 'default', size: 'default' },
+)
 </script>
 
 <template>
-  <button :class="cn(buttonVariants({ variant, size }), props?.class)">
+  <button :class="cn(buttonVariants({ variant, size }), props.class)">
     <slot />
   </button>
 </template>
