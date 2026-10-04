@@ -31,6 +31,7 @@ export interface StepTemplate {
 
 export interface StepLibrary {
   templates: StepTemplate[]
+  unparseable?: { file: string; error: string }[]
   generated_at?: string
 }
 
