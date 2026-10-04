@@ -73,6 +73,7 @@ Full spec: marketplace ADR §5 (`docs/design/step-marketplace.md` in the buz rep
 ## CI
 
 - **validate**: builds `buz-manager` from source and runs `step-validate plugins/` on every push/PR; also runs `shellcheck` over `scripts/*.sh`.
+- **site**: builds the static browse site (`site/` + `index.json` + plugin files + `reviews.json`) and uploads it as an artifact. Deployment to `plugins.buz.schiplat.com` is a one-step copy of that artifact — host TBD (Cloudflare Pages leaning), pending domain confirmation.
 - **index**: on tags `v*`, generates `index.json` (id / version / sha256 per template) and attaches it to the GitHub release. The Phase 2 static browse site (`plugins.buz.schiplat.com`) is built from the same file.
 
 ## Official review badge / 官方审核徽标

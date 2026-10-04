@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Buz Step Library / Buz 插件库</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div>
+      <h1>Buz Step Library <span class="zh">插件库</span></h1>
+      <p class="sub">
+        Reusable step templates for <a href="https://github.com/schiplat/buz">Buz</a> —
+        reference them from pipelines with <code>uses:</code>.
+        Buz 流水线的可复用步骤模板。
+      </p>
+    </div>
+    <input id="search" type="search" placeholder="Search / 搜索…" autocomplete="off" />
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="banner" class="banner hidden"></div>
+  <div id="grid" class="grid"></div>
+  <p id="empty" class="empty hidden">No templates match. / 没有匹配的模板。</p>
+</main>
+
+<footer class="wrap foot">
+  <p>
+    Contribute / 贡献: <a href="https://github.com/schiplat/buz-plugins">schiplat/buz-plugins</a>
+    · <a href="https://github.com/schiplat/buz-plugins/issues/new?template=report.yml">Report a template / 反馈模板</a>
+    · Security: <a href="https://github.com/schiplat/buz-plugins/security/advisories/new">private report</a>
+  </p>
+  <p class="fine" id="generated"></p>
+</footer>
+
+<dialog id="detail">
+  <div class="detail-head">
+    <h2 id="d-title"></h2>
+    <button id="d-close" class="icon" aria-label="close">✕</button>
+  </div>
+  <div id="d-body"></div>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>
