@@ -4,6 +4,8 @@ version: 1.0.0
 description: Post a message to a Slack channel via an incoming webhook; auto-appends the Buz job link.
 description_zh: 通过 Slack incoming webhook 发送消息，自动附带 Buz 任务链接。
 publisher: official
+author: "buz maintainers"
+keywords: [slack, notify, notification, webhook]
 license: Apache-2.0
 engine: shell
 default_timeout: 30s

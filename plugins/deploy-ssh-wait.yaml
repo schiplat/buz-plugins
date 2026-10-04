@@ -4,6 +4,8 @@ version: 1.0.0
 description: Block until an SSH server answers on the target host — wait out a reboot or cloud-init before the next deploy step. Runs from the runner host.
 description_zh: 等待目标主机 SSH 可登录（重启/重装后），再继续后续部署步骤。利用 Runner 出站网络，无需目标机暴露额外端口。
 publisher: official
+author: "buz maintainers"
+keywords: [ssh, wait, reboot, deploy, deploy-wait, 重启, 部署]
 license: Apache-2.0
 engine: shell
 default_timeout: 15m
