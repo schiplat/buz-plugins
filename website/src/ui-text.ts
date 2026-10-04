@@ -26,7 +26,7 @@ export const T = {
   loadFail: 'Failed to load the marketplace',
   incompatible: 'needs a newer Buz',
   sourceRepo: 'Source repository',
-  reportHint: 'Report a problem with this template',
+  reportHint: 'Report issue',
   timeout: 'timeout',
   reviewed: 'Reviewed',
   unreviewed: 'Unreviewed',
