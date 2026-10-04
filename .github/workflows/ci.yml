@@ -2,7 +2,7 @@ name: ci
 
 on:
   push:
-    branches: [master]
+    branches: [dev]
     tags: ["v*"]
   pull_request:
 
@@ -97,19 +97,19 @@ jobs:
           name: site
           path: site/
 
-      # Deploys on pushes to main once the secrets exist (repo Settings →
+      # Deploys on pushes to dev once the secrets exist (repo Settings →
       # Secrets and variables → Actions):
       #   CLOUDFLARE_API_TOKEN  — CF token with "Cloudflare Pages: Edit"
       #   CLOUDFLARE_ACCOUNT_ID — CF account id
       # Custom domain (plugins.buz.schiplat.com) is bound in the CF Pages
       # project settings after the first deploy creates the project.
       - name: Deploy to Cloudflare Pages
-        if: github.ref == 'refs/heads/master' && env.CLOUDFLARE_API_TOKEN != ''
+        if: github.ref == 'refs/heads/dev' && env.CLOUDFLARE_API_TOKEN != ''
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy site --project-name=buz-plugins --branch=main --commit-dirty=true
+          command: pages deploy site --project-name=buz-plugins --branch=dev --commit-dirty=true
 
   index:
     if: startsWith(github.ref, 'refs/tags/v')
