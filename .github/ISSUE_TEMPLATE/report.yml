@@ -1,0 +1,41 @@
+name: Template problem report / 模板问题反馈
+description: Report a broken, incorrect, or suspicious step template / 反馈模板故障、错误或可疑行为
+title: "[report] <step-id>@<version>"
+labels: ["report"]
+body:
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category / 类型
+      options:
+        - Not working / 不工作
+        - Documentation wrong / 文档错误
+        - Security concern / 安全疑虑（疑似后门/外联）
+    validations:
+      required: true
+  - type: input
+    id: step
+    attributes:
+      label: Step / 模板
+      description: id@version, e.g. notify/feishu@1.0.0
+    validations:
+      required: true
+  - type: input
+    id: hash
+    attributes:
+      label: Content sha256 (if known)
+      description: From index.json or your step_resolutions provenance
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened / 发生了什么
+      description: Include logs (secrets redacted), unexpected network activity, or behavior differences vs the declared inputs
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: |
+        **Security concerns / 安全疑虑**：若怀疑存在后门或恶意行为，请勿在此公开贴出可被利用的细节——
+        改用仓库的 **Private vulnerability reporting**（Security → Report a vulnerability）私下提交，
+        维护者会私下分诊并在处置后发布说明。
+        Do not publish exploitable details publicly — use private vulnerability reporting instead.
