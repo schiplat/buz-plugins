@@ -42,9 +42,20 @@ def main() -> None:
     parser.add_argument("--plugins-dir", default="plugins")
     parser.add_argument("--reviews", default="reviews.json")
     parser.add_argument("--site-dir", default="site")
+    parser.add_argument(
+        "--dist-dir",
+        default=None,
+        help="Prebuilt frontend dist to seed the site dir with (Vue build output). "
+        "When omitted, the committed static files in --site-dir are used.",
+    )
     args = parser.parse_args()
 
     site_dir = Path(args.site_dir)
+    if args.dist_dir:
+        dist = Path(args.dist_dir)
+        if dist.exists():
+            shutil.rmtree(site_dir, ignore_errors=True)
+            shutil.copytree(dist, site_dir)
     plugin_dir = Path(args.plugins_dir)
     files = sorted(p for p in plugin_dir.iterdir() if p.suffix in (".yaml", ".yml"))
     if not files:
