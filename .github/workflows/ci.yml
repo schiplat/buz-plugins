@@ -103,6 +103,10 @@ jobs:
       #   CLOUDFLARE_ACCOUNT_ID — CF account id
       # Custom domain (plugins.buz.schiplat.com) is bound in the CF Pages
       # project settings after the first deploy creates the project.
+      - name: Verify CF token (whoami)
+        if: github.ref == 'refs/heads/dev' && env.CLOUDFLARE_API_TOKEN != ''
+        run: npx wrangler whoami
+
       - name: Deploy to Cloudflare Pages
         if: github.ref == 'refs/heads/dev' && env.CLOUDFLARE_API_TOKEN != ''
         uses: cloudflare/wrangler-action@v3
