@@ -70,7 +70,13 @@ Full spec: marketplace ADR §5 (`docs/design/step-marketplace.md` in the buz rep
 
 ## CI
 
-- **validate**: builds `buz-manager` from source and runs `step-validate plugins/` on every push/PR; also runs `shellcheck` over `scripts/*.sh`.
+- **validate**: downloads the `buz-manager` binary from the buz release (no Rust toolchain, no source build) and runs `step-validate plugins/` on every push/PR; also runs `shellcheck` over `scripts/*.sh`.
+
+  Optional version pin — repo Settings → Secrets and variables → Actions → **Variables** tab:
+
+  | Variable | Value |
+  |----------|-------|
+  | `BUZ_VERSION` | Release tag to validate against (e.g. `v1.5.7`). Empty → latest release. |
 - **site**: builds the static browse site (`site/` + `index.json` + plugin files + `reviews.json`), uploads it as an artifact, and deploys it to **Cloudflare Pages** on pushes to `master`.
 
   One-time deploy setup (repo Settings → Secrets and variables → Actions):
