@@ -1,4 +1,4 @@
-id: notify/feishu
+id: buz/feishu
 name: Feishu group notification
 version: 1.0.0
 description: Send a text message to a Feishu custom-bot group; auto-appends the Buz job link when BUZ_* metadata is present.
