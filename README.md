@@ -94,7 +94,7 @@ Unreviewed templates resolve with a warning by default; the review status is rec
 Every template carries a report entry (site page and Dashboard step library link here):
 
 - **不工作 / 文档错误** → [open an issue](https://github.com/schiplat/buz-plugins/issues/new?template=report.yml) with the `report` template (step id@version + what happened)
-- **疑似后门 / 恶意行为** → **勿公开贴细节**：使用仓库的 [Private vulnerability reporting](https://github.com/schiplat/buz-plugins/security/advisories/new) 私下提交，维护者私下分诊、处置后发布说明
+- **疑似后门 / 恶意行为** → **勿公开贴细节**：使用仓库的 [Private vulnerability reporting](https://github.com/schiplat/buz-plugins/security/advisories/new) 私下提交，维护者私下分诊、处置后发布说明。安全报告目标 **7 天内首次响应**（节假日顺延）；超时未收到回应可在原报告中催办
 
 Triage outcomes: benign → closed; violating → template **removed from the index** (takedown) and, when applicable, a note published; fixable → author PR with a version bump (content hash changes, so the review badge auto-invalidates until re-reviewed).
 
