@@ -57,10 +57,18 @@ def main() -> None:
             reviewed_hashes[entry["sha256"]] = entry
 
     templates = []
+    seen: dict[tuple[str, str], str] = {}
     for path in files:
         raw = path.read_text(encoding="utf-8")
         spec = yaml.safe_load(raw)
         sha = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+        key = (str(spec.get("id")), str(spec.get("version")))
+        if key in seen:
+            raise SystemExit(
+                f"{path}: duplicate id+version {key} (already in {seen[key]}) — "
+                "keep one file per id+version"
+            )
+        seen[key] = str(path)
         item = {
             "id": spec.get("id"),
             "version": spec.get("version"),
