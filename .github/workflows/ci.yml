@@ -45,6 +45,9 @@ jobs:
         run: cargo build --locked --release -p manager
         working-directory: buz
 
+      - name: Lint run blocks (heuristic patterns)
+        run: python3 scripts/lint_runs.py plugins
+
       - name: Validate step specs
         run: ./buz/target/release/buz-manager step-validate plugins
 

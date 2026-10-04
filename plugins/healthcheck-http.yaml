@@ -4,6 +4,8 @@ version: 1.0.0
 description: Poll an HTTP endpoint until it returns the expected status (or attempts run out). Useful after a deploy.
 description_zh: 轮询 HTTP 端点直到返回预期状态码或重试耗尽——部署后的就绪等待。
 publisher: official
+author: "buz maintainers"
+keywords: [healthcheck, http, readiness, poll, deploy, 健康检查, 就绪]
 license: Apache-2.0
 engine: shell
 default_timeout: 5m

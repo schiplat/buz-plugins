@@ -4,6 +4,8 @@ version: 1.0.0
 description: Send a text message to a Feishu custom-bot group; auto-appends the Buz job link when BUZ_* metadata is present.
 description_zh: 向飞书群自定义机器人发送文本消息，自动附带 Buz 任务链接，支持 @全员。
 publisher: official
+author: "buz maintainers"
+keywords: [feishu, lark, notify, notification, webhook, 飞书, 通知]
 license: Apache-2.0
 engine: shell
 default_timeout: 30s

@@ -4,6 +4,8 @@ version: 1.0.0
 description: Send a text message to a DingTalk custom-bot group, with optional HMAC signing and @all.
 description_zh: 向钉钉群自定义机器人发送文本消息，支持加签（HmacSHA256）与 @全员。
 publisher: official
+author: "buz maintainers"
+keywords: [dingtalk, notify, notification, webhook, 钉钉, 通知]
 license: Apache-2.0
 engine: shell
 default_timeout: 30s

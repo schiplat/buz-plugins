@@ -4,6 +4,8 @@ version: 1.0.0
 description: Block until a TCP endpoint (frp/rp/ssh tunnel, migrated service…) accepts connections, or fail after the timeout.
 description_zh: 等待 TCP 端点（frp/rp 隧道、迁移中的服务…）可连通，超时则失败——跨网络发布场景的同步原语。
 publisher: official
+author: "buz maintainers"
+keywords: [tunnel, tcp, frp, wait, network, 隧道, 内网穿透]
 license: Apache-2.0
 engine: shell
 default_timeout: 10m
