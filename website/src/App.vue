@@ -37,14 +37,20 @@ const showMobileFilters = ref(false)
 const selected = ref<StepTemplate | null>(null)
 const detailOpen = ref(false)
 const copiedCard = ref<string | null>(null)
+const copiedDetail = ref(false)
 const copiedUsage = ref(false)
 
-async function copyUsesRef(t: StepTemplate) {
+async function copyUsesRef(t: StepTemplate, context: 'card' | 'detail' = 'card') {
   if (await copyText(`${t.id}@${t.version}`)) {
-    copiedCard.value = `${t.id}@${t.version}`
-    setTimeout(() => {
-      if (copiedCard.value === `${t.id}@${t.version}`) copiedCard.value = null
-    }, 1500)
+    if (context === 'card') {
+      copiedCard.value = `${t.id}@${t.version}`
+      setTimeout(() => {
+        if (copiedCard.value === `${t.id}@${t.version}`) copiedCard.value = null
+      }, 1500)
+    } else {
+      copiedDetail.value = true
+      setTimeout(() => (copiedDetail.value = false), 1500)
+    }
   }
 }
 
@@ -271,20 +277,20 @@ onMounted(async () => {
               @click="selected = tmpl; detailOpen = true"
             >
               <div class="flex items-start justify-between gap-2">
-                <div class="min-w-0">
-                  <div class="truncate font-semibold">{{ tmpl.name || tmpl.id }}</div>
+                <div class="min-w-0 flex-1">
+                  <div class="font-semibold leading-snug">{{ tmpl.name || tmpl.id }}</div>
                   <div class="mt-0.5 flex items-center gap-1">
-                  <span class="truncate font-mono text-xs text-muted-foreground">{{ tmpl.id }} · v{{ tmpl.version }}</span>
-                  <button
-                    class="copy-btn inline-flex h-5 w-5 items-center justify-center rounded border border-transparent text-muted-foreground transition-colors hover:border-border hover:text-foreground"
-                    :title="copiedCard === `${tmpl.id}@${tmpl.version}` ? T.copied : T.copy"
-                    :aria-label="`${T.copy}: ${tmpl.id}@${tmpl.version}`"
-                    @click.stop="copyUsesRef(tmpl)"
-                  >
-                    <Check v-if="copiedCard === `${tmpl.id}@${tmpl.version}`" class="h-3 w-3 text-emerald-600" />
-                    <Copy v-else class="h-3 w-3" />
-                  </button>
-                </div>
+                    <span class="font-mono text-xs text-muted-foreground">{{ tmpl.id }} · v{{ tmpl.version }}</span>
+                    <button
+                      class="copy-btn inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
+                      :title="copiedCard === `${tmpl.id}@${tmpl.version}` ? T.copied : T.copy"
+                      :aria-label="`${T.copy}: ${tmpl.id}@${tmpl.version}`"
+                      @click.stop="copyUsesRef(tmpl)"
+                    >
+                      <Check v-if="copiedCard === `${tmpl.id}@${tmpl.version}`" class="h-3 w-3 text-emerald-600" />
+                      <Copy v-else class="h-3 w-3" />
+                    </button>
+                  </div>
                 </div>
                 <div class="flex shrink-0 flex-col items-end gap-1">
                   <Badge :variant="tmpl.reviewed ? 'reviewed' : 'unreviewed'" :title="tmpl.reviewed ? T.reviewedTip : T.unreviewedTip">
@@ -341,10 +347,22 @@ onMounted(async () => {
     <!-- Detail dialog -->
     <Dialog v-model="detailOpen">
       <div v-if="selected">
-        <div class="flex items-start justify-between gap-4">
-          <div>
-            <div class="font-mono text-sm font-semibold">{{ selected.id }}@{{ selected.version }}</div>
-            <div class="mt-1.5 flex flex-wrap gap-1.5">
+        <!-- Header: reference (with copy) + badges + close -->
+        <div class="flex items-start justify-between gap-4 border-b pb-4">
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <span class="truncate font-mono text-sm font-semibold">{{ selected.id }}@{{ selected.version }}</span>
+              <button
+                class="copy-btn inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                :title="copiedDetail ? T.copied : T.copy"
+                aria-label="Copy uses reference"
+                @click="copyUsesRef(selected, 'detail')"
+              >
+                <Check v-if="copiedDetail" class="h-3.5 w-3.5 text-emerald-600" />
+                <Copy v-else class="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <div class="mt-2 flex flex-wrap gap-1.5">
               <Badge :variant="selected.reviewed ? 'reviewed' : 'unreviewed'"
                 :title="selected.reviewed ? T.reviewedTip : T.unreviewedTip">
                 {{ selected.reviewed ? `✓ ${T.reviewed}` : T.unreviewed }}
@@ -357,16 +375,22 @@ onMounted(async () => {
           <Button variant="ghost" size="sm" @click="detailOpen = false">✕</Button>
         </div>
 
-        <p class="mt-4 text-sm">{{ localized(selected) }}</p>
+        <!-- Description -->
+        <p class="mt-4 text-sm leading-relaxed">{{ localized(selected) }}</p>
 
+        <!-- Meta chips -->
         <div class="mt-4 flex flex-wrap gap-1.5">
           <Badge variant="secondary" class="font-mono">{{ selected.engine }}</Badge>
           <Badge v-if="selected.default_timeout" variant="secondary">{{ T.timeout }}: {{ selected.default_timeout }}</Badge>
           <Badge v-if="selected.license" variant="secondary">{{ selected.license }}</Badge>
           <Badge v-if="selected.author" variant="secondary">{{ T.by }} {{ selected.author }}</Badge>
+          <Badge v-if="selected.buz_compatible === false" variant="warn">
+            <ShieldAlert class="mr-0.5 h-3 w-3" /> {{ T.incompatible }}
+          </Badge>
         </div>
 
-        <h3 class="mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{{ T.usage }}</h3>
+        <!-- Usage -->
+        <h3 class="mb-2 mt-6 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{{ T.usage }}</h3>
         <div class="relative">
           <pre class="overflow-x-auto rounded-md border bg-muted/60 p-3 pr-10 font-mono text-xs">{{ usageSnippet(selected) }}</pre>
           <button
@@ -380,8 +404,9 @@ onMounted(async () => {
           </button>
         </div>
 
+        <!-- Inputs -->
         <template v-if="selected.inputs.length">
-          <h3 class="mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{{ T.inputs }}</h3>
+          <h3 class="mb-2 mt-6 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{{ T.inputs }}</h3>
           <table class="w-full text-xs">
             <thead>
               <tr class="border-b text-left text-muted-foreground">
@@ -404,11 +429,13 @@ onMounted(async () => {
           </table>
         </template>
 
-        <h3 class="mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{{ T.integrity }}</h3>
+        <!-- Integrity -->
+        <h3 class="mb-2 mt-6 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{{ T.integrity }}</h3>
         <p class="font-mono text-xs text-muted-foreground">sha256: {{ selected.content_sha256 }}</p>
         <p class="mt-1 text-xs text-muted-foreground">{{ T.pinHint }}</p>
 
-        <div class="mt-5 flex flex-wrap items-center gap-3 border-t pt-4 text-xs">
+        <!-- Footer links -->
+        <div class="mt-6 flex flex-wrap items-center gap-3 border-t pt-4 text-xs">
           <a :href="reportUrl(selected)" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-destructive hover:underline">
             <ShieldAlert class="h-3.5 w-3.5" /> {{ T.reportHint }}
           </a>
