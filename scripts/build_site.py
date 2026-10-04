@@ -32,8 +32,10 @@ SUMMARY_FIELDS = [
     "author",
     "author_url",
     "source_repo",
+    "publisher",
     "license",
     "default_timeout",
+    "requires_buz",
 ]
 
 
