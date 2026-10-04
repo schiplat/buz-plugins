@@ -53,6 +53,12 @@ jobs:
           token: ${{ secrets.BUZ_REPO_PAT }}
           path: buz
 
+      - name: Stub dashboard dist (step-validate needs no real UI)
+        if: env.BUZ_REPO_PAT != ''
+        run: |
+          mkdir -p buz/dashboard/dist
+          printf '<!doctype html><title>stub</title>' > buz/dashboard/dist/index.html
+
       - name: Build buz-manager
         if: env.BUZ_REPO_PAT != ''
         run: cargo build --locked --release -p manager
