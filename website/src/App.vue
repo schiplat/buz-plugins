@@ -279,29 +279,27 @@ onMounted(async () => {
               class="group flex cursor-pointer flex-col p-5 transition-shadow hover:shadow-md"
               @click="selected = tmpl; detailOpen = true"
             >
-              <div class="flex items-start justify-between gap-2">
-                <div class="min-w-0 flex-1">
-                  <div class="font-semibold leading-snug">{{ tmpl.name || tmpl.id }}</div>
-                  <div class="mt-0.5 flex items-center gap-1">
-                    <span class="font-mono text-xs text-muted-foreground">{{ tmpl.id }} · v{{ tmpl.version }}</span>
-                    <button
-                      class="copy-btn inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
-                      :title="copiedCard === `${tmpl.id}@${tmpl.version}` ? T.copied : T.copy"
-                      :aria-label="`${T.copy}: ${tmpl.id}@${tmpl.version}`"
-                      @click.stop="copyUsesRef(tmpl)"
-                    >
-                      <Check v-if="copiedCard === `${tmpl.id}@${tmpl.version}`" class="h-3 w-3 text-emerald-600" />
-                      <Copy v-else class="h-3 w-3" />
-                    </button>
-                  </div>
-                </div>
-                <div class="flex shrink-0 flex-col items-end gap-1">
+              <div>
+                <div class="font-semibold leading-snug">{{ tmpl.name || tmpl.id }}</div>
+                <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
                   <Badge :variant="tmpl.reviewed ? 'reviewed' : 'unreviewed'" :title="tmpl.reviewed ? T.reviewedTip : T.unreviewedTip">
                     {{ tmpl.reviewed ? `✓ ${T.reviewed}` : T.unreviewed }}
                   </Badge>
                   <Badge :variant="(tmpl.publisher || 'community') === 'official' ? 'official' : 'community'">
                     {{ (tmpl.publisher || 'community') === 'official' ? T.official : T.community }}
                   </Badge>
+                </div>
+                <div class="mt-1.5 flex items-center gap-1">
+                  <span class="font-mono text-xs text-muted-foreground">{{ tmpl.id }} · v{{ tmpl.version }}</span>
+                  <button
+                    class="copy-btn inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
+                    :title="copiedCard === `${tmpl.id}@${tmpl.version}` ? T.copied : T.copy"
+                    :aria-label="`${T.copy}: ${tmpl.id}@${tmpl.version}`"
+                    @click.stop="copyUsesRef(tmpl)"
+                  >
+                    <Check v-if="copiedCard === `${tmpl.id}@${tmpl.version}`" class="h-3 w-3 text-emerald-600" />
+                    <Copy v-else class="h-3 w-3" />
+                  </button>
                 </div>
               </div>
 
