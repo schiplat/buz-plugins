@@ -38,6 +38,8 @@ export const T = {
   prev: 'Previous',
   next: 'Next',
   filters: 'Filters',
+  copy: 'Copy',
+  copied: 'Copied',
   publisher: 'Publisher',
   engine: 'Engine',
   reviewStatus: 'Review status',
