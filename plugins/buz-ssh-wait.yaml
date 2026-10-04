@@ -1,4 +1,4 @@
-id: deploy/ssh-wait
+id: buz/ssh-wait
 name: Wait for SSH host (reboot / rebuild)
 version: 1.0.0
 description: Block until an SSH server answers on the target host — wait out a reboot or cloud-init before the next deploy step. Runs from the runner host.
