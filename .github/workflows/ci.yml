@@ -49,9 +49,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: schiplat/buz
-          # Plugin core (uses:/with, step-validate) lives on buz dev during
-          # the validation phase — switch to master after it merges.
-          ref: dev
+          ref: master
           token: ${{ secrets.BUZ_REPO_PAT }}
           path: buz
 
