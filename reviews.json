@@ -5,7 +5,7 @@
       "version": "1.0.0",
       "sha256": "e99302aecb760e356ac93934d1af49c90abd29431887b1737d890a977671f8b6",
       "reviewed_at": "2026-10-05",
-      "review_commit": "cab2b9f",
+      "review_commit": "59b8918",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci"
     },
@@ -14,7 +14,7 @@
       "version": "1.0.0",
       "sha256": "e0c238e8fef37a46cee243614f7afbcfd2792b6268603d7dc5bd909785ae2afc",
       "reviewed_at": "2026-10-05",
-      "review_commit": "cab2b9f",
+      "review_commit": "59b8918",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci"
     },
@@ -23,7 +23,7 @@
       "version": "1.0.0",
       "sha256": "6e24d4d1fcd44a845c2f74448023293bcb9141735f66c9879df5c29cdb9717d5",
       "reviewed_at": "2026-10-05",
-      "review_commit": "cab2b9f",
+      "review_commit": "59b8918",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci"
     },
@@ -32,7 +32,7 @@
       "version": "1.0.0",
       "sha256": "e0c22801593054d0a56853ff0d89337cbdfe0a8f907d864f86388522cadf8de6",
       "reviewed_at": "2026-10-05",
-      "review_commit": "cab2b9f",
+      "review_commit": "59b8918",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci"
     },
@@ -41,7 +41,7 @@
       "version": "1.0.0",
       "sha256": "5493a1b58d964326e2ec4bb84a676d8250cdb32cf005cc12b334af35c0b02c3c",
       "reviewed_at": "2026-10-05",
-      "review_commit": "cab2b9f",
+      "review_commit": "59b8918",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci"
     },
@@ -50,7 +50,7 @@
       "version": "1.0.0",
       "sha256": "a3f903211323fe42f34648e6c346209c9f039c2fcf27f8aea508794d986d8d4d",
       "reviewed_at": "2026-10-05",
-      "review_commit": "cab2b9f",
+      "review_commit": "59b8918",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci"
     },
@@ -59,7 +59,7 @@
       "version": "1.0.0",
       "sha256": "2114d69c1b6cbdf83a364865622025cdb17b760fd753321bd0ca28e006671bf7",
       "reviewed_at": "2026-10-05",
-      "review_commit": "cab2b9f",
+      "review_commit": "59b8918",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci"
     }
