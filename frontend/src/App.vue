@@ -78,6 +78,7 @@ const keywordFacets = computed(() => {
   for (const t of allTemplates.value)
     for (const keyword of t.keywords || []) counts.set(keyword, (counts.get(keyword) || 0) + 1)
   return [...counts.entries()]
+    .filter(([value]) => !/[\u4e00-\u9fff\u3400-\u4dbf]/.test(value))
     .map(([value, count]) => ({ value, label: value, count }))
     .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value))
 })
