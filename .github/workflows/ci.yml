@@ -43,7 +43,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.BUZ_REPO_PAT }}
         run: |
-          API="https://api.github.com/repos/schiplat/buz/releases"
+          API="https://api.github.com/repos/schiplatv2/buz/releases"
           if [ -n "$BUZ_VERSION" ]; then
             RELEASE=$(curl -sfL -H "Authorization: Bearer $GH_TOKEN" "$API/tags/$BUZ_VERSION")
           else
