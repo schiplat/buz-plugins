@@ -49,8 +49,10 @@ jobs:
           else
             RELEASE=$(curl -sfL -H "Authorization: Bearer $GH_TOKEN" "$API/latest")
           fi
-          ASSET_URL=$(printf '%s' "$RELEASE" | python3 -c 'import sys, json; d = json.load(sys.stdin); print(next(a["browser_download_url"] for a in d["assets"] if a["name"].endswith("linux-x86_64.tar.gz")))')
-          curl -sfL -H "Authorization: Bearer $GH_TOKEN" -o bundle.tgz "$ASSET_URL"
+          # Private repo: browser_download_url only accepts browser sessions —
+          # asset downloads go through the API endpoint (octet-stream + token).
+          ASSET_ID=$(printf '%s' "$RELEASE" | python3 -c 'import sys, json; d = json.load(sys.stdin); print(next(a["id"] for a in d["assets"] if a["name"].endswith("linux-x86_64.tar.gz")))')
+          curl -sfL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/octet-stream" -o bundle.tgz "$API/assets/$ASSET_ID"
           tar -xzf bundle.tgz
           sudo install -m 0755 "$(find . -type f -path '*/bin/buz-manager' | head -1)" /usr/local/bin/buz-manager
           buz-manager --version
