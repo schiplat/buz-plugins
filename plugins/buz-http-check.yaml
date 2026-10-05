@@ -7,6 +7,7 @@ publisher: official
 author: "buz maintainers"
 keywords: [healthcheck, http, readiness, poll, deploy, 健康检查, 就绪]
 license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz-http-check.yaml
 engine: shell
 default_timeout: 5m
 inputs:

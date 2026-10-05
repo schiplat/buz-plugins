@@ -7,6 +7,7 @@ publisher: official
 author: "buz maintainers"
 keywords: [feishu, lark, notify, notification, webhook, 飞书, 通知]
 license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz-feishu.yaml
 engine: shell
 default_timeout: 30s
 inputs:
