@@ -61,6 +61,9 @@ jobs:
         if: env.BUZ_REPO_PAT_V2 != ''
         run: buz-manager step-validate plugins
 
+      - name: Egress report (declared outbound endpoints per template)
+        run: python3 scripts/egress.py --print
+
       - name: Generate index (dry run)
         run: python3 scripts/gen_index.py --output /tmp/index.json && head /tmp/index.json
 
