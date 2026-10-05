@@ -6,9 +6,12 @@ plugins/*.yaml, parse the `run:` block and pull out every URL and network
 host the script touches. The reviewer's job shrinks to judging whether the
 declared endpoint list is sensible for what the template claims to do.
 
-Outputs a machine-readable evidence file (consumed by gen_reviews.py) and
-prints a human-readable table. Stdlib only; paths resolve against the repo
-root so it runs from any working directory.
+Prints a human-readable table, optionally writes machine-readable evidence
+JSON, and can enforce `--expect egress-allowlist.json`: for official
+(`buz/*`) templates the extracted surface must stay within the reviewed
+baseline, which is what lets green CI stand in for a human sign-off
+(ADR §6.7.6). Stdlib only; paths resolve against the repo root so it runs
+from any working directory.
 """
 
 import argparse
@@ -30,6 +33,41 @@ ENDPOINT_INPUT_RE = re.compile(r"webhook|url|host|endpoint|server|addr|api", re.
 
 def run_block(spec: dict) -> str:
     return spec.get("run") or ""
+
+
+def check_allowlist(evidence: list[dict], allow_path: Path) -> list[str]:
+    """Compare extracted egress against the reviewed baseline.
+
+    Shape of egress-allowlist.json:
+        { "<template-id>": { "hosts": [...], "endpoint_inputs": [...] } }
+
+    Only `buz/*` templates are enforced — community templates are human-
+    reviewed as a whole and have no allowlist obligation. Hosts are a
+    subset check (the allowlist is an upper bound); endpoint inputs must
+    match exactly, because a new network-touching input is precisely the
+    kind of change a reviewer has to see.
+    """
+    allow = json.loads(allow_path.read_text(encoding="utf-8"))
+    violations: list[str] = []
+    for entry in evidence:
+        tid = entry["id"] or ""
+        if not tid.startswith("buz/"):
+            continue
+        rule = allow.get(tid)
+        if rule is None:
+            violations.append(f"{tid}: no allowlist entry — add one to {allow_path.name}")
+            continue
+        extra_hosts = sorted(set(entry["egress_hosts"]) - set(rule.get("hosts", [])))
+        if extra_hosts:
+            violations.append(f"{tid}: undeclared egress hosts: {', '.join(extra_hosts)}")
+        input_diff = sorted(
+            set(entry["endpoint_inputs"]) ^ set(rule.get("endpoint_inputs", []))
+        )
+        if input_diff:
+            violations.append(
+                f"{tid}: endpoint inputs differ from baseline: {', '.join(input_diff)}"
+            )
+    return violations
 
 
 def extract_egress(run: str) -> tuple[list[str], list[str]]:
@@ -70,6 +108,15 @@ def main() -> None:
         action="store_true",
         help="Print the human-readable egress table",
     )
+    parser.add_argument(
+        "--expect",
+        default=None,
+        help="Path to egress-allowlist.json. Every buz/* template must have "
+        "an entry there; extracted hosts must stay within the allowed set "
+        "and endpoint inputs must match exactly. Exits non-zero on any "
+        "deviation — the allowlist is the reviewed baseline, so changing it "
+        "is part of review, not a build fix.",
+    )
     args = parser.parse_args()
 
     plugin_dir = resolve(args.plugins_dir)
@@ -83,16 +130,6 @@ def main() -> None:
         spec = yaml.safe_load(raw)
         if not spec or not isinstance(spec, dict):
             raise SystemExit(f"{path}: not a valid step spec — run step-validate")
-        run = spec.get("run") or ""
-        urls: list[str] = []
-        hosts: list[str] = []
-        endpoint_inputs: set[str] = set()
-        for match in URL_RE.finditer(run):
-            url = match.group(0).rstrip(".,;)")
-            urls.append(url)
-            host = urlparse(url).netloc
-            if host:
-                hosts.append(host)
         run = spec.get("run") or ""
         urls: list[str] = []
         hosts: list[str] = []
@@ -127,6 +164,19 @@ def main() -> None:
                 print(f"    → runtime endpoint via input: {input_name}")
             if not entry["egress_hosts"] and not entry["endpoint_inputs"]:
                 print("    → (no outbound endpoints declared)")
+
+    if args.expect:
+        violations = check_allowlist(evidence, resolve(args.expect))
+        if violations:
+            for v in violations:
+                print(f"EGRESS VIOLATION: {v}", file=sys.stderr)
+            raise SystemExit(
+                f"{len(violations)} egress allowlist violation(s) — the "
+                "allowlist is the reviewed baseline: a deviation needs human "
+                "review before the allowlist is updated"
+            )
+        official = sum(1 for e in evidence if (e["id"] or "").startswith("buz/"))
+        print(f"egress allowlist: {official} official template(s) within baseline")
 
     output = args.output
     if output:
