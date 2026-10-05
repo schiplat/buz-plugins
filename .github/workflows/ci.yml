@@ -14,12 +14,12 @@ jobs:
     runs-on: ubuntu-latest
     # Validator comes from the buz release assets (no Rust toolchain here).
     # buz is private — downloading its release assets needs a PAT with read
-    # access to schiplat/buz (`BUZ_REPO_PAT` secret). Without it, only lint
+    # access to schiplat/buz (`BUZ_REPO_PAT_V2` secret). Without it, only lint
     # runs and step-validate is skipped.
     # Optional version pin: repo variable BUZ_VERSION (e.g. v1.5.7).
     # Empty → latest release.
     env:
-      BUZ_REPO_PAT: ${{ secrets.BUZ_REPO_PAT }}
+      BUZ_REPO_PAT_V2: ${{ secrets.BUZ_REPO_PAT_V2 }}
       BUZ_VERSION: ${{ vars.BUZ_VERSION }}
     steps:
       - uses: actions/checkout@v4
@@ -39,9 +39,9 @@ jobs:
         run: python3 scripts/lint_runs.py plugins
 
       - name: Install buz-manager (release binary)
-        if: env.BUZ_REPO_PAT != ''
+        if: env.BUZ_REPO_PAT_V2 != ''
         env:
-          GH_TOKEN: ${{ secrets.BUZ_REPO_PAT }}
+          GH_TOKEN: ${{ secrets.BUZ_REPO_PAT_V2 }}
         run: |
           API="https://api.github.com/repos/schiplatv2/buz/releases"
           if [ -n "$BUZ_VERSION" ]; then
@@ -58,7 +58,7 @@ jobs:
           buz-manager --version
 
       - name: Validate step specs
-        if: env.BUZ_REPO_PAT != ''
+        if: env.BUZ_REPO_PAT_V2 != ''
         run: buz-manager step-validate plugins
 
       - name: Generate index (dry run)
