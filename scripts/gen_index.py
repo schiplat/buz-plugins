@@ -31,11 +31,19 @@ def extract(pattern: re.Pattern[str], raw: str, field: str, path: Path) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
+    # Paths resolve against the repo root (script's parent), so the script
+    # behaves identically from any working directory.
+    root = Path(__file__).resolve().parent.parent
+
+    def resolve(path: str) -> Path:
+        candidate = Path(path)
+        return candidate if candidate.is_absolute() else root / candidate
+
     parser.add_argument("--plugins-dir", default="plugins")
     parser.add_argument("--output", default="index.json")
     args = parser.parse_args()
 
-    plugin_dir = Path(args.plugins_dir)
+    plugin_dir = resolve(args.plugins_dir)
     files = sorted(
         p for p in plugin_dir.iterdir() if p.suffix in (".yaml", ".yml")
     )
@@ -65,10 +73,11 @@ def main() -> None:
 
     steps.sort(key=lambda s: (s["id"], s["version"]))
     index = {"steps": steps}
-    Path(args.output).write_text(
+    output = resolve(args.output)
+    Path(output).write_text(
         json.dumps(index, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
-    print(f"index.json: {len(steps)} step(s) written to {args.output}")
+    print(f"index.json: {len(steps)} step(s) written to {output}")
 
 
 if __name__ == "__main__":
