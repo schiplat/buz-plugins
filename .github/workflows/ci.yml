@@ -83,11 +83,11 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: website/package-lock.json
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Build marketplace site (Vue + Vite)
         run: |
-          cd website
+          cd frontend
           npm ci
           npm run build
 
@@ -100,13 +100,13 @@ jobs:
           # in the `validate` job above. Community entries in reviews.json
           # are human-made and are preserved by the merge.
           python3 scripts/gen_reviews.py --auto --commit "${GITHUB_SHA::7}"
-          python3 scripts/build_site.py --dist-dir website/dist
+          python3 scripts/build_site.py --dist-dir frontend/dist
 
       - name: Upload site artifact
         uses: actions/upload-artifact@v4
         with:
           name: site
-          path: site/
+          path: dist/
 
       # Deploys on pushes to master once the secrets exist (repo Settings →
       # Secrets and variables → Actions):
@@ -127,7 +127,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy site --project-name=buz-plugins --branch=master --commit-dirty=true
+          command: pages deploy dist --project-name=buz-plugins --branch=master --commit-dirty=true
 
       # Persist reviews.json so Manager deployments that clone this repo get
       # the fresh official badges. Runs last: a bot-push race must never block

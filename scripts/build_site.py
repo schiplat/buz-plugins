@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Build the static-site data bundle: site/site-data.json (ADR §6.3).
+"""Build the static-site data bundle: dist/site-data.json (ADR §6.3).
 
 The browse site is a single static page that renders this bundle — no
-backend, no client-side YAML parsing. Also stages a deployable directory:
+backend, no client-side YAML parsing. Also stages the deployable
+directory (`dist/` — what `wrangler pages deploy dist` ships):
 
-    site/
-├── index.html / assets/*             (Vue build output)
+    dist/
+├── index.html / assets/*             (Vue build output from frontend/)
 ├── site-data.json                    (generated)
 ├── templates/*.html                  (generated — crawlable per-template pages)
 ├── robots.txt / sitemap.xml          (generated)
@@ -158,21 +159,22 @@ def main() -> None:
 
     parser.add_argument("--plugins-dir", default="plugins")
     parser.add_argument("--reviews", default="reviews.json")
-    parser.add_argument("--site-dir", default="site")
+    parser.add_argument("--out-dir", default="dist", help="Deployable output directory")
     parser.add_argument(
         "--dist-dir",
         default=None,
-        help="Prebuilt frontend dist to seed the site dir with (Vue build output). "
-        "When omitted, the committed static files in --site-dir are used.",
+        help="Prebuilt frontend dist to seed the output dir with (Vue build "
+        "output from frontend/dist). When omitted, the committed static "
+        "files in --out-dir are used.",
     )
     args = parser.parse_args()
 
-    site_dir = resolve(args.site_dir)
+    out_dir = resolve(args.out_dir)
     if args.dist_dir:
         dist = resolve(args.dist_dir)
         if dist.exists():
-            shutil.rmtree(site_dir, ignore_errors=True)
-            shutil.copytree(dist, site_dir)
+            shutil.rmtree(out_dir, ignore_errors=True)
+            shutil.copytree(dist, out_dir)
     plugin_dir = resolve(args.plugins_dir)
     files = sorted(p for p in plugin_dir.iterdir() if p.suffix in (".yaml", ".yml"))
     if not files:
@@ -221,7 +223,7 @@ def main() -> None:
         templates.append(item)
 
     templates.sort(key=lambda t: (t["id"] or "", t["version"] or ""))
-    site_dir.mkdir(parents=True, exist_ok=True)
+    out_dir.mkdir(parents=True, exist_ok=True)
     bundle = {
         "generated_at": datetime.now(timezone.utc)
         .replace(microsecond=0)
@@ -229,12 +231,12 @@ def main() -> None:
         .replace("+00:00", "Z"),
         "templates": templates,
     }
-    (site_dir / "site-data.json").write_text(
+    (out_dir / "site-data.json").write_text(
         json.dumps(bundle, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
 
     # Per-template static pages (crawlable + shareable landing pages).
-    templates_dir = site_dir / "templates"
+    templates_dir = out_dir / "templates"
     templates_dir.mkdir(parents=True, exist_ok=True)
     page_urls = []
     for tmpl in templates:
@@ -244,12 +246,12 @@ def main() -> None:
         page_urls.append(f"{SITE_URL}/templates/{page_file.name}")
 
     # robots.txt + sitemap.xml
-    (site_dir / "robots.txt").write_text(
+    (out_dir / "robots.txt").write_text(
         f"User-agent: *\nAllow: /\nSitemap: {SITE_URL}/sitemap.xml\n", encoding="utf-8"
     )
     sitemap_entries = [f"  <url><loc>{SITE_URL}/</loc></url>"]
     sitemap_entries += [f"  <url><loc>{u}</loc></url>" for u in page_urls]
-    (site_dir / "sitemap.xml").write_text(
+    (out_dir / "sitemap.xml").write_text(
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         + "\n".join(sitemap_entries)
@@ -262,16 +264,16 @@ def main() -> None:
     index_path = root / "index.json"
     if not index_path.exists():
         raise SystemExit("index.json not found — run scripts/gen_index.py first")
-    shutil.copy(index_path, site_dir / "index.json")
-    plugins_out = site_dir / "plugins"
+    shutil.copy(index_path, out_dir / "index.json")
+    plugins_out = out_dir / "plugins"
     if plugins_out.exists():
         shutil.rmtree(plugins_out)
     shutil.copytree(plugin_dir, plugins_out)
     if reviews_path.exists():
-        shutil.copy(reviews_path, site_dir / "reviews.json")
+        shutil.copy(reviews_path, out_dir / "reviews.json")
 
     print(
-        f"site: {len(templates)} template(s) → {site_dir}/ "
+        f"site: {len(templates)} template(s) → {out_dir}/ "
         f"(+{len(templates)} template pages, robots.txt, sitemap.xml)"
     )
 
