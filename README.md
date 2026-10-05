@@ -89,9 +89,12 @@ Full spec: marketplace ADR §5 (`docs/design/step-marketplace.md` in the buz rep
   The first deploy creates the Pages project `buz-plugins`; then bind the custom domain **plugins.buz.schiplat.com** in CF Pages → project → Custom domains.
 - **index**: on tags `v*`, generates `index.json` (id / version / sha256 per template) and attaches it to the GitHub release.
 
-## Official review badge
+## Review badges
 
-Official templates carry a review record bound to their **content sha256** (`reviews.json`, generated with `scripts/gen_reviews.py` after a maintainer review). Because the badge binds to the hash, any content change invalidates it automatically — a reviewed v1.0 never launders trust for an unreviewed v1.1.
+Every entry in `reviews.json` binds a review to a **content sha256** — any content change invalidates the badge automatically, so a reviewed v1.0 never launders trust for an unreviewed v1.1. The two namespaces carry different trust models:
+
+- **Official (`buz/*`) — CI-issued.** The same org writes and reviews these templates, so a human sign-off adds no independent signal. Instead green CI is the gate: `step-validate` + `lint_runs` + the egress allowlist (`egress-allowlist.json`) must all pass for the exact content hash. CI regenerates these entries on every push to `master` (`scripts/gen_reviews.py --auto`) and commits the refreshed manifest. A deviation from the egress baseline fails the build — updating the allowlist is part of review, not a build fix.
+- **Community (`<author>/…`) — human-issued.** CI green is a prerequisite, never a substitute: a maintainer reviews the PR on GitHub, then records the entry with `scripts/gen_reviews.py --date <d> --commit <sha> author/...`. Human entries are preserved across auto-regenerations.
 
 Managers can enforce it:
 

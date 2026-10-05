@@ -1,0 +1,51 @@
+{
+  "_comment": [
+    "Reviewed egress baseline for official (buz/*) templates.",
+    "enforced by: python3 scripts/egress.py --expect egress-allowlist.json",
+    "hosts: upper bound on literal hosts in the run block (subset check).",
+    "endpoint_inputs: exact match — a new network-touching input must go",
+    "through human review before this file is updated."
+  ],
+  "buz/deploy/ssh-wait": {
+    "hosts": [],
+    "endpoint_inputs": [
+      "host"
+    ]
+  },
+  "buz/healthcheck/http-check": {
+    "hosts": [],
+    "endpoint_inputs": [
+      "url"
+    ]
+  },
+  "buz/net/wait-for-tunnel": {
+    "hosts": [],
+    "endpoint_inputs": [
+      "host"
+    ]
+  },
+  "buz/notify/dingtalk": {
+    "hosts": [],
+    "endpoint_inputs": [
+      "webhook"
+    ]
+  },
+  "buz/notify/feishu": {
+    "hosts": [],
+    "endpoint_inputs": [
+      "webhook"
+    ]
+  },
+  "buz/notify/slack": {
+    "hosts": [],
+    "endpoint_inputs": [
+      "webhook"
+    ]
+  },
+  "buz/notify/wecom": {
+    "hosts": [],
+    "endpoint_inputs": [
+      "webhook"
+    ]
+  }
+}

@@ -61,8 +61,8 @@ jobs:
         if: env.BUZ_REPO_PAT_V2 != ''
         run: buz-manager step-validate plugins
 
-      - name: Egress report (declared outbound endpoints per template)
-        run: python3 scripts/egress.py --print
+      - name: Egress report + allowlist check (reviewed baseline)
+        run: python3 scripts/egress.py --print --expect egress-allowlist.json
 
       - name: Generate index (dry run)
         run: python3 scripts/gen_index.py --output /tmp/index.json && head /tmp/index.json
@@ -95,6 +95,11 @@ jobs:
         run: |
           pip install pyyaml
           python3 scripts/gen_index.py --output index.json
+          # Official (buz/*) review badges are issued by green CI itself
+          # (ADR §6.7.6): validate + lint_runs + egress allowlist all passed
+          # in the `validate` job above. Community entries in reviews.json
+          # are human-made and are preserved by the merge.
+          python3 scripts/gen_reviews.py --auto --commit "${GITHUB_SHA::7}"
           python3 scripts/build_site.py --dist-dir website/dist
 
       - name: Upload site artifact
@@ -123,6 +128,24 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy site --project-name=buz-plugins --branch=master --commit-dirty=true
+
+      # Persist reviews.json so Manager deployments that clone this repo get
+      # the fresh official badges. Runs last: a bot-push race must never block
+      # the deploy above. [skip ci] keeps the bot commit from re-triggering
+      # the workflow; hash bindings stay correct because entries bind to
+      # plugin-file hashes, not to this commit.
+      - name: Commit refreshed reviews.json
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        run: |
+          if git diff --quiet reviews.json; then
+            echo "reviews.json unchanged — nothing to commit"
+          else
+            git config user.name "buz-bot"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add reviews.json
+            git commit -m "ci: refresh official review badges [skip ci]"
+            git push
+          fi
 
   index:
     if: startsWith(github.ref, 'refs/tags/v')
