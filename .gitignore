@@ -1,6 +1,6 @@
 # Generated (regenerable via CI / build scripts)
 index.json
-site/
+dist/
 
 # reviews.json IS committed: it is the trust artifact consumers resolve
 # against (Manager reviewed_manifest, site badges). Official (buz/*)
@@ -10,7 +10,7 @@ site/
 
 # Node
 node_modules/
-website/dist/
+frontend/dist/
 
 # Misc
 .DS_Store
