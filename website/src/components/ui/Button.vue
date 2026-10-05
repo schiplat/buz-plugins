@@ -26,14 +26,19 @@ const props = withDefaults(
   defineProps<{
     variant?: 'default' | 'outline' | 'ghost' | 'link'
     size?: 'default' | 'sm' | 'icon'
+    /** Element to render as — 'a' for link-styled buttons (href falls through). */
+    as?: string
     class?: string
   }>(),
-  { variant: 'default', size: 'default' },
+  { variant: 'default', size: 'default', as: 'button' },
 )
 </script>
 
 <template>
-  <button :class="cn(buttonVariants({ variant, size }), props.class)">
+  <component
+    :is="as"
+    :class="cn(buttonVariants({ variant, size }), props.class)"
+  >
     <slot />
-  </button>
+  </component>
 </template>
