@@ -52,13 +52,21 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    site_dir = Path(args.site_dir)
+    # Paths resolve against the repo root (script's grandparent), so the
+    # script behaves identically from any working directory.
+    root = Path(__file__).resolve().parent.parent
+
+    def resolve(path: str) -> Path:
+        candidate = Path(path)
+        return candidate if candidate.is_absolute() else root / candidate
+
+    site_dir = resolve(args.site_dir)
     if args.dist_dir:
-        dist = Path(args.dist_dir)
+        dist = resolve(args.dist_dir)
         if dist.exists():
             shutil.rmtree(site_dir, ignore_errors=True)
             shutil.copytree(dist, site_dir)
-    plugin_dir = Path(args.plugins_dir)
+    plugin_dir = resolve(args.plugins_dir)
     files = sorted(p for p in plugin_dir.iterdir() if p.suffix in (".yaml", ".yml"))
     if not files:
         raise SystemExit(f"{plugin_dir}: no step specs found")
@@ -120,7 +128,7 @@ def main() -> None:
 
     # Stage the rest of the deployable directory (Phase 2 Manager sync
     # consumes index.json and the raw plugin files from the same origin).
-    index_path = Path("index.json")
+    index_path = root / "index.json"
     if not index_path.exists():
         raise SystemExit("index.json not found — run scripts/gen_index.py first")
     shutil.copy(index_path, site_dir / "index.json")
