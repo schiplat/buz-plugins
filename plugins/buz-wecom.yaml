@@ -1,4 +1,4 @@
-id: buz/wecom
+id: buz/notify/wecom
 name: WeCom group notification
 version: 1.0.0
 description: Send a text message to a WeCom (WeChat Work) group bot; auto-appends the Buz job link.

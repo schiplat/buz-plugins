@@ -1,4 +1,4 @@
-id: buz/dingtalk
+id: buz/notify/dingtalk
 name: DingTalk group notification
 version: 1.0.0
 description: Send a text message to a DingTalk custom-bot group, with optional HMAC signing and @all.
