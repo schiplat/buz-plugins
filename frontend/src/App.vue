@@ -311,7 +311,7 @@ onMounted(async () => {
                 <div class="mt-1.5 flex items-center gap-1">
                   <span class="font-mono text-xs text-muted-foreground">{{ tmpl.id }} · v{{ tmpl.version }}</span>
                   <button
-                    class="copy-btn inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
+                    class="copy-btn inline-flex h-5 w-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:text-foreground"
                     :title="copiedCard === `${tmpl.id}@${tmpl.version}` ? T.copied : T.copy"
                     :aria-label="`${T.copy}: ${tmpl.id}@${tmpl.version}`"
                     @click.stop="copyUsesRef(tmpl)"
