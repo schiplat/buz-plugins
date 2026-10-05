@@ -5,8 +5,10 @@ The browse site is a single static page that renders this bundle — no
 backend, no client-side YAML parsing. Also stages a deployable directory:
 
     site/
-├── index.html / app.js / style.css   (committed)
+├── index.html / assets/*             (Vue build output)
 ├── site-data.json                    (generated)
+├── templates/*.html                  (generated — crawlable per-template pages)
+├── robots.txt / sitemap.xml          (generated)
 ├── index.json                        (copied — Phase 2 Manager sync endpoint)
 ├── plugins/*.yaml                    (copied — index `file` targets)
 └── reviews.json                      (copied when present)
@@ -22,8 +24,11 @@ import shutil
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional
 
 import yaml
+
+SITE_URL = "https://plugins.buz.schiplat.com"
 
 SUMMARY_FIELDS = [
     "name",
@@ -38,9 +43,119 @@ SUMMARY_FIELDS = [
     "requires_buz",
 ]
 
+GA_SNIPPET = (
+    '<script async src="https://www.googletagmanager.com/gtag/js?id=G-71C16BC1N6"></script>\n'
+    "<script>\n"
+    "  window.dataLayer = window.dataLayer || [];\n"
+    "  function gtag(){dataLayer.push(arguments);}\n"
+    "  gtag('js', new Date());\n"
+    "  gtag('config', 'G-71C16BC1N6');\n"
+    "</script>"
+)
+
+
+def esc(s):
+    return (s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def description_for(tmpl: dict, lang: str) -> str:
+    primary = f"description_{lang}"
+    return tmpl.get(primary) or tmpl.get("description") or ""
+
+
+def jsonld_software(tmpl: dict) -> str:
+    payload = {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": tmpl.get("name") or tmpl["id"],
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Any",
+        "softwareVersion": tmpl.get("version"),
+        "description": description_for(tmpl, "en"),
+        "author": {"@type": "Organization", "name": tmpl.get("author") or "Buz"},
+        "license": tmpl.get("license") or "Apache-2.0",
+        "url": f"{SITE_URL}/templates/{Path(tmpl['file']).stem}.html",
+    }
+    return json.dumps(payload, ensure_ascii=False, indent=2)
+
+
+def template_page_html(tmpl: dict) -> str:
+    template_id = tmpl["id"]
+    name = tmpl.get("name") or template_id
+    desc_en = description_for(tmpl, "en")
+    desc_zh = description_for(tmpl, "zh")
+    page_url = f"{SITE_URL}/templates/{Path(tmpl['file']).stem}.html"
+
+    input_rows = "".join(
+        f"<tr><td class='mono'>{esc(i.get('name'))}</td>"
+        f"<td>{esc(i.get('type') or 'string')}</td>"
+        f"<td>{'yes' if i.get('required') else 'no'}</td>"
+        f"<td>{'yes' if i.get('masking') else 'no'}</td>"
+        f"<td class='dim'>{esc(i.get('description') or '')}</td></tr>"
+        for i in tmpl.get("inputs", [])
+    )
+    inputs_html = (
+        f"<table class='inputs'><thead><tr><th>Name</th><th>Type</th><th>Required</th>"
+        f"<th>Masking</th><th>Description</th></tr></thead><tbody>{input_rows}</tbody></table>"
+        if input_rows
+        else "<p class='dim'>This template takes no inputs.</p>"
+    )
+
+    usage = esc(tmpl.get("run") or "")
+    jsonld = jsonld_software(tmpl)
+
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+<title>{esc(name)} — Buz Plugins Marketplace</title>
+<meta name="description" content="{esc(desc_en[:160])}" />
+<link rel="canonical" href="{esc(page_url)}" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="{esc(name)} — Buz Plugins Marketplace" />
+<meta property="og:description" content="{esc(desc_en[:160])}" />
+<meta property="og:url" content="{esc(page_url)}" />
+<meta name="twitter:card" content="summary" />
+<script type="application/ld+json">
+{jsonld}
+</script>
+<link rel="stylesheet" href="../style.css" />
+{GA_SNIPPET}
+</head>
+<body>
+<header class="top"><div class="wrap"><a class="home" href="../">&larr; Buz Plugins Marketplace</a></div></header>
+<main class="wrap">
+<h1>{esc(name)}</h1>
+<p class="mono dim">{esc(template_id)} · v{esc(tmpl['version'])} · {esc(tmpl['engine'])}</p>
+<p>{esc(desc_en)}</p>
+{f"<p lang='zh'>{esc(desc_zh)}</p>" if desc_zh and desc_zh != desc_en else ""}
+<h2>Inputs</h2>
+{inputs_html}
+<h2>Usage</h2>
+<pre class="code">{usage}</pre>
+<h2>Integrity</h2>
+<p class="mono dim small">sha256: {tmpl['content_sha256']}</p>
+<p class="dim small">{esc('Officially reviewed at this content hash' if tmpl.get('reviewed') else 'Not yet officially reviewed — the badge on the marketplace reflects the current review status')}.</p>
+<p><a href="https://github.com/schiplat/buz-plugins/issues/new?template=report.yml">Report an issue with this template</a>{f" · <a href='{esc(tmpl['source_repo'])}'>Source repository</a>" if tmpl.get('source_repo') else ""}</p>
+<p><a href="../">Browse all templates</a></p>
+</main>
+</body>
+</html>
+"""
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
+    # Paths resolve against the repo root (script's parent), so the
+    # script behaves identically from any working directory.
+    root = Path(__file__).resolve().parent.parent
+
+    def resolve(path: str) -> Path:
+        candidate = Path(path)
+        return candidate if candidate.is_absolute() else root / candidate
+
     parser.add_argument("--plugins-dir", default="plugins")
     parser.add_argument("--reviews", default="reviews.json")
     parser.add_argument("--site-dir", default="site")
@@ -51,14 +166,6 @@ def main() -> None:
         "When omitted, the committed static files in --site-dir are used.",
     )
     args = parser.parse_args()
-
-    # Paths resolve against the repo root (script's grandparent), so the
-    # script behaves identically from any working directory.
-    root = Path(__file__).resolve().parent.parent
-
-    def resolve(path: str) -> Path:
-        candidate = Path(path)
-        return candidate if candidate.is_absolute() else root / candidate
 
     site_dir = resolve(args.site_dir)
     if args.dist_dir:
@@ -72,7 +179,7 @@ def main() -> None:
         raise SystemExit(f"{plugin_dir}: no step specs found")
 
     reviewed_hashes: dict[str, dict] = {}
-    reviews_path = Path(args.reviews)
+    reviews_path = resolve(args.reviews)
     if reviews_path.exists():
         for entry in json.loads(reviews_path.read_text(encoding="utf-8")).get("reviews", []):
             reviewed_hashes[entry["sha256"]] = entry
@@ -94,7 +201,7 @@ def main() -> None:
             "id": spec.get("id"),
             "version": spec.get("version"),
             "file": str(path),
-            "sha256": sha,
+            "content_sha256": sha,
             "engine": (spec.get("engine") or "shell").strip(),
             "keywords": spec.get("keywords") or [],
             "inputs": [
@@ -126,6 +233,30 @@ def main() -> None:
         json.dumps(bundle, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
 
+    # Per-template static pages (crawlable + shareable landing pages).
+    templates_dir = site_dir / "templates"
+    templates_dir.mkdir(parents=True, exist_ok=True)
+    page_urls = []
+    for tmpl in templates:
+        page = template_page_html(tmpl)
+        page_file = templates_dir / (Path(tmpl["file"]).stem + ".html")
+        page_file.write_text(page, encoding="utf-8")
+        page_urls.append(f"{SITE_URL}/templates/{page_file.name}")
+
+    # robots.txt + sitemap.xml
+    (site_dir / "robots.txt").write_text(
+        f"User-agent: *\nAllow: /\nSitemap: {SITE_URL}/sitemap.xml\n", encoding="utf-8"
+    )
+    sitemap_entries = [f"  <url><loc>{SITE_URL}/</loc></url>"]
+    sitemap_entries += [f"  <url><loc>{u}</loc></url>" for u in page_urls]
+    (site_dir / "sitemap.xml").write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        + "\n".join(sitemap_entries)
+        + "\n</urlset>\n",
+        encoding="utf-8",
+    )
+
     # Stage the rest of the deployable directory (Phase 2 Manager sync
     # consumes index.json and the raw plugin files from the same origin).
     index_path = root / "index.json"
@@ -139,7 +270,10 @@ def main() -> None:
     if reviews_path.exists():
         shutil.copy(reviews_path, site_dir / "reviews.json")
 
-    print(f"site: {len(templates)} template(s) → {site_dir}/")
+    print(
+        f"site: {len(templates)} template(s) → {site_dir}/ "
+        f"(+{len(templates)} template pages, robots.txt, sitemap.xml)"
+    )
 
 
 if __name__ == "__main__":
