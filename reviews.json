@@ -3,63 +3,63 @@
     {
       "id": "buz/deploy/ssh-wait",
       "version": "1.0.0",
-      "sha256": "e99302aecb760e356ac93934d1af49c90abd29431887b1737d890a977671f8b6",
+      "sha256": "74572850255b4bba848d379f2ccbc873596a37a932f5b25b4119248a96880559",
       "reviewed_at": "2026-10-05",
-      "review_commit": "59b8918",
+      "review_commit": "26995d9",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci"
     },
     {
       "id": "buz/healthcheck/http-check",
       "version": "1.0.0",
-      "sha256": "e0c238e8fef37a46cee243614f7afbcfd2792b6268603d7dc5bd909785ae2afc",
+      "sha256": "f62718f80be7e272951d6fcc7db025d74cb80f7fba93b01ddccec2c528447cfa",
       "reviewed_at": "2026-10-05",
-      "review_commit": "59b8918",
+      "review_commit": "26995d9",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci"
     },
     {
       "id": "buz/net/wait-for-tunnel",
       "version": "1.0.0",
-      "sha256": "6e24d4d1fcd44a845c2f74448023293bcb9141735f66c9879df5c29cdb9717d5",
+      "sha256": "69f7e68d6941863bcc4629841e415206c25ad39f45f9d7f99d981e0ee9b2f55f",
       "reviewed_at": "2026-10-05",
-      "review_commit": "59b8918",
+      "review_commit": "26995d9",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci"
     },
     {
       "id": "buz/notify/dingtalk",
       "version": "1.0.0",
-      "sha256": "e0c22801593054d0a56853ff0d89337cbdfe0a8f907d864f86388522cadf8de6",
+      "sha256": "a6e7aeb46a030d4a6d440dc7bdf4a94e6f484054a2b0b92c70cbcad269e6a958",
       "reviewed_at": "2026-10-05",
-      "review_commit": "59b8918",
+      "review_commit": "26995d9",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci"
     },
     {
       "id": "buz/notify/feishu",
       "version": "1.0.0",
-      "sha256": "5493a1b58d964326e2ec4bb84a676d8250cdb32cf005cc12b334af35c0b02c3c",
+      "sha256": "0cc6b97ee410653888cd7a17a5fddc3fcb7ce0bcd4d7e80ef616aea9fc1e24b3",
       "reviewed_at": "2026-10-05",
-      "review_commit": "59b8918",
+      "review_commit": "26995d9",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci"
     },
     {
       "id": "buz/notify/slack",
       "version": "1.0.0",
-      "sha256": "a3f903211323fe42f34648e6c346209c9f039c2fcf27f8aea508794d986d8d4d",
+      "sha256": "1e8e9d795b1535bc02be3e10b9e967e13fb783d290e4f2d8547aec4485fdf9bc",
       "reviewed_at": "2026-10-05",
-      "review_commit": "59b8918",
+      "review_commit": "26995d9",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci"
     },
     {
       "id": "buz/notify/wecom",
       "version": "1.0.0",
-      "sha256": "2114d69c1b6cbdf83a364865622025cdb17b760fd753321bd0ca28e006671bf7",
+      "sha256": "ee1343ec16f711bdd96119296cbe474303305ac3ce63e76b866c293f2700b3bc",
       "reviewed_at": "2026-10-05",
-      "review_commit": "59b8918",
+      "review_commit": "26995d9",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci"
     }
