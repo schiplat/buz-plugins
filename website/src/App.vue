@@ -13,6 +13,7 @@ import {
   Store,
   Terminal,
   TriangleAlert,
+  Upload,
 } from 'lucide-vue-next'
 import Badge from '@/components/ui/Badge.vue'
 import Button from '@/components/ui/Button.vue'
@@ -24,7 +25,7 @@ import FiltersSidebar from '@/components/FiltersSidebar.vue'
 import { copyText } from '@/lib/clipboard'
 import { T } from '@/ui-text'
 import type { StepLibrary, StepTemplate } from '@/types'
-import { REPO_URL } from '@/types'
+import { NEW_TEMPLATE_URL, REPO_URL } from '@/types'
 
 const library = ref<StepLibrary>({ templates: [], unparseable: [] })
 const loading = ref(true)
@@ -260,6 +261,24 @@ onMounted(async () => {
             @update:selected-keywords="selectedKeywords = $event"
             @clear="clearFilters(); showMobileFilters = false"
           />
+        </div>
+
+        <!-- Community submission callout -->
+        <div class="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed p-4">
+          <div class="min-w-0">
+            <div class="text-sm font-medium">Built something useful? Share it with the community.</div>
+            <div class="text-xs text-muted-foreground mt-0.5">
+              One YAML file per template — open a PR and CI validates it automatically.
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <Button size="sm" as="a" :href="NEW_TEMPLATE_URL" target="_blank">
+              <Upload class="mr-1 h-3.5 w-3.5" /> Open a PR
+            </Button>
+            <Button variant="outline" size="sm" as="a" :href="`${REPO_URL}#authoring`" target="_blank">
+              Authoring guide
+            </Button>
+          </div>
         </div>
 
         <!-- Content -->

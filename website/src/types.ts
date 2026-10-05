@@ -37,6 +37,9 @@ export interface StepLibrary {
 
 export const REPO_URL = 'https://github.com/schiplat/buz-plugins'
 
+/** Web editor: opens a new-file PR draft under plugins/ on the default branch. */
+export const NEW_TEMPLATE_URL = `${REPO_URL}/new/master?filename=plugins/your-template.yaml`
+
 export function reportUrl(t: StepTemplate) {
   return `${REPO_URL}/issues/new?template=report.yml&title=${encodeURIComponent(`[report] ${t.id}@${t.version}`)}`
 }
