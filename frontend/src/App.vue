@@ -33,6 +33,7 @@ const error = ref('')
 const search = ref('')
 const publisher = ref('all')
 const engine = ref('all')
+const category = ref('all')
 const review = ref('all')
 const selectedKeywords = ref<string[]>([])
 const page = ref(1)
@@ -73,6 +74,7 @@ const allTemplates = computed(() => library.value.templates)
 
 const publisherFacets = computed(() => countBy(allTemplates.value, (t) => t.publisher || 'community'))
 const engineFacets = computed(() => countBy(allTemplates.value, (t) => t.engine))
+const categoryFacets = computed(() => countBy(allTemplates.value, (t) => t.category || 'uncategorized'))
 const keywordFacets = computed(() => {
   const counts = new Map<string, number>()
   for (const t of allTemplates.value)
@@ -107,6 +109,7 @@ const hasActiveFilters = computed(
   () =>
     publisher.value !== 'all' ||
     engine.value !== 'all' ||
+    category.value !== 'all' ||
     review.value !== 'all' ||
     selectedKeywords.value.length > 0 ||
     search.value.trim() !== '',
@@ -115,6 +118,7 @@ const hasActiveFilters = computed(
 function clearFilters() {
   publisher.value = 'all'
   engine.value = 'all'
+  category.value = 'all'
   review.value = 'all'
   selectedKeywords.value = []
   search.value = ''
@@ -125,6 +129,7 @@ const filtered = computed(() => {
   if (publisher.value !== 'all')
     list = list.filter((t) => (t.publisher || 'community') === publisher.value)
   if (engine.value !== 'all') list = list.filter((t) => t.engine === engine.value)
+  if (category.value !== 'all') list = list.filter((t) => (t.category || 'uncategorized') === category.value)
   if (review.value !== 'all')
     list = list.filter((t) => (review.value === 'reviewed' ? t.reviewed : !t.reviewed))
   if (selectedKeywords.value.length)
@@ -135,7 +140,7 @@ const filtered = computed(() => {
   if (q)
     list = list.filter((t) => {
       const haystack = [
-        t.id, t.name, t.description, t.description_zh, t.author, t.engine, ...(t.keywords || []),
+        t.id, t.name, t.category, t.description, t.description_zh, t.author, t.engine, ...(t.keywords || []),
       ].filter(Boolean).join(' ').toLowerCase()
       return haystack.includes(q)
     })
@@ -148,7 +153,7 @@ const paged = computed(() => {
   return filtered.value.slice(start, start + PAGE_SIZE)
 })
 
-watch([search, publisher, engine, review, selectedKeywords], () => (page.value = 1))
+watch([search, publisher, engine, category, review, selectedKeywords], () => (page.value = 1))
 
 function usageSnippet(t: StepTemplate): string {
   const lines = [`- name: ${t.id.split('/').pop()}`, `  uses: ${t.id}@${t.version}`]
@@ -202,15 +207,18 @@ onMounted(async () => {
           <FiltersSidebar
             :publisher="publisher"
             :engine="engine"
+            :category="category"
             :review="review"
             :selected-keywords="selectedKeywords"
             :publisher-facets="publisherFacets"
             :engine-facets="engineFacets"
+            :category-facets="categoryFacets"
             :review-facets="reviewFacets"
             :keyword-facets="keywordFacets"
             :has-active-filters="hasActiveFilters"
             @update:publisher="publisher = $event"
             @update:engine="engine = $event"
+            @update:category="category = $event"
             @update:review="review = $event"
             @update:selected-keywords="selectedKeywords = $event"
             @clear="clearFilters()"
@@ -249,15 +257,18 @@ onMounted(async () => {
           <FiltersSidebar
             :publisher="publisher"
             :engine="engine"
+            :category="category"
             :review="review"
             :selected-keywords="selectedKeywords"
             :publisher-facets="publisherFacets"
             :engine-facets="engineFacets"
+            :category-facets="categoryFacets"
             :review-facets="reviewFacets"
             :keyword-facets="keywordFacets"
             :has-active-filters="hasActiveFilters"
             @update:publisher="publisher = $event"
             @update:engine="engine = $event"
+            @update:category="category = $event"
             @update:review="review = $event"
             @update:selected-keywords="selectedKeywords = $event"
             @clear="clearFilters(); showMobileFilters = false"
@@ -302,6 +313,7 @@ onMounted(async () => {
               <div>
                 <div class="font-semibold leading-snug">{{ tmpl.name || tmpl.id }}</div>
                 <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <Badge v-if="tmpl.category" variant="secondary">{{ tmpl.category }}</Badge>
                   <Badge :variant="tmpl.reviewed ? 'reviewed' : 'unreviewed'" :title="tmpl.reviewed ? T.reviewedTip : T.unreviewedTip">
                     {{ tmpl.reviewed ? `✓ ${T.reviewed}` : T.unreviewed }}
                   </Badge>
@@ -384,6 +396,7 @@ onMounted(async () => {
               </button>
             </div>
             <div class="mt-2 flex flex-wrap gap-1.5">
+              <Badge v-if="selected.category" variant="secondary">{{ selected.category }}</Badge>
               <Badge :variant="selected.reviewed ? 'reviewed' : 'unreviewed'"
                 :title="selected.reviewed ? T.reviewedTip : T.unreviewedTip">
                 {{ selected.reviewed ? `✓ ${T.reviewed}` : T.unreviewed }}
@@ -401,6 +414,7 @@ onMounted(async () => {
 
         <!-- Meta chips -->
         <div class="mt-4 flex flex-wrap gap-1.5">
+          <Badge v-if="selected.category" variant="secondary">{{ selected.category }}</Badge>
           <Badge variant="secondary" class="font-mono">{{ selected.engine }}</Badge>
           <Badge v-if="selected.default_timeout" variant="secondary">{{ T.timeout }}: {{ selected.default_timeout }}</Badge>
           <Badge v-if="selected.license" variant="secondary">{{ selected.license }}</Badge>

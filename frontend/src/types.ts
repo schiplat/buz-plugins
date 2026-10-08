@@ -12,6 +12,7 @@ export interface StepTemplate {
   version: string
   file: string
   name?: string | null
+  category?: string | null
   description?: string | null
   description_zh?: string | null
   [key: string]: unknown

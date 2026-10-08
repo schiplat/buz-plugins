@@ -1,4 +1,5 @@
-id: buz/notify/slack
+id: buz/slack
+category: notifications
 name: Slack incoming-webhook notification
 version: 1.0.0
 description: Post a message to a Slack channel via an incoming webhook; auto-appends the Buz job link.

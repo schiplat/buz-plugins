@@ -46,6 +46,7 @@ export const T = {
   copied: 'Copied',
   publisher: 'Publisher',
   engine: 'Engine',
+  category: 'Category',
   reviewStatus: 'Review status',
   keywords: 'Keywords',
   clearFilters: 'Clear all filters',

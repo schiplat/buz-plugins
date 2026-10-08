@@ -1,4 +1,5 @@
-id: buz/net/wait-for-tunnel
+id: buz/wait-for-tunnel
+category: networking
 name: Wait for a tunnel / TCP endpoint
 version: 1.0.0
 description: Block until a TCP endpoint (frp/rp/ssh tunnel, migrated service…) accepts connections, or fail after the timeout.
