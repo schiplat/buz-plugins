@@ -6,43 +6,45 @@
     "endpoint_inputs: exact match — a new network-touching input must go",
     "through human review before this file is updated."
   ],
-  "buz/deploy/ssh-wait": {
+  "buz/ssh-wait": {
     "hosts": [],
     "endpoint_inputs": [
-      "host"
+      "host",
+      "port"
     ]
   },
-  "buz/healthcheck/http-check": {
+  "buz/http-check": {
     "hosts": [],
     "endpoint_inputs": [
       "url"
     ]
   },
-  "buz/net/wait-for-tunnel": {
+  "buz/wait-for-tunnel": {
     "hosts": [],
     "endpoint_inputs": [
-      "host"
+      "host",
+      "port"
     ]
   },
-  "buz/notify/dingtalk": {
-    "hosts": [],
-    "endpoint_inputs": [
-      "webhook"
-    ]
-  },
-  "buz/notify/feishu": {
+  "buz/dingtalk": {
     "hosts": [],
     "endpoint_inputs": [
       "webhook"
     ]
   },
-  "buz/notify/slack": {
+  "buz/feishu": {
     "hosts": [],
     "endpoint_inputs": [
       "webhook"
     ]
   },
-  "buz/notify/wecom": {
+  "buz/slack": {
+    "hosts": [],
+    "endpoint_inputs": [
+      "webhook"
+    ]
+  },
+  "buz/wecom": {
     "hosts": [],
     "endpoint_inputs": [
       "webhook"

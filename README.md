@@ -7,7 +7,7 @@ Browse the published catalog at **[plugins.buz.schiplat.com](https://plugins.buz
 ```yaml
 steps:
   - name: notify
-    uses: notify/feishu@1.0.0
+    uses: buz/feishu@1.0.0
     with:
       webhook: ${secrets.FEISHU_WEBHOOK}
       title: deploy done
@@ -17,13 +17,13 @@ steps:
 
 | Step | Engine | Purpose |
 |------|--------|---------|
-| `notify/feishu` | shell | Feishu group-bot notification (job link, @all) |
-| `notify/dingtalk` | shell | DingTalk group-bot notification (optional HMAC signing) |
-| `notify/wecom` | shell | WeCom (WeChat Work) group-bot notification |
-| `notify/slack` | shell | Slack incoming webhook |
-| `healthcheck/http` | shell | HTTP readiness polling after a deploy |
-| `net/wait-for-tunnel` | shell | Wait for a TCP tunnel endpoint (frp/rp scenarios) |
-| `deploy/ssh-wait` | shell | Wait for SSH on a target host (after reboot/rebuild) |
+| `buz/feishu` | shell | Feishu group-bot notification (job link, @all) |
+| `buz/dingtalk` | shell | DingTalk group-bot notification (optional HMAC signing) |
+| `buz/wecom` | shell | WeCom (WeChat Work) group-bot notification |
+| `buz/slack` | shell | Slack incoming webhook |
+| `buz/http-check` | shell | HTTP readiness polling after a deploy |
+| `buz/wait-for-tunnel` | shell | Wait for a TCP tunnel endpoint (frp/rp scenarios) |
+| `buz/ssh-wait` | shell | Wait for SSH on a target host (after reboot/rebuild) |
 
 All templates are `engine: shell` — pure YAML, no container images required. Docker-toolbox templates (`upload/oss`, `upload/s3`, `docker/prune`, …) are planned but their official images are **not published yet**; they will land once image publishing is set up.
 
@@ -46,7 +46,7 @@ Save a pipeline referencing a step — the Manager validates `with:` against the
 
 ## Authoring
 
-One file per template under `plugins/` (`<namespace>-<name>.yaml`, e.g. `notify-feishu.yaml` for id `notify/feishu`). Required fields: `id`, `version` (`X.Y.Z`), `engine`, `run`. Inputs support `type` (string/number/boolean/choice/list), `required`, `default`, `masking`, `pattern`, `options`. Optional fields: `name`, `description`, `description_zh`, `author`, `author_url`, `source_repo`, `keywords`, `publisher` (`official` | `community`), `license`, `default_timeout`.
+One file per template under `plugins/` (`<namespace>-<name>.yaml`, e.g. `buz-feishu.yaml` for id `buz/feishu`). The canonical ID format is `<namespace>/<name>` (for example `buz/feishu`); optional `category` metadata is separate and never part of the ID. The `id` field is the canonical identity everywhere: use the complete ID in `uses:`, review commands, issues, and provenance. `@version` belongs on pipeline `uses:` references, while issue/review identifiers should use the ID itself (the issue title includes `@version` where useful). Required fields: `id`, `version` (`X.Y.Z`), `engine`, `run`. Inputs support `type` (string/number/boolean/choice/list), `required`, `default`, `masking`, `pattern`, `options`. Optional fields: `name`, `category`, `description`, `description_zh`, `author`, `author_url`, `source_repo`, `keywords`, `publisher` (`official` | `community`), `license`, `default_timeout`.
 
 Community templates must declare `author` and `source_repo` — attribution is part of inclusion.
 
@@ -74,14 +74,14 @@ Full spec: marketplace ADR §5 (`docs/design/step-marketplace.md` in the buz rep
 
 ## CI
 
-- **validate**: downloads the `buz-manager` binary from the buz release (no Rust toolchain, no source build) and runs `step-validate plugins/` on every push/PR; also runs `shellcheck` over `scripts/*.sh`.
+- **validate**: downloads the `buz-manager` binary from the private buz release (no Rust toolchain, no source build) and runs `step-validate plugins/` on every push/PR; also runs `shellcheck` over `scripts/*.sh`. `BUZ_REPO_PAT_V2` must be configured with read access to `schiplatv2/buz`; if absent, validation fails explicitly. GitHub does not expose repository secrets to fork PRs, so fork contributors need a maintainer-run validation or a branch within the repository before merge; required checks must not be treated as passing when validation is skipped.
 
   Optional version pin — repo Settings → Secrets and variables → Actions → **Variables** tab:
 
   | Variable | Value |
   |----------|-------|
-  | `BUZ_VERSION` | Release tag to validate against (e.g. `v1.5.7`). Empty → latest release. |
-- **site**: builds the static browse site (`dist/` — Vue output from `frontend/` + `index.json` + plugin files + `reviews.json`), verifies every template detail page renders its matching HTTPS `source_repo` link, uploads the artifact, and deploys it to **Cloudflare Pages** on pushes to `master`.
+  | `BUZ_VERSION` | Release tag to validate against (e.g. `v1.7.0`). Empty → latest release. |
+- **site**: builds the static browse site in an unprivileged read-only job and uploads it as an artifact. A separate publish job only runs on trusted pushes to `master`, then deploys to Cloudflare Pages if credentials are configured and persists the refreshed official review manifest.
 
   One-time deploy setup (repo Settings → Secrets and variables → Actions):
 
@@ -98,7 +98,7 @@ Full spec: marketplace ADR §5 (`docs/design/step-marketplace.md` in the buz rep
 Every entry in `reviews.json` binds a review to a **content sha256** — any content change invalidates the badge automatically, so a reviewed v1.0 never launders trust for an unreviewed v1.1. The two namespaces carry different trust models:
 
 - **Official (`buz/*`) — CI-issued.** The same org writes and reviews these templates, so a human sign-off adds no independent signal. Instead green CI is the gate: `step-validate` + `lint_runs` + the egress allowlist (`egress-allowlist.json`) must all pass for the exact content hash. CI regenerates these entries on every push to `master` (`scripts/gen_reviews.py --auto`) and commits the refreshed manifest. A deviation from the egress baseline fails the build — updating the allowlist is part of review, not a build fix.
-- **Community (`<author>/…`) — human-issued.** CI green is a prerequisite, never a substitute: a maintainer reviews the PR on GitHub, then records the entry with `scripts/gen_reviews.py --date <d> --commit <sha> author/...`. Human entries are preserved across auto-regenerations.
+- **Community (`<author>/…`) — human-issued.** CI green is a prerequisite, never a substitute: a maintainer reviews the PR on GitHub, then records the entry using the canonical full ID from the YAML/index, e.g. `scripts/gen_reviews.py --date <d> --commit <sha> buz/telegram`. Manual invocation upserts the selected current content review and preserves unrelated review records.
 
 Managers can enforce it:
 
@@ -112,14 +112,14 @@ Unreviewed templates resolve with a warning by default; the review status is rec
 
 ## Reporting problems
 
-- **Broken / incorrect template** → [open an issue](https://github.com/schiplat/buz-plugins/issues/new?template=report.yml) with the `report` template (step id@version + what happened)
+- **Broken / incorrect template** → [open an issue](https://github.com/schiplat/buz-plugins/issues/new?template=report.yml) with the canonical full step ID (including `buz/` for official steps) and version, e.g. `buz/feishu@1.0.0`
 - **Suspected backdoor / malicious behavior** → **do not post details publicly**: use [Private vulnerability reporting](https://github.com/schiplat/buz-plugins/security/advisories/new). Maintainers triage privately, respond within **7 days**, and publish an outcome after handling.
 
 Triage outcomes: benign → closed; violating → template **removed from the index** (takedown) and, when applicable, a note published; fixable → author PR with a version bump (content hash changes, so the review badge auto-invalidates until re-reviewed).
 
 ## Namespace note
 
-In Phase 1 (local index) a `uses:` reference is the template `id` plus `@pin` — e.g. `notify/feishu@1.2`. Namespace→index-source bindings (`community/...` pointing at a configured remote index) arrive with Phase 2 `https` indexes.
+In Phase 1 (local index) a `uses:` reference is the complete template `id` plus `@version` — e.g. `buz/feishu@1.2.0`. The index `file` value is a repository-relative POSIX path (for example `plugins/buz-feishu.yaml`); consumers should resolve it relative to the index/repository root, never depend on an absolute build-machine path. Namespace→index-source bindings (`community/...` pointing at a configured remote index) arrive with Phase 2 `https` indexes.
 
 ## License
 

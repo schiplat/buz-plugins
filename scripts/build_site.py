@@ -33,6 +33,7 @@ SITE_URL = "https://plugins.buz.schiplat.com"
 
 SUMMARY_FIELDS = [
     "name",
+    "category",
     "description",
     "description_zh",
     "author",
@@ -64,6 +65,11 @@ def description_for(tmpl: dict, lang: str) -> str:
     return tmpl.get(primary) or tmpl.get("description") or ""
 
 
+def template_filename(file_value: str) -> str:
+    """Derive the generated page basename from either legacy or POSIX paths."""
+    return Path(file_value.replace("\\", "/")).stem + ".html"
+
+
 def jsonld_software(tmpl: dict) -> str:
     payload = {
         "@context": "https://schema.org",
@@ -75,7 +81,7 @@ def jsonld_software(tmpl: dict) -> str:
         "description": description_for(tmpl, "en"),
         "author": {"@type": "Organization", "name": tmpl.get("author") or "Buz"},
         "license": tmpl.get("license") or "Apache-2.0",
-        "url": f"{SITE_URL}/templates/{Path(tmpl['file']).stem}.html",
+        "url": f"{SITE_URL}/templates/{template_filename(tmpl['file'])}",
     }
     return json.dumps(payload, ensure_ascii=False, indent=2)
 
@@ -85,7 +91,7 @@ def template_page_html(tmpl: dict) -> str:
     name = tmpl.get("name") or template_id
     desc_en = description_for(tmpl, "en")
     desc_zh = description_for(tmpl, "zh")
-    page_url = f"{SITE_URL}/templates/{Path(tmpl['file']).stem}.html"
+    page_url = f"{SITE_URL}/templates/{template_filename(tmpl['file'])}"
 
     input_rows = "".join(
         f"<tr><td class='mono'>{esc(i.get('name'))}</td>"
@@ -202,7 +208,7 @@ def main() -> None:
         item = {
             "id": spec.get("id"),
             "version": spec.get("version"),
-            "file": str(path),
+            "file": path.resolve().relative_to(root.resolve()).as_posix(),
             "content_sha256": sha,
             "engine": (spec.get("engine") or "shell").strip(),
             "keywords": spec.get("keywords") or [],
@@ -241,7 +247,7 @@ def main() -> None:
     page_urls = []
     for tmpl in templates:
         page = template_page_html(tmpl)
-        page_file = templates_dir / (Path(tmpl["file"]).stem + ".html")
+        page_file = templates_dir / template_filename(tmpl["file"])
         page_file.write_text(page, encoding="utf-8")
         page_urls.append(f"{SITE_URL}/templates/{page_file.name}")
 

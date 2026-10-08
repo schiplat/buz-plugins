@@ -8,6 +8,11 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 
+def template_filename(file_value: str) -> str:
+    """Derive a static page basename from a POSIX or legacy path."""
+    return Path(file_value.replace("\\", "/")).stem + ".html"
+
+
 class Links(HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=True)
@@ -71,7 +76,7 @@ def main():
             errors.append(f"{tmpl.get('id')}: source_repo must be a valid HTTPS URL: {source!r}")
             continue
 
-        page_name = Path(tmpl.get("file", "")).stem + ".html"
+        page_name = template_filename(tmpl.get("file", ""))
         page_path = args.dist_dir / "templates" / page_name
         if not page_path.is_file():
             errors.append(f"{tmpl.get('id')}: missing static detail page: {page_path}")

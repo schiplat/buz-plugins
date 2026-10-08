@@ -7,22 +7,23 @@ on:
   pull_request:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   validate:
     runs-on: ubuntu-latest
-    # Validator comes from the buz release assets (no Rust toolchain here).
-    # buz is private — downloading its release assets needs a PAT with read
-    # access to schiplat/buz (`BUZ_REPO_PAT_V2` secret). Without it, only lint
-    # runs and step-validate is skipped.
-    # Optional version pin: repo variable BUZ_VERSION (e.g. v1.5.7).
-    # Empty → latest release.
+    # Fork PRs have no repository secrets and may explicitly skip this step.
+    # Trusted pushes and same-repository PRs must have the PAT or fail closed.
     env:
-      BUZ_REPO_PAT_V2: ${{ secrets.BUZ_REPO_PAT_V2 }}
       BUZ_VERSION: ${{ vars.BUZ_VERSION }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install Python test dependencies
+        run: python3 -m pip install --user pyyaml
+
+      - name: Test Python scripts
+        run: python3 tests/test_scripts.py
 
       - name: Lint shell scripts
         run: |
@@ -38,10 +39,26 @@ jobs:
       - name: Lint run blocks (heuristic patterns)
         run: python3 scripts/lint_runs.py plugins
 
-      - name: Install buz-manager (release binary)
-        if: env.BUZ_REPO_PAT_V2 != ''
+      - name: Check private validator availability
+        id: validator-token
         env:
           GH_TOKEN: ${{ secrets.BUZ_REPO_PAT_V2 }}
+        run: |
+          if [ -n "$GH_TOKEN" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "Fork PR: private buz-manager validation is skipped; public checks and tests remain required." >&2
+          else
+            echo "BUZ_REPO_PAT_V2 is required for private buz-manager validation on trusted pushes and internal PRs." >&2
+            exit 1
+          fi
+
+      - name: Install buz-manager (release binary)
+        if: steps.validator-token.outputs.available == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.BUZ_REPO_PAT_V2 }}
+          BUZ_VERSION: ${{ vars.BUZ_VERSION }}
         run: |
           API="https://api.github.com/repos/schiplatv2/buz/releases"
           if [ -n "$BUZ_VERSION" ]; then
@@ -49,8 +66,6 @@ jobs:
           else
             RELEASE=$(curl -sfL -H "Authorization: Bearer $GH_TOKEN" "$API/latest")
           fi
-          # Private repo: browser_download_url only accepts browser sessions —
-          # asset downloads go through the API endpoint (octet-stream + token).
           ASSET_ID=$(printf '%s' "$RELEASE" | python3 -c 'import sys, json; d = json.load(sys.stdin); print(next(a["id"] for a in d["assets"] if a["name"].endswith("linux-x86_64.tar.gz")))')
           curl -sfL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/octet-stream" -o bundle.tgz "$API/assets/$ASSET_ID"
           tar -xzf bundle.tgz
@@ -58,7 +73,7 @@ jobs:
           buz-manager --version
 
       - name: Validate step specs
-        if: env.BUZ_REPO_PAT_V2 != ''
+        if: steps.validator-token.outputs.available == 'true'
         run: buz-manager step-validate plugins
 
       - name: Egress report + allowlist check (reviewed baseline)
@@ -67,19 +82,20 @@ jobs:
       - name: Generate index (dry run)
         run: python3 scripts/gen_index.py --output /tmp/index.json && head /tmp/index.json
 
+      - name: Public fork PR validation notice
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true
+        run: echo "Private buz-manager validation is skipped for fork PRs because their jobs receive no repository PAT."
+
   site:
     runs-on: ubuntu-latest
     needs: validate
-    # `secrets` is not readable in step-level `if:` — map it to env here and
-    # gate the deploy on the env value instead.
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Install Node (marketplace site build)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 20
           cache: npm
@@ -95,49 +111,50 @@ jobs:
         run: |
           pip install pyyaml
           python3 scripts/gen_index.py --output index.json
-          # Official (buz/*) review badges are issued by green CI itself
-          # (ADR §6.7.6): validate + lint_runs + egress allowlist all passed
-          # in the `validate` job above. Community entries in reviews.json
-          # are human-made and are preserved by the merge.
           python3 scripts/gen_reviews.py --auto --commit "${GITHUB_SHA::7}"
           python3 scripts/build_site.py --dist-dir frontend/dist
           python3 scripts/check_site_sources.py
 
       - name: Upload site artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: site
           path: dist/
 
-      # Deploys on pushes to master once the secrets exist (repo Settings →
-      # Secrets and variables → Actions):
-      #   CLOUDFLARE_API_TOKEN  — CF token with "Cloudflare Pages: Edit"
-      #   CLOUDFLARE_ACCOUNT_ID — CF account id
-      # Custom domain (plugins.buz.schiplat.com) is bound in the CF Pages
-      # project settings after the first deploy creates the project.
+  publish:
+    # Only trusted pushes to master may deploy or write review badges.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    needs: site
+    permissions:
+      contents: write
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Download site artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: site
+          path: dist/
+
       - name: Ensure Pages project exists (first run creates it)
-        if: github.ref == 'refs/heads/master' && env.CLOUDFLARE_API_TOKEN != ''
-        run: |
-          npx wrangler pages project create buz-plugins --production-branch=master             || echo "project already exists"
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: npx wrangler pages project create buz-plugins --production-branch=master || echo "project already exists"
 
       - name: Deploy to Cloudflare Pages
-        if: github.ref == 'refs/heads/master' && env.CLOUDFLARE_API_TOKEN != ''
-        uses: cloudflare/wrangler-action@v3
-        env:
-          WRANGLER_LOG: debug
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=buz-plugins --branch=master --commit-dirty=true
 
-      # Persist reviews.json so Manager deployments that clone this repo get
-      # the fresh official badges. Runs last: a bot-push race must never block
-      # the deploy above. [skip ci] keeps the bot commit from re-triggering
-      # the workflow; hash bindings stay correct because entries bind to
-      # plugin-file hashes, not to this commit.
       - name: Commit refreshed reviews.json
-        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
         run: |
+          cp dist/reviews.json reviews.json
           if git diff --quiet reviews.json; then
             echo "reviews.json unchanged — nothing to commit"
           else
@@ -152,13 +169,15 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     needs: validate
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Generate index.json
         run: python3 scripts/gen_index.py --output index.json
 
       - name: Attach index.json to the release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.2.2
         with:
           files: index.json

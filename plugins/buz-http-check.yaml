@@ -1,4 +1,5 @@
-id: buz/healthcheck/http-check
+id: buz/http-check
+category: healthcheck
 name: HTTP health check (poll until ready)
 version: 1.0.0
 description: Poll an HTTP endpoint until it returns the expected status (or attempts run out). Useful after a deploy.

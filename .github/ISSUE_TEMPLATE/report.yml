@@ -17,7 +17,7 @@ body:
     id: step
     attributes:
       label: Step / 模板
-      description: id@version, e.g. notify/feishu@1.0.0
+      description: Full canonical id@version, including the `buz/` namespace for official templates; e.g. buz/feishu@1.0.0
     validations:
       required: true
   - type: input

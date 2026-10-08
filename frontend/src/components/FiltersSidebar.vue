@@ -10,10 +10,12 @@ export interface FilterFacet {
 const props = defineProps<{
   publisher: string
   engine: string
+  category: string
   review: string
   selectedKeywords: string[]
   publisherFacets: FilterFacet[]
   engineFacets: FilterFacet[]
+  categoryFacets: FilterFacet[]
   reviewFacets: FilterFacet[]
   keywordFacets: FilterFacet[]
   hasActiveFilters: boolean
@@ -22,6 +24,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:publisher', value: string): void
   (e: 'update:engine', value: string): void
+  (e: 'update:category', value: string): void
   (e: 'update:review', value: string): void
   (e: 'update:selectedKeywords', value: string[]): void
   (e: 'clear'): void
@@ -72,6 +75,20 @@ function toggleKeyword(keyword: string) {
         @click="emit('update:engine', facet.value)"
       >
         <span :class="engine === facet.value ? 'text-foreground' : ''">{{ facet.label }}</span>
+        <span class="text-xs text-muted-foreground">{{ facet.count }}</span>
+      </button>
+    </div>
+
+    <div>
+      <h3 class="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{{ T.category }}</h3>
+      <button
+        v-for="facet in categoryFacets"
+        :key="facet.value"
+        class="flex w-full items-center justify-between rounded-md px-2 py-1 text-left text-sm hover:bg-muted"
+        :class="category === facet.value ? 'font-medium' : 'text-muted-foreground'"
+        @click="emit('update:category', facet.value)"
+      >
+        <span :class="category === facet.value ? 'text-foreground' : ''">{{ facet.label }}</span>
         <span class="text-xs text-muted-foreground">{{ facet.count }}</span>
       </button>
     </div>
