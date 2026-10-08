@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """Heuristic lint over step-template `run:` blocks (ADR §6.7.2, layer 1).
 
-Scans every plugins/*.yaml|yml `run:` block for patterns that usually mean
+Recursively scans visible plugins/**/*.yaml|yml specs for patterns that usually mean
 "arbitrary code execution" or "secrets leaving the host". Hits are not
 proof of malice — but every hit needs a human reason in review.
 
 Stdlib only; exits non-zero when anything is found.
 """
 
+import os
 import re
 import sys
 from pathlib import Path
@@ -60,9 +61,35 @@ def run_blocks(raw: str) -> list[tuple[int, list[str]]]:
     return blocks
 
 
+def discover_plugin_files(plugin_dir: Path) -> list[Path]:
+    """Return sorted YAML specs, excluding hidden paths and symlinks."""
+    if plugin_dir.is_symlink() or not plugin_dir.is_dir():
+        return []
+
+    files: list[Path] = []
+    for current, dirs, names in os.walk(plugin_dir, followlinks=False):
+        current_path = Path(current)
+        dirs[:] = sorted(
+            name
+            for name in dirs
+            if not name.startswith(".")
+            and not (current_path / name).is_symlink()
+        )
+        for name in names:
+            path = current_path / name
+            if (
+                name.startswith(".")
+                or path.is_symlink()
+                or path.suffix not in (".yaml", ".yml")
+            ):
+                continue
+            files.append(path)
+    return sorted(files, key=lambda path: path.relative_to(plugin_dir).as_posix())
+
+
 def main() -> None:
     plugin_dir = Path(sys.argv[1] if len(sys.argv) > 1 else "plugins")
-    files = sorted(p for p in plugin_dir.iterdir() if p.suffix in (".yaml", ".yml"))
+    files = discover_plugin_files(plugin_dir)
     if not files:
         raise SystemExit(f"{plugin_dir}: no step specs found")
 

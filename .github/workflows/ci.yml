@@ -74,10 +74,20 @@ jobs:
 
       - name: Validate step specs
         if: steps.validator-token.outputs.available == 'true'
-        run: buz-manager step-validate plugins
+        run: |
+          mapfile -d '' specs < <(find plugins -type d -name '.*' -prune -o -type f \
+            \( -name '*.yaml' -o -name '*.yml' \) ! -path '*/.*' -print0 | sort -z)
+          if [ ${#specs[@]} -eq 0 ]; then
+            echo "No plugin YAML specs found." >&2
+            exit 1
+          fi
+          buz-manager step-validate "${specs[@]}"
 
       - name: Egress report + allowlist check (reviewed baseline)
         run: python3 scripts/egress.py --print --expect egress-allowlist.json
+
+      - name: Validate image release workflow structure
+        run: python3 scripts/check_plugin_images.py
 
       - name: Generate index (dry run)
         run: python3 scripts/gen_index.py --output /tmp/index.json && head /tmp/index.json

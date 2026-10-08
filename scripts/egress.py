@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import shlex
 import sys
@@ -30,7 +31,7 @@ ENDPOINT_LABEL_PRIORITY = (
     "webhook", "url", "uri", "host", "port", "endpoint", "server", "addr",
     "api", "target", "destination", "origin",
 )
-NETWORK_COMMANDS = {"nc", "netcat", "ncat", "curl", "wget", "ssh", "scp", "sftp", "ping", "telnet"}
+NETWORK_COMMANDS = {"nc", "netcat", "ncat", "curl", "wget", "ssh", "scp", "sftp", "ping", "telnet", "aws", "ossutil"}
 VARIABLE_RE = re.compile(
     r"\$(?:([A-Za-z_][A-Za-z0-9_]*)|\{([A-Za-z_][A-Za-z0-9_]*)(?::-[^}]*)?\})"
 )
@@ -148,8 +149,57 @@ def _parse_network_args(name: str, args: list[str]) -> tuple[list[str], dict[str
     return positional, options, True
 
 
-def _network_destinations(command: str, args: list[str]) -> tuple[list[str], bool]:
+def _cli_endpoint_destinations(
+    args: list[str], flags: set[str], env_names: tuple[str, ...], assignments: dict[str, str]
+) -> tuple[list[str], bool]:
+    """Extract explicit endpoint options or known endpoint environment variables."""
+    destinations: list[str] = []
+    index = 0
+    while index < len(args):
+        arg = args[index]
+        flag = arg.partition("=")[0]
+        if flag in flags:
+            if "=" in arg:
+                value = arg.partition("=")[2]
+            elif len(arg) > len(flag):
+                value = arg[len(flag):]
+            elif index + 1 < len(args):
+                index += 1
+                value = args[index]
+            else:
+                return destinations, False
+            if not value:
+                return destinations, False
+            destinations.append(value)
+        index += 1
+    if destinations:
+        return destinations, True
+    for name in env_names:
+        if assignments.get(name):
+            return [assignments[name]], True
+    return [], False
+
+
+def _network_destinations(
+    command: str, args: list[str], assignments: dict[str, str] | None = None
+) -> tuple[list[str], bool]:
     name = Path(command).name.lower()
+    assignments = assignments or {}
+    if name == "aws":
+        return _cli_endpoint_destinations(
+            args,
+            {"--endpoint-url"},
+            ("AWS_ENDPOINT_URL", "AWS_ENDPOINT_URL_S3"),
+            assignments,
+        )
+    if name == "ossutil":
+        return _cli_endpoint_destinations(
+            args,
+            {"--endpoint", "-e"},
+            ("OSSUTIL_ENDPOINT", "OSS_ENDPOINT"),
+            assignments,
+        )
+
     positional, options, parsed = _parse_network_args(name, args)
     if not parsed:
         return [], False
@@ -554,7 +604,9 @@ def extract_egress(run: str) -> tuple[list[str], list[str]]:
                 expanded_args.append(expanded)
         if not expanded_args and args:
             continue
-        destinations, parsed_args = _network_destinations(command, expanded_args)
+        destinations, parsed_args = _network_destinations(
+            command, expanded_args, command_assignments
+        )
         if not parsed_args:
             hosts.append("<unparsed-network-command>")
             continue
@@ -617,6 +669,32 @@ def check_allowlist(evidence: list[dict], allow_path: Path) -> list[str]:
     return violations
 
 
+def discover_plugin_files(plugin_dir: Path) -> list[Path]:
+    """Return sorted YAML specs, excluding hidden paths and symlinks."""
+    if plugin_dir.is_symlink() or not plugin_dir.is_dir():
+        return []
+
+    files: list[Path] = []
+    for current, dirs, names in os.walk(plugin_dir, followlinks=False):
+        current_path = Path(current)
+        dirs[:] = sorted(
+            name
+            for name in dirs
+            if not name.startswith(".")
+            and not (current_path / name).is_symlink()
+        )
+        for name in names:
+            path = current_path / name
+            if (
+                name.startswith(".")
+                or path.is_symlink()
+                or path.suffix not in (".yaml", ".yml")
+            ):
+                continue
+            files.append(path)
+    return sorted(files, key=lambda path: path.relative_to(plugin_dir).as_posix())
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     root = Path(__file__).resolve().parent.parent
@@ -635,7 +713,9 @@ def main() -> None:
     )
     args = parser.parse_args()
     plugin_dir = resolve(args.plugins_dir)
-    files = sorted(p for p in plugin_dir.iterdir() if p.suffix in (".yaml", ".yml"))
+    if not plugin_dir.is_symlink():
+        plugin_dir = plugin_dir.resolve()
+    files = discover_plugin_files(plugin_dir)
     if not files:
         raise SystemExit(f"{plugin_dir}: no step specs found")
 

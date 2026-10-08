@@ -1,0 +1,51 @@
+id: buz/oss-upload
+category: upload
+name: Upload file to Alibaba Cloud OSS
+version: 1.0.0
+description: Upload one file from the Buz workspace to Alibaba Cloud OSS with ossutil v2.
+description_zh: 使用 ossutil v2 将 Buz 工作区中的单个文件上传到阿里云 OSS。
+publisher: official
+author: "buz maintainers"
+keywords: [oss, alibaba-cloud, upload, artifact, storage]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/oss-upload/1.0.0.yaml
+engine: docker
+image: docker.io/schiplat/buz-plugins-oss-tools:1.0.0
+default_timeout: 10m
+inputs:
+  source:
+    type: string
+    required: true
+    description: File path relative to the Buz workspace.
+  bucket:
+    type: string
+    required: true
+    description: Destination OSS bucket.
+  object:
+    type: string
+    required: true
+    description: Destination object key.
+  endpoint:
+    type: string
+    required: true
+    description: HTTPS OSS endpoint URL, for example https://oss-cn-hangzhou.aliyuncs.com.
+  region:
+    type: string
+    required: true
+    description: OSS region, for example cn-hangzhou.
+  session_token:
+    type: string
+    masking: true
+    description: Optional STS session token.
+  access_key_id:
+    type: string
+    required: true
+    masking: true
+    description: OSS access key ID. Use a least-privilege RAM user or short-lived credentials.
+  access_key_secret:
+    type: string
+    required: true
+    masking: true
+    description: OSS access key secret.
+run: |
+  exec /usr/local/bin/buz-oss-upload

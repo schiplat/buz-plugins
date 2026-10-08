@@ -21,10 +21,12 @@ Requires PyYAML (CI installs it; the strict validator remains the Rust
 import argparse
 import hashlib
 import json
+import os
+import posixpath
 import shutil
 import sys
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Optional
 
 import yaml
@@ -66,11 +68,55 @@ def description_for(tmpl: dict, lang: str) -> str:
 
 
 def template_filename(file_value: str) -> str:
-    """Derive the generated page basename from either legacy or POSIX paths."""
-    return Path(file_value.replace("\\", "/")).stem + ".html"
+    """Map a full indexed path to a unique detail-page path."""
+    parts = PurePosixPath(file_value.replace("\\", "/")).parts
+    if parts and parts[0] == "plugins":
+        parts = parts[1:]
+    if not parts:
+        raise ValueError(f"invalid plugin file path: {file_value!r}")
+    return PurePosixPath(*parts).with_suffix(".html").as_posix()
+
+
+def page_relative_links(file_value: str) -> tuple[str, str, str]:
+    """Return the home, favicon, and stylesheet URLs from a detail page."""
+    page_path = PurePosixPath("templates") / template_filename(file_value)
+    page_dir = page_path.parent.as_posix()
+    prefix = posixpath.relpath(".", page_dir)
+    if prefix != ".":
+        prefix += "/"
+    else:
+        prefix = ""
+    return prefix, f"{prefix}favicon.svg", f"{prefix}style.css"
+
+
+def discover_plugin_files(plugin_dir: Path) -> list[Path]:
+    """Return sorted YAML specs, excluding hidden paths and symlinks."""
+    if plugin_dir.is_symlink() or not plugin_dir.is_dir():
+        return []
+
+    files: list[Path] = []
+    for current, dirs, names in os.walk(plugin_dir, followlinks=False):
+        current_path = Path(current)
+        dirs[:] = sorted(
+            name
+            for name in dirs
+            if not name.startswith(".")
+            and not (current_path / name).is_symlink()
+        )
+        for name in names:
+            path = current_path / name
+            if (
+                name.startswith(".")
+                or path.is_symlink()
+                or path.suffix not in (".yaml", ".yml")
+            ):
+                continue
+            files.append(path)
+    return sorted(files, key=lambda path: path.relative_to(plugin_dir).as_posix())
 
 
 def jsonld_software(tmpl: dict) -> str:
+    template_path = template_filename(tmpl["file"])
     payload = {
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
@@ -81,7 +127,7 @@ def jsonld_software(tmpl: dict) -> str:
         "description": description_for(tmpl, "en"),
         "author": {"@type": "Organization", "name": tmpl.get("author") or "Buz"},
         "license": tmpl.get("license") or "Apache-2.0",
-        "url": f"{SITE_URL}/templates/{template_filename(tmpl['file'])}",
+        "url": f"{SITE_URL}/templates/{template_path}",
     }
     return json.dumps(payload, ensure_ascii=False, indent=2)
 
@@ -91,7 +137,9 @@ def template_page_html(tmpl: dict) -> str:
     name = tmpl.get("name") or template_id
     desc_en = description_for(tmpl, "en")
     desc_zh = description_for(tmpl, "zh")
-    page_url = f"{SITE_URL}/templates/{template_filename(tmpl['file'])}"
+    template_path = template_filename(tmpl["file"])
+    page_url = f"{SITE_URL}/templates/{template_path}"
+    home_href, favicon_href, stylesheet_href = page_relative_links(tmpl["file"])
 
     input_rows = "".join(
         f"<tr><td class='mono'>{esc(i.get('name'))}</td>"
@@ -116,7 +164,7 @@ def template_page_html(tmpl: dict) -> str:
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+<link rel="icon" type="image/svg+xml" href="{favicon_href}" />
 <title>{esc(name)} — Buz Plugins Marketplace</title>
 <meta name="description" content="{esc(desc_en[:160])}" />
 <link rel="canonical" href="{esc(page_url)}" />
@@ -128,11 +176,11 @@ def template_page_html(tmpl: dict) -> str:
 <script type="application/ld+json">
 {jsonld}
 </script>
-<link rel="stylesheet" href="../style.css" />
+<link rel="stylesheet" href="{stylesheet_href}" />
 {GA_SNIPPET}
 </head>
 <body>
-<header class="top"><div class="wrap"><a class="home" href="../">&larr; Buz Plugins Marketplace</a></div></header>
+<header class="top"><div class="wrap"><a class="home" href="{home_href}">&larr; Buz Plugins Marketplace</a></div></header>
 <main class="wrap">
 <h1>{esc(name)}</h1>
 <p class="mono dim">{esc(template_id)} · v{esc(tmpl['version'])} · {esc(tmpl['engine'])}</p>
@@ -146,7 +194,7 @@ def template_page_html(tmpl: dict) -> str:
 <p class="mono dim small">sha256: {tmpl['content_sha256']}</p>
 <p class="dim small">{esc('Officially reviewed at this content hash' if tmpl.get('reviewed') else 'Not yet officially reviewed — the badge on the marketplace reflects the current review status')}.</p>
 <p><a href="https://github.com/schiplat/buz-plugins/issues/new?template=report.yml">Report an issue with this template</a>{f" · <a href='{esc(tmpl['source_repo'])}'>Source repository</a>" if tmpl.get('source_repo') else ""}</p>
-<p><a href="../">Browse all templates</a></p>
+<p><a href="{home_href}">Browse all templates</a></p>
 </main>
 </body>
 </html>
@@ -182,7 +230,9 @@ def main() -> None:
             shutil.rmtree(out_dir, ignore_errors=True)
             shutil.copytree(dist, out_dir)
     plugin_dir = resolve(args.plugins_dir)
-    files = sorted(p for p in plugin_dir.iterdir() if p.suffix in (".yaml", ".yml"))
+    if not plugin_dir.is_symlink():
+        plugin_dir = plugin_dir.resolve()
+    files = discover_plugin_files(plugin_dir)
     if not files:
         raise SystemExit(f"{plugin_dir}: no step specs found")
 
@@ -248,8 +298,9 @@ def main() -> None:
     for tmpl in templates:
         page = template_page_html(tmpl)
         page_file = templates_dir / template_filename(tmpl["file"])
+        page_file.parent.mkdir(parents=True, exist_ok=True)
         page_file.write_text(page, encoding="utf-8")
-        page_urls.append(f"{SITE_URL}/templates/{page_file.name}")
+        page_urls.append(f"{SITE_URL}/templates/{template_filename(tmpl['file'])}")
 
     # robots.txt + sitemap.xml
     (out_dir / "robots.txt").write_text(
@@ -271,10 +322,18 @@ def main() -> None:
     if not index_path.exists():
         raise SystemExit("index.json not found — run scripts/gen_index.py first")
     shutil.copy(index_path, out_dir / "index.json")
-    plugins_out = out_dir / "plugins"
-    if plugins_out.exists():
-        shutil.rmtree(plugins_out)
-    shutil.copytree(plugin_dir, plugins_out)
+    for path in files:
+        try:
+            indexed_relative_path = path.resolve().relative_to(root.resolve())
+        except ValueError:
+            if args.plugins_dir != "plugins":
+                raise SystemExit(
+                    f"{path}: plugin files must be inside the repository root {root}"
+                ) from None
+            indexed_relative_path = PurePosixPath("plugins") / path.relative_to(plugin_dir)
+        staged_path = out_dir / Path(indexed_relative_path)
+        staged_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(path, staged_path)
     if reviews_path.exists():
         shutil.copy(reviews_path, out_dir / "reviews.json")
 

@@ -6,11 +6,23 @@
     "endpoint_inputs: exact match — a new network-touching input must go",
     "through human review before this file is updated."
   ],
+  "buz/oss-upload": {
+    "hosts": [],
+    "endpoint_inputs": [
+      "endpoint"
+    ]
+  },
   "buz/ssh-wait": {
     "hosts": [],
     "endpoint_inputs": [
       "host",
       "port"
+    ]
+  },
+  "buz/s3-upload": {
+    "hosts": [],
+    "endpoint_inputs": [
+      "endpoint_url"
     ]
   },
   "buz/http-check": {

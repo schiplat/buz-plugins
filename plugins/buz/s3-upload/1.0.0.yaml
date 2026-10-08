@@ -1,0 +1,52 @@
+id: buz/s3-upload
+category: upload
+name: Upload file to S3
+version: 1.0.0
+description: Upload one file from the Buz workspace to an S3 bucket using the official AWS CLI v2.
+description_zh: 使用 AWS CLI v2 将 Buz 工作区中的单个文件上传到 S3 存储桶。
+publisher: official
+author: "buz maintainers"
+keywords: [s3, aws, upload, artifact, storage]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/s3-upload/1.0.0.yaml
+engine: docker
+image: docker.io/schiplat/buz-plugins-aws-tools:1.0.0
+default_timeout: 10m
+inputs:
+  source:
+    type: string
+    required: true
+    description: File path relative to the Buz workspace.
+  bucket:
+    type: string
+    required: true
+    description: Destination S3 bucket.
+  key:
+    type: string
+    required: true
+    masking: true
+    description: Destination object key. Treat keys as potentially sensitive because they may include customer-specific paths.
+  region:
+    type: string
+    required: true
+    description: AWS region for the bucket.
+  access_key_id:
+    type: string
+    required: true
+    masking: true
+    description: AWS access key ID. Use short-lived credentials when possible.
+  secret_access_key:
+    type: string
+    required: true
+    masking: true
+    description: AWS secret access key.
+  session_token:
+    type: string
+    masking: true
+    description: Optional AWS STS session token for temporary credentials.
+  endpoint_url:
+    type: string
+    required: true
+    description: HTTPS S3-compatible endpoint URL. Network access to this endpoint must be allowed by the runner.
+run: |
+  exec /usr/local/bin/buz-s3-upload

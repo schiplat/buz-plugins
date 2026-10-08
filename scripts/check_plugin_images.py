@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+"""Validate plugin tool-image release wiring without building or publishing images."""
+
+from __future__ import annotations
+
+import re
+from pathlib import Path
+
+import yaml
+
+ROOT = Path(__file__).resolve().parents[1]
+WORKFLOW = ROOT / ".github/workflows/publish-plugin-image.yml"
+EXPECTED = {
+    "oss-tools": (
+        "docker.io/schiplat/buz-plugins-oss-tools",
+        "plugins/buz/oss-upload/image",
+        "plugins/buz/oss-upload/1.0.0.yaml",
+    ),
+    "aws-tools": (
+        "docker.io/schiplat/buz-plugins-aws-tools",
+        "plugins/buz/s3-upload/image",
+        "plugins/buz/s3-upload/1.0.0.yaml",
+    ),
+}
+
+
+def main() -> None:
+    workflow = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
+    triggers = workflow.get("on") or workflow.get(True) or {}
+    if set(triggers) != {"workflow_dispatch"}:
+        raise SystemExit("image publishing must only use workflow_dispatch")
+
+    dispatch_inputs = triggers["workflow_dispatch"].get("inputs", {})
+    family = dispatch_inputs.get("image_family", {})
+    if family.get("type") != "choice" or set(family.get("options", [])) != set(EXPECTED):
+        raise SystemExit("image_family must be limited to the allowlisted families")
+    version = dispatch_inputs.get("version", {})
+    if version.get("required") is not True:
+        raise SystemExit("image version must be required")
+
+    publish_job = workflow.get("jobs", {}).get("publish", {})
+    steps = publish_job.get("steps", [])
+    runner_publishers = [
+        step for step in steps
+        if isinstance(step, dict) and step.get("uses", "").startswith("docker/build-push-action@")
+    ]
+    if not runner_publishers[0].get("uses", "").endswith(
+        "@1ca370b3a9802c92e886402e0dd88098a2533b12"
+    ):
+        raise SystemExit("build-push action must be pinned to the verified v6.4.1 commit")
+    with_config = runner_publishers[0].get("with", {})
+    if with_config.get("push") is not True or with_config.get("platforms") != "linux/amd64,linux/arm64":
+        raise SystemExit("release action must push both amd64 and arm64 images")
+    if with_config.get("context") != "${{ steps.image.outputs.context }}":
+        raise SystemExit("build context must come from the validated family selector")
+    if with_config.get("tags") != "${{ steps.image.outputs.tag }}":
+        raise SystemExit("published tag must come from the validated family and version")
+    if not any(
+        isinstance(step, dict)
+        and step.get("name") == "Reject an existing image version tag"
+        and "docker buildx imagetools inspect \"$IMAGE:$VERSION\"" in step.get("run", "")
+        and "Could not determine whether image tag exists; refusing to publish." in step.get("run", "")
+        and "status code: 404" in step.get("run", "")
+        for step in steps
+    ):
+        raise SystemExit("workflow must refuse existing tags and fail closed on registry errors")
+    for action in ("docker/setup-qemu-action@", "docker/setup-buildx-action@", "docker/login-action@"):
+        if not any(isinstance(step, dict) and step.get("uses", "").startswith(action) for step in steps):
+            raise SystemExit(f"missing required image publishing action: {action}")
+
+    text = WORKFLOW.read_text(encoding="utf-8")
+    validate_step = next(
+        step for step in steps
+        if isinstance(step, dict) and step.get("name") == "Validate dispatch and resolve image context"
+    )
+    validate_run = validate_step.get("run", "")
+    shell_lines = "\n".join(
+        line for line in validate_run.splitlines()
+        if not line.lstrip().startswith("#")
+    )
+    family_matches = re.findall(r'^\s*([a-z][a-z0-9-]*)\)\s*$', shell_lines, re.MULTILINE)
+    if set(family_matches) != set(EXPECTED):
+        raise SystemExit("shell family selector must match the allowlisted families")
+    if '[[ ! "$IMAGE_VERSION" =~ ^[0-9]+\\.[0-9]+\\.[0-9]+$ ]]' not in shell_lines:
+        raise SystemExit("workflow must reject versions outside X.Y.Z")
+    if '"$GITHUB_REF" != "refs/heads/master"' not in shell_lines:
+        raise SystemExit("publishing must be restricted to master")
+    if "docker/login-action@" not in text:
+        raise SystemExit("workflow must authenticate to Docker Hub")
+    if not re.search(r"\$\{\{\s*secrets\.DOCKERHUB_USERNAME\s*\}\}", text) or not re.search(
+        r"\$\{\{\s*secrets\.DOCKERHUB_TOKEN\s*\}\}", text
+    ):
+        raise SystemExit("Docker Hub credentials must come from repository secrets")
+    if "steps.build.outputs.digest" not in text:
+        raise SystemExit("workflow must record the build manifest digest")
+
+    for slug, (image, context, spec_file) in EXPECTED.items():
+        if f'docker.io/schiplat/{image.rsplit("/", 1)[-1]}' not in shell_lines:
+            raise SystemExit(f"{slug}: image name is absent from validated family selector")
+        if context not in shell_lines:
+            raise SystemExit(f"{slug}: context is absent from validated family selector")
+        dockerfile = (ROOT / context / "Dockerfile").read_text(encoding="utf-8")
+        helper_name = "buz-oss-upload" if slug == "oss-tools" else "buz-s3-upload"
+        if f"COPY entrypoint.sh /usr/local/bin/{helper_name}" not in dockerfile:
+            raise SystemExit(f"{slug}: image must install its upload helper")
+        if f"RUN chmod 0755 /usr/local/bin/{helper_name}" not in dockerfile:
+            raise SystemExit(f"{slug}: upload helper must be executable")
+        spec = yaml.safe_load((ROOT / spec_file).read_text(encoding="utf-8"))
+        if spec.get("engine") != "docker" or spec.get("image") != f"{image}:1.0.0":
+            raise SystemExit(f"{slug}: template image reference does not match its workflow family")
+        if spec.get("run", "").strip() != f"exec /usr/local/bin/{helper_name}":
+            raise SystemExit(f"{slug}: template must invoke the image-side upload helper")
+
+    print("plugin image workflow: dispatch-only, family allowlist, contexts, architectures, and digest output verified")
+
+
+if __name__ == "__main__":
+    main()
