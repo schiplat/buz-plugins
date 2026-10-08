@@ -1,67 +1,74 @@
 {
   "reviews": [
     {
-      "id": "buz/deploy/ssh-wait",
+      "id": "buz/dingtalk",
       "version": "1.0.0",
-      "sha256": "74572850255b4bba848d379f2ccbc873596a37a932f5b25b4119248a96880559",
+      "sha256": "4d321e85e531e068d8f3e3daf03aedbb7ab0f6223dd72b2d985d623048c2253a",
       "reviewed_at": "2026-10-08",
-      "review_commit": "9ec99c8",
+      "review_commit": "294a45f",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
-      "source": "ci"
+      "source": "ci",
+      "category": "notifications"
     },
     {
-      "id": "buz/healthcheck/http-check",
+      "id": "buz/feishu",
       "version": "1.0.0",
-      "sha256": "f62718f80be7e272951d6fcc7db025d74cb80f7fba93b01ddccec2c528447cfa",
+      "sha256": "78b0739fffb8f2e3715de25b4fe5e30e92c9be28f1735bba18c05baa92695134",
       "reviewed_at": "2026-10-08",
-      "review_commit": "9ec99c8",
+      "review_commit": "294a45f",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
-      "source": "ci"
+      "source": "ci",
+      "category": "notifications"
     },
     {
-      "id": "buz/net/wait-for-tunnel",
+      "id": "buz/http-check",
       "version": "1.0.0",
-      "sha256": "69f7e68d6941863bcc4629841e415206c25ad39f45f9d7f99d981e0ee9b2f55f",
+      "sha256": "5f21d3640399b2cfc4d261fe84b41678b4251ffb7d00495d108502a1a0d8b6e1",
       "reviewed_at": "2026-10-08",
-      "review_commit": "9ec99c8",
+      "review_commit": "294a45f",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
-      "source": "ci"
+      "source": "ci",
+      "category": "healthcheck"
     },
     {
-      "id": "buz/notify/dingtalk",
+      "id": "buz/slack",
       "version": "1.0.0",
-      "sha256": "a6e7aeb46a030d4a6d440dc7bdf4a94e6f484054a2b0b92c70cbcad269e6a958",
+      "sha256": "d24c83acd7ca299db4cbbdc3d4fd81b3e2e2e9828c00cf42e5391843baa21fda",
       "reviewed_at": "2026-10-08",
-      "review_commit": "9ec99c8",
+      "review_commit": "294a45f",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
-      "source": "ci"
+      "source": "ci",
+      "category": "notifications"
     },
     {
-      "id": "buz/notify/feishu",
+      "id": "buz/ssh-wait",
       "version": "1.0.0",
-      "sha256": "0cc6b97ee410653888cd7a17a5fddc3fcb7ce0bcd4d7e80ef616aea9fc1e24b3",
+      "sha256": "08b66b8dbeee680ebf755f828f784e6b9b4836eae2c4882630460ef79c9c034d",
       "reviewed_at": "2026-10-08",
-      "review_commit": "9ec99c8",
+      "review_commit": "294a45f",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
-      "source": "ci"
+      "source": "ci",
+      "category": "deployment"
     },
     {
-      "id": "buz/notify/slack",
+      "id": "buz/wait-for-tunnel",
       "version": "1.0.0",
-      "sha256": "1e8e9d795b1535bc02be3e10b9e967e13fb783d290e4f2d8547aec4485fdf9bc",
+      "sha256": "80a6cbd77a3e7fb0f060b06d6d6bd31eaffa50955fcee6157474979a946f5670",
       "reviewed_at": "2026-10-08",
-      "review_commit": "9ec99c8",
+      "review_commit": "294a45f",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
-      "source": "ci"
+      "source": "ci",
+      "category": "networking"
     },
     {
-      "id": "buz/notify/wecom",
+      "id": "buz/wecom",
       "version": "1.0.0",
-      "sha256": "ee1343ec16f711bdd96119296cbe474303305ac3ce63e76b866c293f2700b3bc",
+      "sha256": "72b1b1112d195e939b5f124e2adebf0f725297207a79f9ed104e72be64a74ac5",
       "reviewed_at": "2026-10-08",
-      "review_commit": "9ec99c8",
+      "review_commit": "294a45f",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
-      "source": "ci"
+      "source": "ci",
+      "category": "notifications"
     }
   ]
 }
