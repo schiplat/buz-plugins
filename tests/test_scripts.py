@@ -401,14 +401,14 @@ class SitePathTests(unittest.TestCase):
             output = Path(tempfile.mkdtemp())
             try:
                 with patch.object(
-                    self.build_site, "__file__", str(ROOT / "scripts" / "build_site.py")
+                    self.build_site, "__file__", str(source_root / "scripts" / "build_site.py")
                 ):
                     with patch.object(sys, "argv", [
                         "build_site.py", "--plugins-dir", str(plugin_dir),
                         "--out-dir", str(output),
                     ]):
                         self.build_site.main()
-                indexed_spec = spec.resolve().relative_to(ROOT)
+                indexed_spec = spec.relative_to(source_root)
                 staged_spec = output / indexed_spec
                 self.assertTrue(
                     staged_spec.is_file(),
@@ -417,7 +417,7 @@ class SitePathTests(unittest.TestCase):
                 self.assertEqual(staged_spec.read_text(), spec.read_text())
                 page_path = self.build_site.template_filename(indexed_spec.as_posix())
                 self.assertTrue((output / "templates" / page_path).is_file())
-                community_indexed = same_basename.resolve().relative_to(ROOT).as_posix()
+                community_indexed = same_basename.relative_to(source_root).as_posix()
                 community_page_path = self.build_site.template_filename(community_indexed)
                 self.assertTrue((output / "templates" / community_page_path).is_file())
             finally:
