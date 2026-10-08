@@ -7,7 +7,7 @@ export default defineConfig({
   base: './',
   plugins: [tailwindcss(), vue()],
   build: {
-    outDir: '../dist',
+    outDir: 'dist',
     emptyOutDir: true,
   },
   resolve: {

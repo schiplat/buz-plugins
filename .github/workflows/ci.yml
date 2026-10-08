@@ -101,6 +101,7 @@ jobs:
           # are human-made and are preserved by the merge.
           python3 scripts/gen_reviews.py --auto --commit "${GITHUB_SHA::7}"
           python3 scripts/build_site.py --dist-dir frontend/dist
+          python3 scripts/check_site_sources.py
 
       - name: Upload site artifact
         uses: actions/upload-artifact@v4

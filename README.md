@@ -50,6 +50,10 @@ One file per template under `plugins/` (`<namespace>-<name>.yaml`, e.g. `notify-
 
 Community templates must declare `author` and `source_repo` — attribution is part of inclusion.
 
+`source_repo` is the canonical HTTPS URL for the template's source, preferably a direct URL to the exact template file in its source repository. Use a commit-pinned URL when an immutable reference is needed. Official templates must also set it so the marketplace can link users from both the detail dialog and the crawlable static detail page. Avoid pointing only to a generic project homepage when a direct file URL is available. The site build checks that every official template has a valid HTTPS `source_repo` and that each generated detail page renders the matching link.
+
+For community templates, `author_url` should link to the author's profile or organization page; `source_repo` should link to the actual source file/repository. Keep these attribution fields in sync when moving or renaming a source file.
+
 Validate locally with the same checker CI uses:
 
 ```bash
@@ -77,7 +81,7 @@ Full spec: marketplace ADR §5 (`docs/design/step-marketplace.md` in the buz rep
   | Variable | Value |
   |----------|-------|
   | `BUZ_VERSION` | Release tag to validate against (e.g. `v1.5.7`). Empty → latest release. |
-- **site**: builds the static browse site (`dist/` — Vue output from `frontend/` + `index.json` + plugin files + `reviews.json`), uploads it as an artifact, and deploys it to **Cloudflare Pages** on pushes to `master`.
+- **site**: builds the static browse site (`dist/` — Vue output from `frontend/` + `index.json` + plugin files + `reviews.json`), verifies every template detail page renders its matching HTTPS `source_repo` link, uploads the artifact, and deploys it to **Cloudflare Pages** on pushes to `master`.
 
   One-time deploy setup (repo Settings → Secrets and variables → Actions):
 
