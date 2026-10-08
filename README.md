@@ -24,8 +24,10 @@ steps:
 | `buz/http-check` | shell | HTTP readiness polling after a deploy |
 | `buz/wait-for-tunnel` | shell | Wait for a TCP tunnel endpoint (frp/rp scenarios) |
 | `buz/ssh-wait` | shell | Wait for SSH on a target host (after reboot/rebuild) |
+| `buz/oss-upload` | docker | Upload a workspace file to Alibaba Cloud OSS with ossutil v2 |
+| `buz/s3-upload` | docker | Upload a workspace file to S3 with AWS CLI v2 |
 
-All templates are `engine: shell` — pure YAML, no container images required. Docker-toolbox templates (`upload/oss`, `upload/s3`, `docker/prune`, …) are planned but their official images are **not published yet**; they will land once image publishing is set up.
+Docker upload templates require a Docker-enabled Runner and tool images that have been published and digest-pinned. See [image build, publishing, and runtime requirements](docs/plugin-images.md). The current planned `1.0.0` image tags have not been published and must not be used in production until the release workflow has produced manifest digests and the specs are updated to pin them.
 
 ## Use in your Manager
 
@@ -46,7 +48,7 @@ Save a pipeline referencing a step — the Manager validates `with:` against the
 
 ## Authoring
 
-One file per template under `plugins/` (`<namespace>-<name>.yaml`, e.g. `buz-feishu.yaml` for id `buz/feishu`). The canonical ID format is `<namespace>/<name>` (for example `buz/feishu`); optional `category` metadata is separate and never part of the ID. The `id` field is the canonical identity everywhere: use the complete ID in `uses:`, review commands, issues, and provenance. `@version` belongs on pipeline `uses:` references, while issue/review identifiers should use the ID itself (the issue title includes `@version` where useful). Required fields: `id`, `version` (`X.Y.Z`), `engine`, `run`. Inputs support `type` (string/number/boolean/choice/list), `required`, `default`, `masking`, `pattern`, `options`. Optional fields: `name`, `category`, `description`, `description_zh`, `author`, `author_url`, `source_repo`, `keywords`, `publisher` (`official` | `community`), `license`, `default_timeout`.
+Step specs use `plugins/<namespace>/<name>/<version>.yaml` (for example `plugins/buz/feishu/1.0.0.yaml`). The namespace/name path follows the canonical step ID; multiple versions may coexist, and only YAML files are indexed. Plugin-specific Docker build assets belong alongside that plugin in an `image/` subdirectory and are not scanned as templates. The canonical ID format is `<namespace>/<name>` (for example `buz/feishu`); optional `category` metadata is separate and never part of the ID. The `id` field is the canonical identity everywhere: use the complete ID in `uses:`, review commands, issues, and provenance. `@version` belongs on pipeline `uses:` references, while issue/review identifiers should use the ID itself (the issue title includes `@version` where useful). Required fields: `id`, `version` (`X.Y.Z`), `engine`, `run`. Inputs support `type` (string/number/boolean/choice/list), `required`, `default`, `masking`, `pattern`, `options`. Optional fields: `name`, `category`, `description`, `description_zh`, `author`, `author_url`, `source_repo`, `keywords`, `publisher` (`official` | `community`), `license`, `default_timeout`.
 
 Community templates must declare `author` and `source_repo` — attribution is part of inclusion.
 
@@ -74,7 +76,7 @@ Full spec: marketplace ADR §5 (`docs/design/step-marketplace.md` in the buz rep
 
 ## CI
 
-- **validate**: downloads the `buz-manager` binary from the private buz release (no Rust toolchain, no source build) and runs `step-validate plugins/` on every push/PR; also runs `shellcheck` over `scripts/*.sh`. `BUZ_REPO_PAT_V2` must be configured with read access to `schiplatv2/buz`; if absent, validation fails explicitly. GitHub does not expose repository secrets to fork PRs, so fork contributors need a maintainer-run validation or a branch within the repository before merge; required checks must not be treated as passing when validation is skipped.
+- **validate**: downloads the `buz-manager` binary from the private buz release (no Rust toolchain, no source build) and runs `step-validate` on the recursively discovered YAML file list on every push/PR; also runs `shellcheck` over `scripts/*.sh`. `BUZ_REPO_PAT_V2` must be configured with read access to `schiplatv2/buz`; if absent, validation fails explicitly. GitHub does not expose repository secrets to fork PRs, so fork contributors need a maintainer-run validation or a branch within the repository before merge; required checks must not be treated as passing when validation is skipped.
 
   Optional version pin — repo Settings → Secrets and variables → Actions → **Variables** tab:
 
@@ -119,7 +121,7 @@ Triage outcomes: benign → closed; violating → template **removed from the in
 
 ## Namespace note
 
-In Phase 1 (local index) a `uses:` reference is the complete template `id` plus `@version` — e.g. `buz/feishu@1.2.0`. The index `file` value is a repository-relative POSIX path (for example `plugins/buz-feishu.yaml`); consumers should resolve it relative to the index/repository root, never depend on an absolute build-machine path. Namespace→index-source bindings (`community/...` pointing at a configured remote index) arrive with Phase 2 `https` indexes.
+In Phase 1 (local index) a `uses:` reference is the complete template `id` plus `@version` — e.g. `buz/feishu@1.2.0`. The index `file` value is a repository-relative POSIX path (for example `plugins/buz/feishu/1.0.0.yaml`); consumers should resolve it relative to the index/repository root, never depend on an absolute build-machine path. Namespace→index-source bindings (`community/...` pointing at a configured remote index) arrive with Phase 2 `https` indexes.
 
 ## License
 

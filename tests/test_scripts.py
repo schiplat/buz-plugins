@@ -4,6 +4,8 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+import yaml
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -72,6 +74,53 @@ class GenIndexTests(unittest.TestCase):
     def test_index_rejects_whitespace_only_category(self):
         with self.assertRaisesRegex(SystemExit, "simple label"):
             self.gen_index.extract_category("category:    ")
+
+    def test_recursive_discovery_is_sorted_and_skips_hidden_paths_and_symlinks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            nested = root / "buz" / "object"
+            nested.mkdir(parents=True)
+            (root / "z.yaml").write_text("id: community/z\n")
+            (nested / "1.0.0.yaml").write_text("id: buz/object\n")
+            hidden = root / ".hidden"
+            hidden.mkdir()
+            (hidden / "hidden.yaml").write_text("id: community/hidden\n")
+            outside = root.parent / f"{root.name}-linked.yaml"
+            outside.write_text("id: community/linked\n")
+            try:
+                (root / "linked.yaml").symlink_to(outside)
+                (root / "linked-dir").symlink_to(nested, target_is_directory=True)
+                expected = ["buz/object/1.0.0.yaml", "z.yaml"]
+                for script_name in ("gen_index", "egress", "lint_runs", "build_site"):
+                    with self.subTest(script=script_name):
+                        module = load_script(script_name)
+                        files = module.discover_plugin_files(root)
+                        self.assertEqual(
+                            [path.relative_to(root).as_posix() for path in files],
+                            expected,
+                        )
+            finally:
+                outside.unlink(missing_ok=True)
+
+    def test_nested_specs_with_same_basename_keep_distinct_indexed_paths(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as tmp:
+            plugin_dir = Path(tmp) / "plugins"
+            for name, step_id in (("alpha", "community/alpha"), ("beta", "community/beta")):
+                spec_dir = plugin_dir / "buz" / name
+                spec_dir.mkdir(parents=True)
+                (spec_dir / "1.0.0.yaml").write_text(
+                    f"id: {step_id}\nversion: 1.0.0\n"
+                )
+            files = self.gen_index.discover_plugin_files(plugin_dir)
+            indexed = [self.gen_index.relative_file(path, ROOT) for path in files]
+            expected_prefix = Path(tmp).relative_to(ROOT).as_posix()
+        self.assertEqual(
+            indexed,
+            [
+                f"{expected_prefix}/plugins/buz/alpha/1.0.0.yaml",
+                f"{expected_prefix}/plugins/buz/beta/1.0.0.yaml",
+            ],
+        )
 
 
 class EgressTests(unittest.TestCase):
@@ -203,6 +252,21 @@ class EgressTests(unittest.TestCase):
             self.assertIn(plugin_dir.resolve().relative_to(ROOT).as_posix(), printed)
             self.assertNotIn(str(ROOT), printed)
 
+    def test_aws_and_ossutil_endpoints_fail_closed_when_unresolved(self):
+        cases = {
+            'aws s3 cp file s3://bucket/key --endpoint-url "$INPUT_S3_ENDPOINT"':
+                ["<dynamic-endpoint:endpoint>"],
+            "AWS_ENDPOINT_URL=https://s3.example.test aws s3 ls": ["s3.example.test"],
+            'ossutil cp file oss://bucket/key -e "$INPUT_OSS_ENDPOINT"':
+                ["<dynamic-endpoint:endpoint>"],
+            "ossutil cp file oss://bucket/key": ["<unparsed-network-command>"],
+            "aws s3 ls": ["<unparsed-network-command>"],
+        }
+        for run, expected in cases.items():
+            with self.subTest(run=run):
+                _, hosts = self.egress.extract_egress(run)
+                self.assertEqual(hosts, expected)
+
     def test_endpoint_input_allowlist_compares_exactly(self):
         evidence = [{
             "id": "buz/check",
@@ -216,6 +280,149 @@ class EgressTests(unittest.TestCase):
             }}))
             violations = self.egress.check_allowlist(evidence, allow)
         self.assertTrue(any("port" in violation for violation in violations))
+
+
+class PluginImageWorkflowTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.checker = load_script("check_plugin_images")
+
+    def test_workflow_only_publishes_allowlisted_multiplatform_images(self):
+        self.checker.main()
+        workflow = (ROOT / ".github/workflows/publish-plugin-image.yml").read_text()
+        self.assertIn("Could not determine whether image tag exists; refusing to publish.", workflow)
+        self.assertIn("@1ca370b3a9802c92e886402e0dd88098a2533b12 # v6.4.1", workflow)
+
+    def test_oss_entrypoint_uses_v2_environment_credentials(self):
+        entrypoint = (ROOT / "plugins/buz/oss-upload/image/entrypoint.sh").read_text()
+        for name in (
+            "OSS_ACCESS_KEY_ID",
+            "OSS_ACCESS_KEY_SECRET",
+            "OSS_ENDPOINT",
+            "OSS_REGION",
+            "OSS_SESSION_TOKEN",
+        ):
+            self.assertIn(name, entrypoint)
+        self.assertIn('exec ossutil cp "$SOURCE" "oss://$INPUT_BUCKET/$INPUT_OBJECT"', entrypoint)
+        self.assertNotIn("--access-key-id", entrypoint)
+        self.assertIn("/buz/workspace/*", entrypoint)
+
+    def test_s3_template_masks_credentials_and_uses_https_endpoint(self):
+        spec = yaml.safe_load((ROOT / "plugins/buz/s3-upload/1.0.0.yaml").read_text())
+        entrypoint = (ROOT / "plugins/buz/s3-upload/image/entrypoint.sh").read_text()
+        for name in ("access_key_id", "secret_access_key", "session_token"):
+            self.assertTrue(spec["inputs"][name].get("masking"))
+        self.assertTrue(spec["inputs"]["endpoint_url"].get("required"))
+        self.assertIn("AWS_ENDPOINT_URL", entrypoint)
+        self.assertIn("https://", entrypoint)
+        self.assertIn("/buz/workspace/*", entrypoint)
+        dockerfile = (ROOT / "plugins/buz/s3-upload/image/Dockerfile").read_text()
+        self.assertIn("COPY entrypoint.sh /usr/local/bin/buz-s3-upload", dockerfile)
+        self.assertEqual(spec["run"].strip(), "exec /usr/local/bin/buz-s3-upload")
+
+
+class SitePathTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.build_site = load_script("build_site")
+        cls.check_site_sources = load_script("check_site_sources")
+
+    def test_nested_paths_map_uniquely_and_links_are_root_relative(self):
+        files = [
+            "plugins/buz/oss-upload/1.0.0.yaml",
+            "plugins/buz/s3-upload/1.0.0.yaml",
+            "plugins/community/oss-upload/1.0.0.yaml",
+        ]
+        pages = [self.build_site.template_filename(file) for file in files]
+        self.assertEqual(
+            pages,
+            [
+                "buz/oss-upload/1.0.0.html",
+                "buz/s3-upload/1.0.0.html",
+                "community/oss-upload/1.0.0.html",
+            ],
+        )
+        self.assertEqual(len(set(pages)), len(pages))
+        html = self.build_site.template_page_html({
+            "id": "buz/oss-upload", "version": "1.0.0", "file": files[0],
+            "engine": "shell", "content_sha256": "abc", "source_repo": None,
+        })
+        self.assertIn('href="../../../favicon.svg"', html)
+        self.assertIn('href="../../../style.css"', html)
+        self.assertIn('href="../../../"', html)
+
+    def test_source_checks_use_full_nested_page_path(self):
+        self.assertEqual(
+            self.check_site_sources.template_filename(
+                "plugins/buz/oss-upload/1.0.0.yaml"
+            ),
+            "buz/oss-upload/1.0.0.html",
+        )
+        self.assertEqual(
+            self.check_site_sources.template_filename("plugins/legacy.yaml"),
+            "legacy.html",
+        )
+
+    def test_source_check_cli_verifies_nested_detail_page(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dist = Path(tmp)
+            (dist / "templates" / "buz" / "oss-upload").mkdir(parents=True)
+            source = "https://github.com/example/oss-upload"
+            (dist / "site-data.json").write_text(json.dumps({"templates": [{
+                "id": "buz/oss-upload", "file": "plugins/buz/oss-upload/1.0.0.yaml",
+                "publisher": "official", "source_repo": source,
+            }]}))
+            page = dist / "templates" / "buz" / "oss-upload" / "1.0.0.html"
+            page.write_text(f'<a href="{source}">Source repository</a>')
+            with patch.object(sys, "argv", ["check_site_sources.py", "--dist-dir", str(tmp)]):
+                with patch("builtins.print") as print_mock:
+                    self.check_site_sources.main()
+            self.assertIn("1/1", str(print_mock.call_args))
+
+    def test_site_stages_nested_plugin_files_at_indexed_paths(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as source_tmp:
+            source_root = Path(source_tmp)
+            (source_root / "scripts").mkdir()
+            (source_root / "index.json").write_text('{"steps": []}\n')
+            plugin_dir = source_root / "plugins"
+            nested = plugin_dir / "buz" / "oss-upload"
+            nested.mkdir(parents=True)
+            spec = nested / "1.0.0.yaml"
+            spec.write_text(
+                "id: buz/oss-upload\nversion: 1.0.0\nname: OSS upload\n"
+                "publisher: official\nsource_repo: https://github.com/example/oss-upload\n"
+            )
+            same_basename = plugin_dir / "community" / "oss-upload" / "1.0.0.yaml"
+            same_basename.parent.mkdir(parents=True)
+            same_basename.write_text(
+                "id: community/oss-upload\nversion: 1.0.0\nname: Community OSS upload\n"
+                "publisher: community\n"
+            )
+            output = Path(tempfile.mkdtemp())
+            try:
+                with patch.object(
+                    self.build_site, "__file__", str(ROOT / "scripts" / "build_site.py")
+                ):
+                    with patch.object(sys, "argv", [
+                        "build_site.py", "--plugins-dir", str(plugin_dir),
+                        "--out-dir", str(output),
+                    ]):
+                        self.build_site.main()
+                indexed_spec = spec.resolve().relative_to(ROOT)
+                staged_spec = output / indexed_spec
+                self.assertTrue(
+                    staged_spec.is_file(),
+                    f"expected {staged_spec}, staged files: {sorted(str(p) for p in output.rglob('*'))}",
+                )
+                self.assertEqual(staged_spec.read_text(), spec.read_text())
+                page_path = self.build_site.template_filename(indexed_spec.as_posix())
+                self.assertTrue((output / "templates" / page_path).is_file())
+                community_indexed = same_basename.resolve().relative_to(ROOT).as_posix()
+                community_page_path = self.build_site.template_filename(community_indexed)
+                self.assertTrue((output / "templates" / community_page_path).is_file())
+            finally:
+                import shutil
+                shutil.rmtree(output, ignore_errors=True)
 
 
 class ReviewMergeTests(unittest.TestCase):

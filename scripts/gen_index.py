@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate index.json for the buz-plugin step index (marketplace ADR §6.1).
 
-Walks plugins/*.yaml|yml, extracts the `id` / `version` top-level scalars,
+Recursively walks visible plugins/**/*.yaml|yml specs, extracts the `id` / `version` top-level scalars,
 hashes each file, and emits:
 
     { "steps": [ { "id": ..., "version": ..., "file": ..., "sha256": ..., "category": ... } ] }
@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -71,6 +72,32 @@ def relative_file(path: Path, root: Path) -> str:
         ) from None
 
 
+def discover_plugin_files(plugin_dir: Path) -> list[Path]:
+    """Return sorted YAML specs, excluding hidden paths and symlinks."""
+    if plugin_dir.is_symlink() or not plugin_dir.is_dir():
+        return []
+
+    files: list[Path] = []
+    for current, dirs, names in os.walk(plugin_dir, followlinks=False):
+        current_path = Path(current)
+        dirs[:] = sorted(
+            name
+            for name in dirs
+            if not name.startswith(".")
+            and not (current_path / name).is_symlink()
+        )
+        for name in names:
+            path = current_path / name
+            if (
+                name.startswith(".")
+                or path.is_symlink()
+                or path.suffix not in (".yaml", ".yml")
+            ):
+                continue
+            files.append(path)
+    return sorted(files, key=lambda path: path.relative_to(plugin_dir).as_posix())
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     # Paths resolve against the repo root (script's parent), so the script
@@ -85,14 +112,14 @@ def main() -> None:
     parser.add_argument("--output", default="index.json")
     args = parser.parse_args()
 
-    plugin_dir = resolve(args.plugins_dir).resolve()
+    plugin_dir = resolve(args.plugins_dir)
+    if not plugin_dir.is_symlink():
+        plugin_dir = plugin_dir.resolve()
     try:
         plugin_dir.relative_to(root)
     except ValueError:
         raise SystemExit(f"{plugin_dir}: plugin directory must be inside repository root {root}") from None
-    files = sorted(
-        p for p in plugin_dir.iterdir() if p.suffix in (".yaml", ".yml")
-    )
+    files = discover_plugin_files(plugin_dir)
     if not files:
         raise SystemExit(f"{plugin_dir}: no *.yaml/*.yml step specs found")
 

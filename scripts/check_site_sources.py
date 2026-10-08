@@ -4,13 +4,18 @@
 import argparse
 import json
 from html.parser import HTMLParser
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from urllib.parse import urlsplit
 
 
 def template_filename(file_value: str) -> str:
-    """Derive a static page basename from a POSIX or legacy path."""
-    return Path(file_value.replace("\\", "/")).stem + ".html"
+    """Map a full indexed path to its matching static detail-page path."""
+    parts = PurePosixPath(file_value.replace("\\", "/")).parts
+    if parts and parts[0] == "plugins":
+        parts = parts[1:]
+    if not parts:
+        return ""
+    return PurePosixPath(*parts).with_suffix(".html").as_posix()
 
 
 class Links(HTMLParser):
