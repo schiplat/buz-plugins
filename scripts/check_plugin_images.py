@@ -148,6 +148,12 @@ def main() -> None:
             raise SystemExit(f"{slug}: image must install its upload helper")
         if f"RUN chmod 0755 /usr/local/bin/{helper_name}" not in dockerfile:
             raise SystemExit(f"{slug}: upload helper must be executable")
+        if "TARGETARCH" in dockerfile or "arm64" in dockerfile or "aarch64" in dockerfile:
+            raise SystemExit(f"{slug}: Dockerfile must target Linux amd64 only")
+        if slug == "oss-tools" and "OSSUTIL_SHA256_AMD64" not in dockerfile:
+            raise SystemExit("oss-tools: amd64 archive must remain checksum-verified")
+        if slug == "aws-tools" and "awscli-exe-linux-x86_64-" not in dockerfile:
+            raise SystemExit("aws-tools: Dockerfile must install the Linux x86_64 AWS CLI archive")
         spec = yaml.safe_load((ROOT / spec_file).read_text(encoding="utf-8"))
         if spec.get("engine") != "docker" or not image_reference_matches(image, spec.get("image")):
             raise SystemExit(f"{slug}: template image reference must use the expected tag or a pinned sha256 digest")

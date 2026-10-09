@@ -1,7 +1,6 @@
 # syntax=docker/dockerfile:1
 FROM debian:bookworm-slim
 
-ARG TARGETARCH
 ARG AWSCLI_VERSION=2.27.41
 
 RUN apt-get update \
@@ -10,12 +9,7 @@ RUN apt-get update \
 
 COPY aws-cli-team-public-key.asc /tmp/aws-cli-team.asc
 RUN set -eux; \
-    case "$TARGETARCH" in \
-      amd64) arch=x86_64 ;; \
-      arm64) arch=aarch64 ;; \
-      *) echo "unsupported architecture: $TARGETARCH" >&2; exit 1 ;; \
-    esac; \
-    archive="awscli-exe-linux-${arch}-${AWSCLI_VERSION}.zip"; \
+    archive="awscli-exe-linux-x86_64-${AWSCLI_VERSION}.zip"; \
     curl --fail --location --silent --show-error "https://awscli.amazonaws.com/${archive}" -o "/tmp/${archive}"; \
     curl --fail --location --silent --show-error "https://awscli.amazonaws.com/${archive}.sig" -o "/tmp/${archive}.sig"; \
     fingerprint="$(gpg --show-keys --with-colons /tmp/aws-cli-team.asc | awk -F: '$1 == "fpr" { print $10; exit }')"; \
