@@ -24,6 +24,14 @@ EXPECTED = {
 }
 
 
+def image_reference_matches(image: str, reference: object) -> bool:
+    if not isinstance(reference, str):
+        return False
+    return reference == f"{image}:1.0.0" or re.fullmatch(
+        re.escape(image) + r"@sha256:[0-9a-f]{64}", reference
+    ) is not None
+
+
 def main() -> None:
     workflow = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
     triggers = workflow.get("on") or workflow.get(True) or {}
@@ -49,8 +57,8 @@ def main() -> None:
     ):
         raise SystemExit("build-push action must be pinned to the verified v6.4.1 commit")
     with_config = runner_publishers[0].get("with", {})
-    if with_config.get("push") is not True or with_config.get("platforms") != "linux/amd64,linux/arm64":
-        raise SystemExit("release action must push both amd64 and arm64 images")
+    if with_config.get("push") is not True or with_config.get("platforms") != "linux/amd64":
+        raise SystemExit("release action must push only the Linux amd64 image")
     if with_config.get("context") != "${{ steps.image.outputs.context }}":
         raise SystemExit("build context must come from the validated family selector")
     if with_config.get("tags") != "${{ steps.image.outputs.tag }}":
@@ -64,9 +72,14 @@ def main() -> None:
         for step in steps
     ):
         raise SystemExit("workflow must refuse existing tags and fail closed on registry errors")
-    for action in ("docker/setup-qemu-action@", "docker/setup-buildx-action@", "docker/login-action@"):
+    for action in ("docker/setup-buildx-action@", "docker/login-action@"):
         if not any(isinstance(step, dict) and step.get("uses", "").startswith(action) for step in steps):
             raise SystemExit(f"missing required image publishing action: {action}")
+    if any(
+        isinstance(step, dict) and step.get("uses", "").startswith("docker/setup-qemu-action@")
+        for step in steps
+    ):
+        raise SystemExit("QEMU is unnecessary for the single-platform amd64 image")
 
     text = WORKFLOW.read_text(encoding="utf-8")
     validate_step = next(
@@ -87,10 +100,10 @@ def main() -> None:
         raise SystemExit("publishing must be restricted to master")
     if "docker/login-action@" not in text:
         raise SystemExit("workflow must authenticate to Docker Hub")
-    if not re.search(r"\$\{\{\s*secrets\.DOCKERHUB_USERNAME\s*\}\}", text) or not re.search(
+    if not re.search(r"\$\{\{\s*vars\.DOCKERHUB_USERNAME\s*\}\}", text) or not re.search(
         r"\$\{\{\s*secrets\.DOCKERHUB_TOKEN\s*\}\}", text
     ):
-        raise SystemExit("Docker Hub credentials must come from repository secrets")
+        raise SystemExit("Docker Hub username must come from a repository variable and token from a secret")
     if "steps.build.outputs.digest" not in text:
         raise SystemExit("workflow must record the build manifest digest")
 
@@ -106,8 +119,8 @@ def main() -> None:
         if f"RUN chmod 0755 /usr/local/bin/{helper_name}" not in dockerfile:
             raise SystemExit(f"{slug}: upload helper must be executable")
         spec = yaml.safe_load((ROOT / spec_file).read_text(encoding="utf-8"))
-        if spec.get("engine") != "docker" or spec.get("image") != f"{image}:1.0.0":
-            raise SystemExit(f"{slug}: template image reference does not match its workflow family")
+        if spec.get("engine") != "docker" or not image_reference_matches(image, spec.get("image")):
+            raise SystemExit(f"{slug}: template image reference must use the expected tag or a pinned sha256 digest")
         if spec.get("run", "").strip() != f"exec /usr/local/bin/{helper_name}":
             raise SystemExit(f"{slug}: template must invoke the image-side upload helper")
 
