@@ -10,7 +10,7 @@ keywords: [s3, aws, upload, artifact, storage]
 license: Apache-2.0
 source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/s3-upload/1.0.0.yaml
 engine: docker
-image: docker.io/schiplat/buz-plugins-aws-tools:1.0.0
+image: docker.io/schiplat/buz-plugins-aws-tools@sha256:68d8b25b19410a57807da0df3ea5b3ca1b6f4f01243022683dd433748d2ec42b
 default_timeout: 10m
 inputs:
   source:
