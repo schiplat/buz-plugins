@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -14,6 +15,7 @@ FAMILY_PATHS = {
     "aws-tools": ("plugins/buz/s3-upload",),
 }
 SKIP_MARKER = "[skip image build]"
+VERSION_PATTERN = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
 
 
 def git(root: Path, *args: str) -> str:
@@ -82,6 +84,22 @@ def select_families(root: Path, before: str, after: str) -> list[str]:
     return sorted(families)
 
 
+def latest_template_version(root: Path, family: str) -> str:
+    if family not in FAMILY_PATHS:
+        raise ValueError(f"unsupported image family: {family}")
+    plugin_dir = root / FAMILY_PATHS[family][0]
+    versions = []
+    for path in plugin_dir.iterdir():
+        if not path.is_file() or path.suffix not in {".yaml", ".yml"}:
+            continue
+        match = VERSION_PATTERN.fullmatch(path.stem)
+        if match:
+            versions.append((tuple(int(part) for part in match.groups()), path.stem))
+    if not versions:
+        raise SystemExit(f"{plugin_dir}: no X.Y.Z plugin template versions found")
+    return max(versions)[1]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--before", required=True)
@@ -90,16 +108,16 @@ def main() -> None:
     parser.add_argument("--root", type=Path, default=Path.cwd())
     args = parser.parse_args()
 
-    run_id = os.environ.get("GITHUB_RUN_ID")
-    if not run_id:
-        raise SystemExit("GITHUB_RUN_ID is required")
-
     families = select_families(args.root.resolve(), args.before, args.after)
+    versions = {
+        family: latest_template_version(args.root.resolve(), family)
+        for family in families
+    }
     output = args.output or Path(os.environ.get("GITHUB_OUTPUT", "/dev/stdout"))
     with output.open("a", encoding="utf-8") as stream:
         stream.write(f"families={json.dumps(families)}\n")
-        stream.write(f"version=1.0.{run_id}\n")
+        stream.write(f"versions={json.dumps(versions, sort_keys=True)}\n")
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

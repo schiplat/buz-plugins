@@ -19,12 +19,14 @@ import Badge from '@/components/ui/Badge.vue'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import Input from '@/components/ui/Input.vue'
+import Select from '@/components/ui/Select.vue'
 import Pagination from '@/components/ui/Pagination.vue'
 import Dialog from '@/components/ui/Dialog.vue'
 import FiltersSidebar from '@/components/FiltersSidebar.vue'
 import { copyText } from '@/lib/clipboard'
 import { T } from '@/ui-text'
 import type { StepLibrary, StepTemplate } from '@/types'
+import { groupPlugins, selectPluginVersion, detailPageUrl, type StepPlugin } from '@/lib/plugins'
 import { NEW_TEMPLATE_URL, REPO_URL } from '@/types'
 
 const library = ref<StepLibrary>({ templates: [], unparseable: [] })
@@ -40,6 +42,7 @@ const page = ref(1)
 const PAGE_SIZE = 15
 const showMobileFilters = ref(false)
 const selected = ref<StepTemplate | null>(null)
+const selectedPlugin = ref<StepPlugin | null>(null)
 const detailOpen = ref(false)
 const copiedCard = ref<string | null>(null)
 const copiedDetail = ref(false)
@@ -70,7 +73,8 @@ function localized(t: StepTemplate): string {
   return t.description || t.description_zh || ''
 }
 
-const allTemplates = computed(() => library.value.templates)
+const allPlugins = computed(() => groupPlugins(library.value.templates))
+const allTemplates = computed(() => allPlugins.value.map((plugin) => plugin.latest))
 
 const publisherFacets = computed(() => countBy(allTemplates.value, (t) => t.publisher || 'community'))
 const engineFacets = computed(() => countBy(allTemplates.value, (t) => t.engine))
@@ -125,26 +129,28 @@ function clearFilters() {
 }
 
 const filtered = computed(() => {
-  let list = allTemplates.value.slice()
+  let list = allPlugins.value.slice()
   if (publisher.value !== 'all')
-    list = list.filter((t) => (t.publisher || 'community') === publisher.value)
-  if (engine.value !== 'all') list = list.filter((t) => t.engine === engine.value)
-  if (category.value !== 'all') list = list.filter((t) => (t.category || 'uncategorized') === category.value)
+    list = list.filter((plugin) => (plugin.latest.publisher || 'community') === publisher.value)
+  if (engine.value !== 'all') list = list.filter((plugin) => plugin.latest.engine === engine.value)
+  if (category.value !== 'all')
+    list = list.filter((plugin) => (plugin.latest.category || 'uncategorized') === category.value)
   if (review.value !== 'all')
-    list = list.filter((t) => (review.value === 'reviewed' ? t.reviewed : !t.reviewed))
+    list = list.filter((plugin) => (review.value === 'reviewed' ? plugin.latest.reviewed : !plugin.latest.reviewed))
   if (selectedKeywords.value.length)
-    list = list.filter((t) =>
-      selectedKeywords.value.some((keyword) => (t.keywords || []).includes(keyword)),
+    list = list.filter((plugin) =>
+      selectedKeywords.value.some((keyword) => (plugin.latest.keywords || []).includes(keyword)),
     )
   const q = search.value.trim().toLowerCase()
   if (q)
-    list = list.filter((t) => {
+    list = list.filter((plugin) => {
+      const t = plugin.latest
       const haystack = [
         t.id, t.name, t.category, t.description, t.description_zh, t.author, t.engine, ...(t.keywords || []),
       ].filter(Boolean).join(' ').toLowerCase()
       return haystack.includes(q)
     })
-  return list.sort((a, b) => a.id.localeCompare(b.id) || b.version.localeCompare(a.version))
+  return list
 })
 
 const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / PAGE_SIZE)))
@@ -154,6 +160,22 @@ const paged = computed(() => {
 })
 
 watch([search, publisher, engine, category, review, selectedKeywords], () => (page.value = 1))
+
+function openPlugin(plugin: StepPlugin) {
+  selectedPlugin.value = plugin
+  selected.value = plugin.latest
+  detailOpen.value = true
+}
+
+function selectVersion(version: string) {
+  selected.value = selectedPlugin.value ? selectPluginVersion(selectedPlugin.value, version) : null
+  copiedDetail.value = false
+  copiedUsage.value = false
+}
+
+function detailUrl(template: StepTemplate): string {
+  return detailPageUrl(template.file)
+}
 
 function usageSnippet(t: StepTemplate): string {
   const lines = [`- name: ${t.id.split('/').pop()}`, `  uses: ${t.id}@${t.version}`]
@@ -305,49 +327,52 @@ onMounted(async () => {
 
           <div v-else class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <Card
-              v-for="tmpl in paged"
-              :key="`${tmpl.id}@${tmpl.version}`"
+              v-for="plugin in paged"
+              :key="plugin.id"
               class="group flex cursor-pointer flex-col p-5 transition-shadow hover:shadow-md"
-              @click="selected = tmpl; detailOpen = true"
+              @click="openPlugin(plugin)"
             >
               <div>
-                <div class="font-semibold leading-snug">{{ tmpl.name || tmpl.id }}</div>
+                <div class="font-semibold leading-snug">{{ plugin.latest.name || plugin.id }}</div>
                 <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
-                  <Badge v-if="tmpl.category" variant="secondary">{{ tmpl.category }}</Badge>
-                  <Badge :variant="tmpl.reviewed ? 'reviewed' : 'unreviewed'" :title="tmpl.reviewed ? T.reviewedTip : T.unreviewedTip">
-                    {{ tmpl.reviewed ? `✓ ${T.reviewed}` : T.unreviewed }}
+                  <Badge v-if="plugin.latest.category" variant="secondary">{{ plugin.latest.category }}</Badge>
+                  <Badge :variant="plugin.latest.reviewed ? 'reviewed' : 'unreviewed'" :title="plugin.latest.reviewed ? T.reviewedTip : T.unreviewedTip">
+                    {{ plugin.latest.reviewed ? `✓ ${T.reviewed}` : T.unreviewed }}
                   </Badge>
-                  <Badge :variant="(tmpl.publisher || 'community') === 'official' ? 'official' : 'community'">
-                    {{ (tmpl.publisher || 'community') === 'official' ? T.official : T.community }}
+                  <Badge :variant="(plugin.latest.publisher || 'community') === 'official' ? 'official' : 'community'">
+                    {{ (plugin.latest.publisher || 'community') === 'official' ? T.official : T.community }}
                   </Badge>
                 </div>
                 <div class="mt-1.5 flex items-center gap-1">
-                  <span class="font-mono text-xs text-muted-foreground">{{ tmpl.id }} · v{{ tmpl.version }}</span>
+                  <span class="font-mono text-xs text-muted-foreground">{{ plugin.id }} · v{{ plugin.latest.version }}</span>
+                  <Badge v-if="plugin.versions.length > 1" variant="secondary">
+                    {{ T.versionsCount(plugin.versions.length) }}
+                  </Badge>
                   <button
                     class="copy-btn inline-flex h-5 w-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:text-foreground"
-                    :title="copiedCard === `${tmpl.id}@${tmpl.version}` ? T.copied : T.copy"
-                    :aria-label="`${T.copy}: ${tmpl.id}@${tmpl.version}`"
-                    @click.stop="copyUsesRef(tmpl)"
+                    :title="copiedCard === `${plugin.id}@${plugin.latest.version}` ? T.copied : T.copy"
+                    :aria-label="`${T.copy}: ${plugin.id}@${plugin.latest.version}`"
+                    @click.stop="copyUsesRef(plugin.latest)"
                   >
-                    <Check v-if="copiedCard === `${tmpl.id}@${tmpl.version}`" class="h-3 w-3 text-emerald-600" />
+                    <Check v-if="copiedCard === `${plugin.id}@${plugin.latest.version}`" class="h-3 w-3 text-emerald-600" />
                     <Copy v-else class="h-3 w-3" />
                   </button>
                 </div>
               </div>
 
-              <p class="mt-3 line-clamp-3 flex-1 text-sm text-muted-foreground">{{ localized(tmpl) }}</p>
+              <p class="mt-3 line-clamp-3 flex-1 text-sm text-muted-foreground">{{ localized(plugin.latest) }}</p>
 
               <div class="mt-3 flex flex-wrap gap-1.5">
-                <Badge variant="secondary" class="font-mono">{{ tmpl.engine }}</Badge>
-                <Badge v-if="tmpl.default_timeout" variant="secondary" class="font-mono">{{ tmpl.default_timeout }}</Badge>
-                <Badge variant="secondary">{{ T.inputsCount(tmpl.inputs.length) }}</Badge>
-                <Badge v-if="tmpl.buz_compatible === false" variant="warn">
+                <Badge variant="secondary" class="font-mono">{{ plugin.latest.engine }}</Badge>
+                <Badge v-if="plugin.latest.default_timeout" variant="secondary" class="font-mono">{{ plugin.latest.default_timeout }}</Badge>
+                <Badge variant="secondary">{{ T.inputsCount(plugin.latest.inputs.length) }}</Badge>
+                <Badge v-if="plugin.latest.buz_compatible === false" variant="warn">
                   <ShieldAlert class="mr-0.5 h-3 w-3" /> {{ T.incompatible }}
                 </Badge>
               </div>
 
               <div class="mt-4 flex items-center justify-between border-t pt-3 text-xs text-muted-foreground">
-                <span class="truncate">{{ tmpl.author ? `${T.by} ${tmpl.author}` : '' }}</span>
+                <span class="truncate">{{ plugin.latest.author ? `${T.by} ${plugin.latest.author}` : '' }}</span>
                 <span class="inline-flex items-center gap-1 font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
                   {{ T.details }} →
                 </span>
@@ -385,6 +410,25 @@ onMounted(async () => {
           <div class="min-w-0">
             <div class="flex items-center gap-1.5">
               <span class="truncate font-mono text-sm font-semibold">{{ selected.id }}@{{ selected.version }}</span>
+              <Select
+                v-if="selectedPlugin && selectedPlugin.versions.length > 1"
+                :model-value="selected.version"
+                :aria-label="T.selectVersion"
+                class="w-36"
+                @update:model-value="selectVersion"
+              >
+                <option v-for="version in selectedPlugin.versions" :key="version.version" :value="version.version">
+                  {{ version.version }}
+                </option>
+              </Select>
+              <a
+                class="text-xs text-primary hover:underline"
+                :href="detailUrl(selected)"
+                target="_blank"
+                rel="noopener"
+              >
+                {{ T.versionPage }}
+              </a>
               <button
                 class="copy-btn inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 :title="copiedDetail ? T.copied : T.copy"

@@ -28,6 +28,7 @@ export interface StepTemplate {
   buz_compatible?: boolean
   content_sha256: string
   inputs: StepInput[]
+  reviewed?: boolean
 }
 
 export interface StepLibrary {

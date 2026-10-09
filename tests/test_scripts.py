@@ -366,9 +366,12 @@ class PluginImageWorkflowTests(unittest.TestCase):
         select = next(step for step in detect["steps"] if step.get("id") == "select")
         self.assertNotIn("families+=(oss-tools aws-tools)", select["run"])
         self.assertIn("select_plugin_image_families.py", select["run"])
+        self.assertEqual(detect["outputs"]["versions"], "${{ steps.select.outputs.versions }}")
         publish = workflow["jobs"]["publish"]
         self.assertEqual(publish["strategy"]["matrix"]["image_family"], "${{ fromJSON(needs.detect.outputs.families) }}")
         workflow_text = (ROOT / ".github/workflows/publish-plugin-image.yml").read_text()
+        self.assertIn("fromJSON(needs.detect.outputs.versions)[matrix.image_family]", workflow_text)
+        self.assertIn("${IMAGE_VERSION}-build.${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}", workflow_text)
         self.assertIn("Could not determine whether image tag exists; refusing to publish.", workflow_text)
         self.assertIn("platforms: linux/amd64", workflow_text)
         self.assertNotIn("linux/arm64", workflow_text)
@@ -442,6 +445,13 @@ class PluginImageWorkflowTests(unittest.TestCase):
                 selector.select_families(root, "0" * 40, mixed_skip),
                 ["aws-tools", "oss-tools"],
             )
+            (root / "plugins/buz/oss-upload/1.0.9.yaml").write_text("version: 1.0.9\n")
+            (root / "plugins/buz/oss-upload/1.0.10.yaml").write_text("version: 1.0.10\n")
+            (root / "plugins/buz/s3-upload/2.3.4.yaml").write_text("version: 2.3.4\n")
+            self.assertEqual(selector.latest_template_version(root, "oss-tools"), "1.0.10")
+            self.assertEqual(selector.latest_template_version(root, "aws-tools"), "2.3.4")
+            with self.assertRaisesRegex(ValueError, "unsupported image family"):
+                selector.latest_template_version(root, "missing-tools")
 
             branch_point = subprocess.run(
                 ["git", "rev-parse", "HEAD"], cwd=root, check=True,
@@ -605,6 +615,11 @@ class SitePathTests(unittest.TestCase):
                 "id: buz/oss-upload\nversion: 1.0.0\nname: OSS upload\n"
                 "publisher: official\nsource_repo: https://github.com/example/oss-upload\n"
             )
+            newer_spec = nested / "1.0.1.yaml"
+            newer_spec.write_text(
+                "id: buz/oss-upload\nversion: 1.0.1\nname: OSS upload\n"
+                "publisher: official\nsource_repo: https://github.com/example/oss-upload\n"
+            )
             same_basename = plugin_dir / "community" / "oss-upload" / "1.0.0.yaml"
             same_basename.parent.mkdir(parents=True)
             same_basename.write_text(
@@ -628,8 +643,31 @@ class SitePathTests(unittest.TestCase):
                     f"expected {staged_spec}, staged files: {sorted(str(p) for p in output.rglob('*'))}",
                 )
                 self.assertEqual(staged_spec.read_text(), spec.read_text())
-                page_path = self.build_site.template_filename(indexed_spec.as_posix())
-                self.assertTrue((output / "templates" / page_path).is_file())
+                bundle = json.loads((output / "site-data.json").read_text())
+                indexed_versions = [
+                    (template["id"], template["version"])
+                    for template in bundle["templates"]
+                ]
+                self.assertEqual(
+                    indexed_versions,
+                    [
+                        ("buz/oss-upload", "1.0.0"),
+                        ("buz/oss-upload", "1.0.1"),
+                        ("community/oss-upload", "1.0.0"),
+                    ],
+                )
+                for indexed in (spec, newer_spec):
+                    indexed_path = indexed.relative_to(source_root).as_posix()
+                    page_path = self.build_site.template_filename(indexed_path)
+                    self.assertTrue((output / "templates" / page_path).is_file())
+                    self.assertIn(
+                        f"/templates/{page_path}",
+                        (output / "sitemap.xml").read_text(),
+                    )
+                page_path = self.build_site.template_filename(
+                    newer_spec.relative_to(source_root).as_posix()
+                )
+                self.assertIn("v1.0.1", (output / "templates" / page_path).read_text())
                 community_indexed = same_basename.relative_to(source_root).as_posix()
                 community_page_path = self.build_site.template_filename(community_indexed)
                 self.assertTrue((output / "templates" / community_page_path).is_file())
