@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { compareVersions, detailPageUrl, groupPlugins, selectPluginVersion } from './src/lib/plugin-utils.ts'
+import { compareVersions, detailPageUrl, groupPlugins, pluginHeading, selectPluginVersion } from './src/lib/plugin-utils.ts'
 
 const template = (id, version, extra = {}) => ({
   id,
@@ -41,6 +41,10 @@ test('selects the full requested version record and maps its static detail URL',
   ])[0]
 
   assert.equal(selectPluginVersion(plugin, '1.0.1').content_sha256, 'old-hash')
+  assert.equal(pluginHeading(selectPluginVersion(plugin, '1.0.1'), plugin), 'buz/oss-upload')
   assert.equal(selectPluginVersion(plugin, 'missing').version, '1.0.2')
   assert.equal(detailPageUrl('plugins/buz/oss-upload/1.0.1.yaml'), 'templates/buz/oss-upload/1.0.1.html')
+
+  const singleVersion = groupPlugins([template('buz/one-version', '2.3.4')])[0]
+  assert.equal(pluginHeading(singleVersion.latest, singleVersion), 'buz/one-version@2.3.4')
 })

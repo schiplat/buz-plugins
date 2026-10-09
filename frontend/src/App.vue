@@ -26,7 +26,7 @@ import FiltersSidebar from '@/components/FiltersSidebar.vue'
 import { copyText } from '@/lib/clipboard'
 import { T } from '@/ui-text'
 import type { StepLibrary, StepTemplate } from '@/types'
-import { groupPlugins, selectPluginVersion, detailPageUrl, type StepPlugin } from '@/lib/plugins'
+import { groupPlugins, pluginHeading, selectPluginVersion, detailPageUrl, type StepPlugin } from '@/lib/plugins'
 import { NEW_TEMPLATE_URL, REPO_URL } from '@/types'
 
 const library = ref<StepLibrary>({ templates: [], unparseable: [] })
@@ -409,7 +409,7 @@ onMounted(async () => {
         <div class="flex items-start justify-between gap-4 border-b pb-4">
           <div class="min-w-0">
             <div class="flex items-center gap-1.5">
-              <span class="truncate font-mono text-sm font-semibold">{{ selected.id }}@{{ selected.version }}</span>
+              <span class="truncate font-mono text-sm font-semibold">{{ pluginHeading(selected, selectedPlugin) }}</span>
               <Select
                 v-if="selectedPlugin && selectedPlugin.versions.length > 1"
                 :model-value="selected.version"
