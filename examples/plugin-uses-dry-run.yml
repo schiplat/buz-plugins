@@ -8,7 +8,7 @@ steps:
       expect_status: "200"
 
   - name: Upload test artifact to OSS
-    uses: buz/oss-upload@1.0.0
+    uses: buz/oss-upload@1.0.1
     with:
       source: dist/smoke-test.txt
       bucket: replace-with-test-bucket
