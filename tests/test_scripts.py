@@ -305,6 +305,8 @@ class PluginImageWorkflowTests(unittest.TestCase):
         self.assertIn('plugins/buz/oss-upload/image/*) families+=(oss-tools)', select["run"])
         self.assertIn('plugins/buz/s3-upload/image/*) families+=(aws-tools)', select["run"])
         self.assertIn("GITHUB_RUN_ID", select["run"])
+        self.assertIn("git diff-tree --root --no-commit-id --name-only -r", select["run"])
+        self.assertNotIn("families+=(oss-tools aws-tools)", select["run"])
         publish = workflow["jobs"]["publish"]
         self.assertEqual(publish["strategy"]["matrix"]["image_family"], "${{ fromJSON(needs.detect.outputs.families) }}")
         workflow_text = (ROOT / ".github/workflows/publish-plugin-image.yml").read_text()
@@ -343,6 +345,9 @@ class PluginImageWorkflowTests(unittest.TestCase):
         self.assertIn('exec ossutil cp "$SOURCE" "oss://$INPUT_BUCKET/$INPUT_OBJECT"', entrypoint)
         self.assertNotIn("--access-key-id", entrypoint)
         self.assertIn("/buz/workspace/*", entrypoint)
+        dockerfile = (ROOT / "plugins/buz/oss-upload/image/Dockerfile").read_text()
+        self.assertIn("OSSUTIL_SHA256_AMD64", dockerfile)
+        self.assertIn("ossutil-${OSSUTIL_VERSION}-linux-amd64/ossutil", dockerfile)
 
     def test_s3_template_masks_credentials_and_uses_https_endpoint(self):
         spec = yaml.safe_load((ROOT / "plugins/buz/s3-upload/1.0.0.yaml").read_text())
@@ -355,6 +360,8 @@ class PluginImageWorkflowTests(unittest.TestCase):
         self.assertIn("/buz/workspace/*", entrypoint)
         dockerfile = (ROOT / "plugins/buz/s3-upload/image/Dockerfile").read_text()
         self.assertIn("COPY entrypoint.sh /usr/local/bin/buz-s3-upload", dockerfile)
+        self.assertIn("awscli-exe-linux-x86_64-", dockerfile)
+        self.assertIn("FB5DB77FD5C118B80511ADA8A6310ACC4672475C", dockerfile)
         self.assertEqual(spec["run"].strip(), "exec /usr/local/bin/buz-s3-upload")
 
 

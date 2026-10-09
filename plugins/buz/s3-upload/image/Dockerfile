@@ -13,7 +13,7 @@ RUN set -eux; \
     curl --fail --location --silent --show-error "https://awscli.amazonaws.com/${archive}" -o "/tmp/${archive}"; \
     curl --fail --location --silent --show-error "https://awscli.amazonaws.com/${archive}.sig" -o "/tmp/${archive}.sig"; \
     fingerprint="$(gpg --show-keys --with-colons /tmp/aws-cli-team.asc | awk -F: '$1 == "fpr" { print $10; exit }')"; \
-    test "$fingerprint" = "FB5DB77FD5C18B805111ADA8A6310ACC4672475C"; \
+    test "$fingerprint" = "FB5DB77FD5C118B80511ADA8A6310ACC4672475C"; \
     gpg --batch --import /tmp/aws-cli-team.asc; \
     gpg --batch --verify "/tmp/${archive}.sig" "/tmp/${archive}"; \
     unzip -q "/tmp/${archive}" -d /tmp/aws-cli; \

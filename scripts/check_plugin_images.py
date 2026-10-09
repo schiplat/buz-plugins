@@ -70,6 +70,10 @@ def main() -> None:
             raise SystemExit(f"changed image context must select only {family}")
     if "GITHUB_RUN_ID" not in select_run or "git diff --name-only" not in select_run:
         raise SystemExit("push builds must use unique run-ID tags and detect changed paths")
+    if "git diff-tree --root --no-commit-id --name-only -r" not in select_run:
+        raise SystemExit("initial push builds must also select only changed image contexts")
+    if "families+=(oss-tools aws-tools)" in select_run:
+        raise SystemExit("push builds must not rebuild unchanged image families")
 
     publish_job = workflow.get("jobs", {}).get("publish", {})
     if publish_job.get("needs") != "detect":
@@ -150,10 +154,17 @@ def main() -> None:
             raise SystemExit(f"{slug}: upload helper must be executable")
         if "TARGETARCH" in dockerfile or "arm64" in dockerfile or "aarch64" in dockerfile:
             raise SystemExit(f"{slug}: Dockerfile must target Linux amd64 only")
-        if slug == "oss-tools" and "OSSUTIL_SHA256_AMD64" not in dockerfile:
-            raise SystemExit("oss-tools: amd64 archive must remain checksum-verified")
-        if slug == "aws-tools" and "awscli-exe-linux-x86_64-" not in dockerfile:
-            raise SystemExit("aws-tools: Dockerfile must install the Linux x86_64 AWS CLI archive")
+        if slug == "oss-tools" and (
+            "OSSUTIL_SHA256_AMD64" not in dockerfile
+            or "ossutil-${OSSUTIL_VERSION}-linux-amd64/ossutil" not in dockerfile
+        ):
+            raise SystemExit("oss-tools: install the checksum-verified amd64 binary from its archive directory")
+        if slug == "aws-tools" and (
+            "awscli-exe-linux-x86_64-" not in dockerfile
+            or "FB5DB77FD5C118B80511ADA8A6310ACC4672475C" not in dockerfile
+            or "Y/RlOHXlzLuQMRE6sR1wOdRxc9TsrNWTGiBK65cvSWOy03JeBkQQ8pesqltiyxI9" not in (ROOT / context / "aws-cli-team-public-key.asc").read_text(encoding="utf-8")
+        ):
+            raise SystemExit("aws-tools: verify the x86_64 AWS CLI against the intact pinned public key")
         spec = yaml.safe_load((ROOT / spec_file).read_text(encoding="utf-8"))
         if spec.get("engine") != "docker" or not image_reference_matches(image, spec.get("image")):
             raise SystemExit(f"{slug}: template image reference must use the expected tag or a pinned sha256 digest")

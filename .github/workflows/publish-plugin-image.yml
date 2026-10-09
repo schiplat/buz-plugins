@@ -54,15 +54,15 @@ jobs:
           else
             if [[ ! "$BEFORE_SHA" =~ ^0+$ ]]; then
               changed_files=$(git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA")
-              while IFS= read -r file; do
-                case "$file" in
-                  plugins/buz/oss-upload/image/*) families+=(oss-tools) ;;
-                  plugins/buz/s3-upload/image/*) families+=(aws-tools) ;;
-                esac
-              done <<< "$changed_files"
             else
-              families+=(oss-tools aws-tools)
+              changed_files=$(git diff-tree --root --no-commit-id --name-only -r "$GITHUB_SHA")
             fi
+            while IFS= read -r file; do
+              case "$file" in
+                plugins/buz/oss-upload/image/*) families+=(oss-tools) ;;
+                plugins/buz/s3-upload/image/*) families+=(aws-tools) ;;
+              esac
+            done <<< "$changed_files"
             version="1.0.${GITHUB_RUN_ID}"
           fi
 
