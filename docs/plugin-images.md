@@ -9,9 +9,11 @@ Each image context lives beside its plugin's versioned YAML spec. Catalog tools 
 
 ## Build and publish
 
-Images target Linux `amd64` (x86_64) only. Publishing is manual: maintainers dispatch `.github/workflows/publish-plugin-image.yml` from `master`, select an allowlisted image family, and enter a new `X.Y.Z` image tag. Configure `DOCKERHUB_USERNAME` as a repository Actions variable and `DOCKERHUB_TOKEN` as a repository Actions secret before dispatch. The workflow refuses an already existing version tag and writes the published image digest to the run summary.
+Images target Linux `amd64` (x86_64) only. On pushes to `master`, changes under `plugins/buz/oss-upload/image/` automatically publish only the OSS image, and changes under `plugins/buz/s3-upload/image/` publish only the AWS CLI image. If both contexts change in one push, both images are built as separate matrix jobs. Automatic tags use `1.0.<GitHub Actions run ID>` so each workflow run gets a unique tag. Changes to templates, docs, workflow files, or other paths do not trigger image builds.
 
-The workflow never runs on ordinary pushes or tags. Use a new image version for each changed image. After publishing, update the matching template's `image` to the actual manifest digest, such as `docker.io/schiplat/buz-plugins-aws-tools@sha256:<digest>`, and revalidate/re-review that spec hash. A version tag is not an immutable production pin.
+Maintainers can also dispatch `.github/workflows/publish-plugin-image.yml` manually from `master`, select one allowlisted image family, and enter a new `X.Y.Z` image tag. Configure `DOCKERHUB_USERNAME` as a repository Actions variable and `DOCKERHUB_TOKEN` as a repository Actions secret. The workflow refuses an already existing version tag and writes the published image digest to the run summary.
+
+Automatic builds run only for changes under the two image contexts on `master`; template, docs, workflow, and unrelated pushes do not trigger an image build. Use a new image version for each changed image. After publishing, update the matching template's `image` to the actual image digest, such as `docker.io/schiplat/buz-plugins-aws-tools@sha256:<digest>`, and revalidate/re-review that spec hash. A version tag is not an immutable production pin.
 
 The upload specs currently reference planned `1.0.0` tags. The images have not been published. These specs are not production-ready until the images are published and their references are changed to verified manifest digests.
 
