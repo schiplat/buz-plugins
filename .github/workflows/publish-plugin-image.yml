@@ -194,7 +194,7 @@ jobs:
 
   pin-template:
     needs: [detect, publish]
-    if: always() && needs.detect.result == 'success' && needs.detect.outputs.families != '[]' && needs.publish.result != 'cancelled'
+    if: github.ref == 'refs/heads/master' && always() && needs.detect.result == 'success' && needs.detect.outputs.families != '[]' && needs.publish.result != 'cancelled'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -292,3 +292,4 @@ jobs:
           else
             gh pr create --repo "$GH_REPO" --base master --head "$branch" --title "$title" --body "$pr_body"
           fi
+          gh pr merge "$branch" --auto --repo "$GH_REPO"

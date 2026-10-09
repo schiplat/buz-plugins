@@ -144,6 +144,8 @@ def main() -> None:
     pin_job = workflow.get("jobs", {}).get("pin-template", {})
     if pin_job.get("needs") != ["detect", "publish"]:
         raise SystemExit("digest pin job must wait for detection and publishing")
+    if "github.ref == 'refs/heads/master'" not in pin_job.get("if", ""):
+        raise SystemExit("digest pin job must run only from the trusted master branch")
     if "always()" not in pin_job.get("if", "") or "needs.publish.result != 'cancelled'" not in pin_job.get("if", "") or "needs.detect.result == 'success'" not in pin_job.get("if", ""):
         raise SystemExit("digest pin job must run for selected builds, even if a publish matrix leg fails")
     if pin_job.get("permissions") != {"contents": "write", "pull-requests": "write"}:
@@ -180,6 +182,8 @@ def main() -> None:
         and "git push" in step.get("run", "")
         and "gh pr create" in step.get("run", "")
         and "gh pr edit" in step.get("run", "")
+        and "gh pr merge" in step.get("run", "")
+        and "--auto" in step.get("run", "")
         for step in pin_steps
     ):
         raise SystemExit("successful image builds must create or update a digest pin pull request")
