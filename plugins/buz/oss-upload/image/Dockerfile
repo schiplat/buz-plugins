@@ -13,7 +13,7 @@ RUN set -eux; \
     curl --fail --location --silent --show-error "https://gosspublic.alicdn.com/ossutil/v2/${OSSUTIL_VERSION}/${archive}" -o "/tmp/${archive}"; \
     echo "${OSSUTIL_SHA256_AMD64}  /tmp/${archive}" | sha256sum --check -; \
     unzip -q "/tmp/${archive}" -d /tmp/ossutil; \
-    install -m 0755 /tmp/ossutil/ossutil /usr/local/bin/ossutil; \
+    install -m 0755 "/tmp/ossutil/ossutil-${OSSUTIL_VERSION}-linux-amd64/ossutil" /usr/local/bin/ossutil; \
     rm -rf /tmp/ossutil "/tmp/${archive}"; \
     ossutil version
 
