@@ -16,4 +16,4 @@ Uploads one file from the Buz workspace to an Alibaba Cloud OSS bucket using oss
     session_token: ${secrets.OSS_SESSION_TOKEN} # optional
 ```
 
-All inputs except `session_token` are required. `source` must be a readable path inside the Buz workspace; use an HTTPS endpoint and least-privilege or short-lived credentials. A Docker-enabled Linux `amd64` runner is required. The `1.0.0` image must not be used in production until its release is verified and the template is pinned to the published digest. Default timeout: 10 minutes.
+All inputs except `session_token` are required. `source` must be a readable path inside the Buz workspace; use an HTTPS endpoint and least-privilege or short-lived credentials. A Docker-enabled Linux `amd64` runner is required. After a successful image build, the release workflow opens a PR to pin this template to the published digest; do not use it in production until that PR is merged. Default timeout: 10 minutes.
