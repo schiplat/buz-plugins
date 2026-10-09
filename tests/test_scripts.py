@@ -381,7 +381,7 @@ class PluginImageWorkflowTests(unittest.TestCase):
         self.assertIn("always()", pin["if"])
         self.assertIn("needs.publish.result != 'cancelled'", pin["if"])
         self.assertIn("needs.detect.result == 'success'", pin["if"])
-        self.assertIn("PLUGIN_PR_TOKEN || github.token", workflow_text)
+        self.assertIn("BUZ_PLUGIN_GITHUB_PR_TOKEN || github.token", workflow_text)
         self.assertIn("gh pr create", workflow_text)
         self.assertIn("gh pr edit", workflow_text)
         upload = next(step for step in publish["steps"] if step.get("name") == "Upload published digest")
