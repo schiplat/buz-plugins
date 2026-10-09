@@ -182,8 +182,6 @@ def main() -> None:
         and "git push" in step.get("run", "")
         and "gh pr create" in step.get("run", "")
         and "gh pr edit" in step.get("run", "")
-        and "gh pr merge" in step.get("run", "")
-        and "--auto" in step.get("run", "")
         for step in pin_steps
     ):
         raise SystemExit("successful image builds must create or update a digest pin pull request")

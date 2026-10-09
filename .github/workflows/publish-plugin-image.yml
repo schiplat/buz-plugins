@@ -292,4 +292,3 @@ jobs:
           else
             gh pr create --repo "$GH_REPO" --base master --head "$branch" --title "$title" --body "$pr_body"
           fi
-          gh pr merge "$branch" --auto --repo "$GH_REPO"

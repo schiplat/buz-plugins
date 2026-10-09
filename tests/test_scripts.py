@@ -385,7 +385,7 @@ class PluginImageWorkflowTests(unittest.TestCase):
         self.assertIn("BUZ_PLUGIN_GITHUB_PR_TOKEN || github.token", workflow_text)
         self.assertIn("gh pr create", workflow_text)
         self.assertIn("gh pr edit", workflow_text)
-        self.assertIn('gh pr merge "$branch" --auto --repo "$GH_REPO"', workflow_text)
+        self.assertNotIn("gh pr merge", workflow_text)
         upload = next(step for step in publish["steps"] if step.get("name") == "Upload published digest")
         self.assertEqual(upload["with"]["name"], "plugin-image-digest-${{ matrix.image_family }}")
         download = next(step for step in pin["steps"] if step.get("name") == "Download published digest")
