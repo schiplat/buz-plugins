@@ -4,7 +4,7 @@ Uploads one file from the Buz workspace to an Alibaba Cloud OSS bucket using oss
 
 ```yaml
 - name: upload artifact
-  uses: buz/oss-upload@1.0.1
+  uses: buz/oss-upload@1.0.2
   with:
     source: dist/app.tar.gz
     bucket: release-artifacts

@@ -27,7 +27,7 @@ steps:
 | `buz/oss-upload` | docker | Upload a workspace file to Alibaba Cloud OSS with ossutil v2 |
 | `buz/s3-upload` | docker | Upload a workspace file to S3 with AWS CLI v2 |
 
-Docker upload templates require a Docker-enabled Runner and Linux `amd64` tool images that have been published and digest-pinned. Changes to an image's build context automatically publish only that image from `master`; after a successful build, the workflow opens or updates a family-specific PR to pin its template to the published digest. See [image build, publishing, and runtime requirements](docs/plugin-images.md) for the optional `BUZ_PLUGIN_GITHUB_PR_TOKEN` needed to trigger CI on generated PRs. Until that digest PR is merged, the `1.0.0` tags should not be used in production.
+Docker upload templates require a Docker-enabled Runner and Linux `amd64` tool images that have been published and digest-pinned. Changes to an image's build context or its own YAML template automatically publish only that image from `master`; after a successful build, the workflow opens or updates a family-specific PR to pin its template to the published digest. See [image build, publishing, and runtime requirements](docs/plugin-images.md) for the optional `BUZ_PLUGIN_GITHUB_PR_TOKEN` needed to trigger CI on generated PRs. The current templates are `1.0.2`; use their digest-pinned references for production.
 
 ## Use in your Manager
 

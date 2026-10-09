@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import re
 from pathlib import Path
 
@@ -14,12 +15,12 @@ EXPECTED = {
     "oss-tools": (
         "docker.io/schiplat/buz-plugins-oss-tools",
         "plugins/buz/oss-upload/image",
-        "plugins/buz/oss-upload/1.0.1.yaml",
+        "plugins/buz/oss-upload/1.0.2.yaml",
     ),
     "aws-tools": (
         "docker.io/schiplat/buz-plugins-aws-tools",
         "plugins/buz/s3-upload/image",
-        "plugins/buz/s3-upload/1.0.1.yaml",
+        "plugins/buz/s3-upload/1.0.2.yaml",
     ),
 }
 
@@ -35,22 +36,18 @@ def image_reference_matches(image: str, reference: object) -> bool:
 def main() -> None:
     workflow = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
     triggers = workflow.get("on") or workflow.get(True) or {}
-    if not {"workflow_dispatch", "push"} == set(triggers):
-        raise SystemExit("image publishing must support workflow_dispatch and path-filtered push")
+    if set(triggers) != {"push"}:
+        raise SystemExit("image publishing must run only from path-filtered pushes")
     push = triggers["push"]
     if push.get("branches") != ["master"] or set(push.get("paths", [])) != {
         "plugins/buz/oss-upload/image/**",
+        "plugins/buz/oss-upload/*.yaml",
+        "plugins/buz/oss-upload/*.yml",
         "plugins/buz/s3-upload/image/**",
+        "plugins/buz/s3-upload/*.yaml",
+        "plugins/buz/s3-upload/*.yml",
     }:
-        raise SystemExit("automatic publishing must be limited to image contexts on master")
-
-    dispatch_inputs = triggers["workflow_dispatch"].get("inputs", {})
-    family = dispatch_inputs.get("image_family", {})
-    if family.get("type") != "choice" or set(family.get("options", [])) != set(EXPECTED):
-        raise SystemExit("image_family must be limited to the allowlisted families")
-    version = dispatch_inputs.get("version", {})
-    if version.get("required") is not True:
-        raise SystemExit("image version must be required")
+        raise SystemExit("automatic publishing must be limited to Docker image contexts and plugin specs on master")
 
     detect_job = workflow.get("jobs", {}).get("detect", {})
     detect_outputs = detect_job.get("outputs", {})
@@ -62,19 +59,25 @@ def main() -> None:
         None,
     )
     select_run = select_step.get("run", "") if select_step else ""
-    for family, context in (
-        ("oss-tools", "plugins/buz/oss-upload/image/*"),
-        ("aws-tools", "plugins/buz/s3-upload/image/*"),
-    ):
-        if context not in select_run or f"families+=({family})" not in select_run:
-            raise SystemExit(f"changed image context must select only {family}")
-    if "GITHUB_RUN_ID" not in select_run or "git diff --name-only" not in select_run:
-        raise SystemExit("push builds must use unique run-ID tags and detect changed paths")
-    if "git diff-tree --root --no-commit-id --name-only -r" not in select_run:
-        raise SystemExit("initial push builds must also select only changed image contexts")
+    select_run = select_step.get("run", "") if select_step else ""
+    if "select_plugin_image_families.py" not in select_run:
+        raise SystemExit("family selection step must use the tested selector script")
+    selector_path = ROOT / "scripts/select_plugin_image_families.py"
+    selector_module_spec = importlib.util.spec_from_file_location(
+        "select_plugin_image_families_check", selector_path
+    )
+    selector_module = importlib.util.module_from_spec(selector_module_spec)
+    selector_module_spec.loader.exec_module(selector_module)
+    if selector_module.FAMILY_PATHS != {
+        "oss-tools": ("plugins/buz/oss-upload",),
+        "aws-tools": ("plugins/buz/s3-upload",),
+    }:
+        raise SystemExit("family selector must map the OSS and S3 plugin directories to their image families")
+    selector_script = selector_path.read_text(encoding="utf-8")
+    if "/image/" not in selector_script or "{\".yaml\", \".yml\"}" not in selector_script:
+        raise SystemExit("family selector must match image contexts and direct YAML/YML templates")
     if "families+=(oss-tools aws-tools)" in select_run:
         raise SystemExit("push builds must not rebuild unchanged image families")
-
     publish_job = workflow.get("jobs", {}).get("publish", {})
     if publish_job.get("needs") != "detect":
         raise SystemExit("image publishing must depend on family detection")
@@ -118,7 +121,7 @@ def main() -> None:
     text = WORKFLOW.read_text(encoding="utf-8")
     validate_step = next(
         step for step in steps
-        if isinstance(step, dict) and step.get("name") == "Validate dispatch and resolve image context"
+        if isinstance(step, dict) and step.get("name") == "Validate push and resolve image context"
     )
     validate_run = validate_step.get("run", "")
     shell_lines = "\n".join(
@@ -191,6 +194,18 @@ def main() -> None:
     if "automation/pin-${IMAGE_FAMILY}" not in text or "BUZ_PLUGIN_GITHUB_PR_TOKEN || github.token" not in text:
         raise SystemExit("digest PRs must use a stable family branch and the documented optional token")
 
+    if "GITHUB_RUN_ID" not in text or "GITHUB_OUTPUT" not in text:
+        raise SystemExit("push builds must use unique run-ID tags and export detected families")
+    pin_commit_step = next(
+        step for step in pin_steps
+        if isinstance(step, dict) and step.get("name") == "Create or update digest pin pull request"
+    )
+    pin_run = pin_commit_step.get("run", "")
+    if "git commit -m \"[skip image build]" not in pin_run or '[skip image build] Pin OSS upload image digest' not in pin_run or '[skip image build] Pin S3 upload image digest' not in pin_run:
+        raise SystemExit("generated pin PRs must carry the build-skip marker in commits and titles")
+    if "gh pr merge" in pin_run:
+        raise SystemExit("digest pin PRs must remain manual-review only")
+
     for slug, (image, context, spec_file) in EXPECTED.items():
         if f'docker.io/schiplat/{image.rsplit("/", 1)[-1]}' not in shell_lines:
             raise SystemExit(f"{slug}: image name is absent from validated family selector")
@@ -221,7 +236,7 @@ def main() -> None:
         if spec.get("run", "").strip() != f"exec /usr/local/bin/{helper_name}":
             raise SystemExit(f"{slug}: template must invoke the image-side upload helper")
 
-    print("plugin image workflow: path-filtered family selection, manual dispatch, amd64 build, and digest output verified")
+    print("plugin image workflow: push-triggered family selection, amd64 build, digest PR, and output verified")
 
 
 if __name__ == "__main__":

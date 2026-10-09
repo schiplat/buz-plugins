@@ -1,27 +1,16 @@
 # Plugin tool images
 
-The official upload steps use two plugin-specific Docker images built for Linux `amd64` (x86_64):
+Images target Linux `amd64` (x86_64) only. A push to `master` automatically triggers builds when an OSS or S3 image build context changes, or when a YAML/YML template directly inside that plugin directory changes. The workflow builds only the corresponding image family; if both plugin families change in one push, it builds both as separate matrix jobs. Documentation, workflow files, nested directories, and unrelated paths do not trigger a build. Automatic image tags use `1.0.<GitHub Actions run ID>`, making each run unique. The workflow is push-triggered only; it has no manual dispatch entry point. Configure `DOCKERHUB_USERNAME` as a repository Actions variable and `DOCKERHUB_TOKEN` as a repository Actions secret. The workflow refuses an existing version tag and writes a successful build's digest to the run summary.
 
-- `plugins/buz/oss-upload/image/` builds `schiplat/buz-plugins-oss-tools` with Aliyun ossutil v2.
-- `plugins/buz/s3-upload/image/` builds `schiplat/buz-plugins-aws-tools` with the official AWS CLI v2.
-
-Each image context lives beside its plugin's versioned YAML spec. Catalog tools recursively index only `.yaml` and `.yml` files, so Dockerfiles, the AWS signing key, and shell helpers are not mistaken for step templates. The shell-only plugins do not need image contexts.
-
-## Build and publish
-
-Images target Linux `amd64` (x86_64) only. On pushes to `master`, changes under `plugins/buz/oss-upload/image/` automatically publish only the OSS image, and changes under `plugins/buz/s3-upload/image/` publish only the AWS CLI image. If both contexts change in one push, both images are built as separate matrix jobs. Automatic tags use `1.0.<GitHub Actions run ID>` so each workflow run gets a unique tag. Changes to templates, docs, workflow files, or other paths do not trigger image builds.
-
-Maintainers can also dispatch `.github/workflows/publish-plugin-image.yml` manually from `master`, select one allowlisted image family, and enter a new `X.Y.Z` image tag. Configure `DOCKERHUB_USERNAME` as a repository Actions variable and `DOCKERHUB_TOKEN` as a repository Actions secret. The workflow refuses an already existing version tag and writes the published image digest to the run summary.
-
-After each successful matrix build, the workflow uploads that family’s manifest digest and opens or updates a family-specific PR pinning its template to `image@sha256:...`. If both families are selected and one build fails, the successful family can still open its PR; fix the failed build before retrying it. The first image release automatically pins the planned `1.0.0` template; later digest changes create a new patch template version and leave published versions unchanged. Identical digests do not create empty PRs. The PR branch is `automation/pin-<family>`.
+After each successful matrix build, the workflow uploads that family's manifest digest and opens or updates a family-specific PR pinning its template to `image@sha256:...`. If both families are selected and one build fails, the successful family can still open its PR; fix the failed build before retrying it. Identical digests do not create empty PRs. The PR branch is `automation/pin-<family>`.
 
 The PR job uses `GITHUB_TOKEN` by default and requires `contents: write` and `pull-requests: write` repository workflow permissions. To make the generated PR trigger the full CI workflow, configure an Actions secret named `BUZ_PLUGIN_GITHUB_PR_TOKEN` with a fine-grained PAT or GitHub App token that can read and write repository contents and pull requests. Without this token, GitHub suppresses most new workflow runs created with `GITHUB_TOKEN`; the PR is still created, but checks may require a maintainer-triggered run. Keep the token narrowly scoped and rotate it according to its expiration policy.
 
 Auto-merge is currently paused while the repository is private and its branch protection requirements are being verified. The workflow creates or updates the digest PR but does not enable or perform auto-merge; a maintainer must review and merge it manually. Once the repository can enforce required CI checks, auto-merge can be re-enabled.
 
-Automatic builds run only for changes under the two image contexts on `master`; template, docs, workflow, and unrelated pushes do not trigger an image build. The run-ID version tag identifies a build, while the template uses its immutable digest. The `1.0.0` spec is only updated in place for the initial pin from the planned `:1.0.0` tag; later published template versions are immutable. A version tag by itself is not an immutable production pin.
+The run-ID version tag identifies the build, while templates use immutable manifest digests. The initial `1.0.0` template is only updated in place when pinning the first image release from its `:1.0.0` tag. Later template versions are immutable: if a build produces a new digest after the `1.0.2` trigger template exists, the digest PR creates `1.0.3` rather than rewriting `1.0.2`; identical digests do not create an empty PR. A version tag by itself is not an immutable production pin. The `[skip image build]` marker on generated pin PR titles and commits prevents the PR merge from triggering another image build; if a push combines a pin commit with other commits, non-pin commits are still inspected for changed plugin paths.
 
-The upload specs currently reference planned `1.0.0` tags until a successful build’s digest PR is merged. They are not production-ready until their references use verified manifest digests.
+The current upload templates are `1.0.2` and retain the previously verified manifest digests until the build triggered by this template change completes and any resulting digest PR is manually reviewed and merged. Removing the old `1.0.0` template files does not remove or change those Docker images.
 
 ## Runtime requirements and credentials
 
