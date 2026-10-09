@@ -573,6 +573,8 @@ class SitePathTests(unittest.TestCase):
         self.assertIn('href="../../../favicon.svg"', html)
         self.assertIn('href="../../../style.css"', html)
         self.assertIn('href="../../../"', html)
+        self.assertIn('<body class="template-page">', html)
+        self.assertIn('<main class="wrap">', html)
 
     def test_source_checks_use_full_nested_page_path(self):
         self.assertEqual(
@@ -627,13 +629,17 @@ class SitePathTests(unittest.TestCase):
                 "publisher: community\n"
             )
             output = Path(tempfile.mkdtemp())
+            frontend_dist = Path(tempfile.mkdtemp())
             try:
+                (frontend_dist / "style.css").write_text(
+                    (ROOT / "frontend/public/style.css").read_text()
+                )
                 with patch.object(
                     self.build_site, "__file__", str(source_root / "scripts" / "build_site.py")
                 ):
                     with patch.object(sys, "argv", [
                         "build_site.py", "--plugins-dir", str(plugin_dir),
-                        "--out-dir", str(output),
+                        "--out-dir", str(output), "--dist-dir", str(frontend_dist),
                     ]):
                         self.build_site.main()
                 indexed_spec = spec.relative_to(source_root)
@@ -660,10 +666,17 @@ class SitePathTests(unittest.TestCase):
                     indexed_path = indexed.relative_to(source_root).as_posix()
                     page_path = self.build_site.template_filename(indexed_path)
                     self.assertTrue((output / "templates" / page_path).is_file())
-                    self.assertIn(
-                        f"/templates/{page_path}",
-                        (output / "sitemap.xml").read_text(),
+                    page_html = (output / "templates" / page_path).read_text()
+                    self.assertIn(f"/templates/{page_path}", (output / "sitemap.xml").read_text())
+                    self.assertIn('<body class="template-page">', page_html)
+                    stylesheet_href = f"{self.build_site.page_relative_links(indexed_path)[2]}"
+                    self.assertIn(f'href="{stylesheet_href}"', page_html)
+                    self.assertTrue(
+                        (output / "templates" / page_path).parent.joinpath(
+                            stylesheet_href
+                        ).resolve().is_file()
                     )
+                self.assertIn(".template-page main.wrap", (output / "style.css").read_text())
                 page_path = self.build_site.template_filename(
                     newer_spec.relative_to(source_root).as_posix()
                 )
@@ -674,6 +687,7 @@ class SitePathTests(unittest.TestCase):
             finally:
                 import shutil
                 shutil.rmtree(output, ignore_errors=True)
+                shutil.rmtree(frontend_dist, ignore_errors=True)
 
 
 class ReviewMergeTests(unittest.TestCase):

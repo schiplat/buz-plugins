@@ -1,0 +1,172 @@
+:root {
+  color-scheme: light;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", Roboto, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #0f172a;
+  background: #f8fafc;
+  --template-foreground: #0f172a;
+  --template-muted: #64748b;
+  --template-border: #e2e8f0;
+  --template-surface: #fff;
+  --template-background: #f8fafc;
+  --template-primary: #2563eb;
+  --template-code: #f1f5f9;
+}
+
+body.template-page {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  color: var(--template-foreground);
+  background: var(--template-background);
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.template-page *,
+.template-page *::before,
+.template-page *::after {
+  box-sizing: border-box;
+}
+
+.template-page .top {
+  border-bottom: 1px solid var(--template-border);
+  background: var(--template-surface);
+}
+
+.template-page .wrap {
+  width: min(100% - 2rem, 64rem);
+  margin-inline: auto;
+}
+
+.template-page .top .wrap {
+  padding-block: 1rem;
+}
+
+.template-page .home,
+.template-page a {
+  color: var(--template-primary);
+  text-decoration: none;
+}
+
+.template-page .home {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.template-page a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.template-page main.wrap {
+  margin-block: 2rem 4rem;
+  padding: clamp(1.25rem, 4vw, 2.5rem);
+  border: 1px solid var(--template-border);
+  border-radius: 0.75rem;
+  background: var(--template-surface);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+}
+
+.template-page h1,
+.template-page h2,
+.template-page p {
+  margin-top: 0;
+}
+
+.template-page h1 {
+  margin-bottom: 0.5rem;
+  font-size: clamp(1.65rem, 4vw, 2rem);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+}
+
+.template-page h2 {
+  margin-block: 2rem 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--template-border);
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.template-page p {
+  margin-bottom: 1rem;
+}
+
+.template-page .mono {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.template-page .dim {
+  color: var(--template-muted);
+}
+
+.template-page .small {
+  font-size: 0.8125rem;
+}
+
+.template-page .inputs {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--template-border);
+  border-radius: 0.5rem;
+  border-spacing: 0;
+  font-size: 0.8125rem;
+}
+
+.template-page .inputs th,
+.template-page .inputs td {
+  min-width: 6rem;
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid var(--template-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.template-page .inputs th {
+  background: var(--template-code);
+  color: var(--template-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.template-page .inputs tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.template-page .inputs td:first-child {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+.template-page .code {
+  overflow-x: auto;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid var(--template-border);
+  border-radius: 0.5rem;
+  background: var(--template-code);
+  color: var(--template-foreground);
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .template-page .wrap {
+    width: min(100% - 1.25rem, 64rem);
+  }
+
+  .template-page main.wrap {
+    margin-block: 1rem 2rem;
+  }
+}

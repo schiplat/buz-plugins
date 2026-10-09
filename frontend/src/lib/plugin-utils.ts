@@ -38,6 +38,12 @@ export function groupPlugins(templates: StepTemplate[]): StepPlugin[] {
     .sort((a, b) => a.id.localeCompare(b.id))
 }
 
+export function pluginHeading(template: StepTemplate, plugin: StepPlugin | null): string {
+  return plugin && plugin.versions.length > 1
+    ? template.id
+    : `${template.id}@${template.version}`
+}
+
 export function selectPluginVersion(plugin: StepPlugin, version: string): StepTemplate {
   return plugin.versions.find((template) => template.version === version) || plugin.latest
 }

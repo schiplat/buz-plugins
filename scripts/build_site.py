@@ -179,7 +179,7 @@ def template_page_html(tmpl: dict) -> str:
 <link rel="stylesheet" href="{stylesheet_href}" />
 {GA_SNIPPET}
 </head>
-<body>
+<body class="template-page">
 <header class="top"><div class="wrap"><a class="home" href="{home_href}">&larr; Buz Plugins Marketplace</a></div></header>
 <main class="wrap">
 <h1>{esc(name)}</h1>
