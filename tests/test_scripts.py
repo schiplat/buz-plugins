@@ -569,12 +569,24 @@ class SitePathTests(unittest.TestCase):
         html = self.build_site.template_page_html({
             "id": "buz/oss-upload", "version": "1.0.0", "file": files[0],
             "engine": "shell", "content_sha256": "abc", "source_repo": None,
+            "description": "English plugin summary.",
+            "description_zh": "中文插件说明。",
+            "inputs": [
+                {"name": "source", "required": True},
+                {"name": "destination", "required": False},
+            ],
+            "run": "internal implementation command",
         })
         self.assertIn('href="../../../favicon.svg"', html)
         self.assertIn('href="../../../style.css"', html)
         self.assertIn('href="../../../"', html)
         self.assertIn('<body class="template-page">', html)
         self.assertIn('<main class="wrap">', html)
+        self.assertIn("uses: buz/oss-upload@1.0.0", html)
+        self.assertIn("source: ", html)
+        self.assertNotIn("internal implementation command", html)
+        self.assertNotIn("中文插件说明", html)
+        self.assertNotIn("lang='zh'", html)
 
     def test_source_checks_use_full_nested_page_path(self):
         self.assertEqual(
