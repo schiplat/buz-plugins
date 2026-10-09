@@ -67,6 +67,18 @@ def description_for(tmpl: dict, lang: str) -> str:
     return tmpl.get(primary) or tmpl.get("description") or ""
 
 
+def usage_example(tmpl: dict) -> str:
+    lines = [
+        f"- name: {str(tmpl['id']).split('/')[-1]}",
+        f"  uses: {tmpl['id']}@{tmpl['version']}",
+    ]
+    required = [item for item in tmpl.get("inputs", []) if item.get("required")]
+    if required:
+        lines.append("  with:")
+        lines.extend(f"    {item['name']}: " for item in required)
+    return "\n".join(lines)
+
+
 def template_filename(file_value: str) -> str:
     """Map a full indexed path to a unique detail-page path."""
     parts = PurePosixPath(file_value.replace("\\", "/")).parts
@@ -136,7 +148,6 @@ def template_page_html(tmpl: dict) -> str:
     template_id = tmpl["id"]
     name = tmpl.get("name") or template_id
     desc_en = description_for(tmpl, "en")
-    desc_zh = description_for(tmpl, "zh")
     template_path = template_filename(tmpl["file"])
     page_url = f"{SITE_URL}/templates/{template_path}"
     home_href, favicon_href, stylesheet_href = page_relative_links(tmpl["file"])
@@ -156,7 +167,7 @@ def template_page_html(tmpl: dict) -> str:
         else "<p class='dim'>This template takes no inputs.</p>"
     )
 
-    usage = esc(tmpl.get("run") or "")
+    usage = esc(usage_example(tmpl))
     jsonld = jsonld_software(tmpl)
 
     return f"""<!doctype html>
@@ -185,7 +196,6 @@ def template_page_html(tmpl: dict) -> str:
 <h1>{esc(name)}</h1>
 <p class="mono dim">{esc(template_id)} · v{esc(tmpl['version'])} · {esc(tmpl['engine'])}</p>
 <p>{esc(desc_en)}</p>
-{f"<p lang='zh'>{esc(desc_zh)}</p>" if desc_zh and desc_zh != desc_en else ""}
 <h2>Inputs</h2>
 {inputs_html}
 <h2>Usage</h2>
