@@ -186,7 +186,7 @@ def main() -> None:
     pin_script = (ROOT / "scripts/pin_plugin_image.py").read_text(encoding="utf-8")
     if "refusing to overwrite existing template version" not in pin_script or "target_version" not in pin_script:
         raise SystemExit("digest updates must preserve published template versions")
-    if "automation/pin-${IMAGE_FAMILY}" not in text or "PLUGIN_PR_TOKEN || github.token" not in text:
+    if "automation/pin-${IMAGE_FAMILY}" not in text or "BUZ_PLUGIN_GITHUB_PR_TOKEN || github.token" not in text:
         raise SystemExit("digest PRs must use a stable family branch and the documented optional token")
 
     for slug, (image, context, spec_file) in EXPECTED.items():
