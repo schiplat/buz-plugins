@@ -35,8 +35,14 @@ def image_reference_matches(image: str, reference: object) -> bool:
 def main() -> None:
     workflow = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
     triggers = workflow.get("on") or workflow.get(True) or {}
-    if set(triggers) != {"workflow_dispatch"}:
-        raise SystemExit("image publishing must only use workflow_dispatch")
+    if not {"workflow_dispatch", "push"} == set(triggers):
+        raise SystemExit("image publishing must support workflow_dispatch and path-filtered push")
+    push = triggers["push"]
+    if push.get("branches") != ["master"] or set(push.get("paths", [])) != {
+        "plugins/buz/oss-upload/image/**",
+        "plugins/buz/s3-upload/image/**",
+    }:
+        raise SystemExit("automatic publishing must be limited to image contexts on master")
 
     dispatch_inputs = triggers["workflow_dispatch"].get("inputs", {})
     family = dispatch_inputs.get("image_family", {})
@@ -46,7 +52,31 @@ def main() -> None:
     if version.get("required") is not True:
         raise SystemExit("image version must be required")
 
+    detect_job = workflow.get("jobs", {}).get("detect", {})
+    detect_outputs = detect_job.get("outputs", {})
+    if detect_outputs.get("families") != "${{ steps.select.outputs.families }}":
+        raise SystemExit("family selection job must expose detected image families")
+    detect_steps = detect_job.get("steps", [])
+    select_step = next(
+        (step for step in detect_steps if isinstance(step, dict) and step.get("id") == "select"),
+        None,
+    )
+    select_run = select_step.get("run", "") if select_step else ""
+    for family, context in (
+        ("oss-tools", "plugins/buz/oss-upload/image/*"),
+        ("aws-tools", "plugins/buz/s3-upload/image/*"),
+    ):
+        if context not in select_run or f"families+=({family})" not in select_run:
+            raise SystemExit(f"changed image context must select only {family}")
+    if "GITHUB_RUN_ID" not in select_run or "git diff --name-only" not in select_run:
+        raise SystemExit("push builds must use unique run-ID tags and detect changed paths")
+
     publish_job = workflow.get("jobs", {}).get("publish", {})
+    if publish_job.get("needs") != "detect":
+        raise SystemExit("image publishing must depend on family detection")
+    strategy = publish_job.get("strategy", {}).get("matrix", {})
+    if strategy.get("image_family") != "${{ fromJSON(needs.detect.outputs.families) }}":
+        raise SystemExit("publish matrix must contain only detected image families")
     steps = publish_job.get("steps", [])
     runner_publishers = [
         step for step in steps
@@ -124,7 +154,7 @@ def main() -> None:
         if spec.get("run", "").strip() != f"exec /usr/local/bin/{helper_name}":
             raise SystemExit(f"{slug}: template must invoke the image-side upload helper")
 
-    print("plugin image workflow: dispatch-only, family allowlist, contexts, architectures, and digest output verified")
+    print("plugin image workflow: path-filtered family selection, manual dispatch, amd64 build, and digest output verified")
 
 
 if __name__ == "__main__":

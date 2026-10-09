@@ -287,17 +287,35 @@ class PluginImageWorkflowTests(unittest.TestCase):
     def setUpClass(cls):
         cls.checker = load_script("check_plugin_images")
 
-    def test_workflow_only_publishes_allowlisted_amd64_images(self):
+    def test_workflow_publishes_only_changed_amd64_image_families(self):
         self.checker.main()
-        workflow = (ROOT / ".github/workflows/publish-plugin-image.yml").read_text()
-        self.assertIn("Could not determine whether image tag exists; refusing to publish.", workflow)
-        self.assertIn("platforms: linux/amd64", workflow)
-        self.assertNotIn("linux/arm64", workflow)
-        self.assertNotIn("setup-qemu-action", workflow)
-        self.assertIn("${{ vars.DOCKERHUB_USERNAME }}", workflow)
-        self.assertIn("${{ secrets.DOCKERHUB_TOKEN }}", workflow)
-        self.assertNotIn("secrets.DOCKERHUB_USERNAME", workflow)
-        self.assertIn("@1ca370b3a9802c92e886402e0dd88098a2533b12 # v6.4.1", workflow)
+        workflow = yaml.safe_load((ROOT / ".github/workflows/publish-plugin-image.yml").read_text())
+        triggers = workflow.get("on") or workflow.get(True)
+        self.assertEqual(set(triggers), {"push", "workflow_dispatch"})
+        self.assertEqual(triggers["push"]["branches"], ["master"])
+        self.assertEqual(
+            set(triggers["push"]["paths"]),
+            {
+                "plugins/buz/oss-upload/image/**",
+                "plugins/buz/s3-upload/image/**",
+            },
+        )
+        detect = workflow["jobs"]["detect"]
+        select = next(step for step in detect["steps"] if step.get("id") == "select")
+        self.assertIn('plugins/buz/oss-upload/image/*) families+=(oss-tools)', select["run"])
+        self.assertIn('plugins/buz/s3-upload/image/*) families+=(aws-tools)', select["run"])
+        self.assertIn("GITHUB_RUN_ID", select["run"])
+        publish = workflow["jobs"]["publish"]
+        self.assertEqual(publish["strategy"]["matrix"]["image_family"], "${{ fromJSON(needs.detect.outputs.families) }}")
+        workflow_text = (ROOT / ".github/workflows/publish-plugin-image.yml").read_text()
+        self.assertIn("Could not determine whether image tag exists; refusing to publish.", workflow_text)
+        self.assertIn("platforms: linux/amd64", workflow_text)
+        self.assertNotIn("linux/arm64", workflow_text)
+        self.assertNotIn("setup-qemu-action", workflow_text)
+        self.assertIn("${{ vars.DOCKERHUB_USERNAME }}", workflow_text)
+        self.assertIn("${{ secrets.DOCKERHUB_TOKEN }}", workflow_text)
+        self.assertNotIn("secrets.DOCKERHUB_USERNAME", workflow_text)
+        self.assertIn("@1ca370b3a9802c92e886402e0dd88098a2533b12 # v6.4.1", workflow_text)
 
     def test_image_reference_accepts_expected_tag_or_sha256_pin(self):
         image = "docker.io/schiplat/buz-plugins-oss-tools"
