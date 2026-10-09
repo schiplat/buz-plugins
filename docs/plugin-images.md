@@ -1,6 +1,6 @@
 # Plugin tool images
 
-The official upload steps use two plugin-specific, multi-architecture Docker images:
+The official upload steps use two plugin-specific Docker images built for Linux `amd64` (x86_64):
 
 - `plugins/buz/oss-upload/image/` builds `schiplat/buz-plugins-oss-tools` with Aliyun ossutil v2.
 - `plugins/buz/s3-upload/image/` builds `schiplat/buz-plugins-aws-tools` with the official AWS CLI v2.
@@ -9,7 +9,7 @@ Each image context lives beside its plugin's versioned YAML spec. Catalog tools 
 
 ## Build and publish
 
-Images target Linux `amd64` and `arm64`. Publishing is manual: maintainers dispatch `.github/workflows/publish-plugin-image.yml` from `master`, select an allowlisted image family, and enter a new `X.Y.Z` image tag. Configure `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` repository secrets before dispatch. The workflow refuses an already existing version tag and writes the multi-architecture manifest digest to the run summary.
+Images target Linux `amd64` (x86_64) only. Publishing is manual: maintainers dispatch `.github/workflows/publish-plugin-image.yml` from `master`, select an allowlisted image family, and enter a new `X.Y.Z` image tag. Configure `DOCKERHUB_USERNAME` as a repository Actions variable and `DOCKERHUB_TOKEN` as a repository Actions secret before dispatch. The workflow refuses an already existing version tag and writes the published image digest to the run summary.
 
 The workflow never runs on ordinary pushes or tags. Use a new image version for each changed image. After publishing, update the matching template's `image` to the actual manifest digest, such as `docker.io/schiplat/buz-plugins-aws-tools@sha256:<digest>`, and revalidate/re-review that spec hash. A version tag is not an immutable production pin.
 

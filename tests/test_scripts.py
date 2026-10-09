@@ -287,11 +287,30 @@ class PluginImageWorkflowTests(unittest.TestCase):
     def setUpClass(cls):
         cls.checker = load_script("check_plugin_images")
 
-    def test_workflow_only_publishes_allowlisted_multiplatform_images(self):
+    def test_workflow_only_publishes_allowlisted_amd64_images(self):
         self.checker.main()
         workflow = (ROOT / ".github/workflows/publish-plugin-image.yml").read_text()
         self.assertIn("Could not determine whether image tag exists; refusing to publish.", workflow)
+        self.assertIn("platforms: linux/amd64", workflow)
+        self.assertNotIn("linux/arm64", workflow)
+        self.assertNotIn("setup-qemu-action", workflow)
+        self.assertIn("${{ vars.DOCKERHUB_USERNAME }}", workflow)
+        self.assertIn("${{ secrets.DOCKERHUB_TOKEN }}", workflow)
+        self.assertNotIn("secrets.DOCKERHUB_USERNAME", workflow)
         self.assertIn("@1ca370b3a9802c92e886402e0dd88098a2533b12 # v6.4.1", workflow)
+
+    def test_image_reference_accepts_expected_tag_or_sha256_pin(self):
+        image = "docker.io/schiplat/buz-plugins-oss-tools"
+        self.assertTrue(self.checker.image_reference_matches(image, f"{image}:1.0.0"))
+        self.assertTrue(self.checker.image_reference_matches(image, f"{image}@sha256:{'a' * 64}"))
+        for reference in (
+            f"{image}:latest",
+            f"{image}@sha256:{'A' * 64}",
+            f"{image}@sha256:{'a' * 63}",
+            "docker.io/other/image@sha256:" + "a" * 64,
+        ):
+            with self.subTest(reference=reference):
+                self.assertFalse(self.checker.image_reference_matches(image, reference))
 
     def test_oss_entrypoint_uses_v2_environment_credentials(self):
         entrypoint = (ROOT / "plugins/buz/oss-upload/image/entrypoint.sh").read_text()

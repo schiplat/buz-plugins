@@ -27,7 +27,7 @@ steps:
 | `buz/oss-upload` | docker | Upload a workspace file to Alibaba Cloud OSS with ossutil v2 |
 | `buz/s3-upload` | docker | Upload a workspace file to S3 with AWS CLI v2 |
 
-Docker upload templates require a Docker-enabled Runner and tool images that have been published and digest-pinned. See [image build, publishing, and runtime requirements](docs/plugin-images.md). The current planned `1.0.0` image tags have not been published and must not be used in production until the release workflow has produced manifest digests and the specs are updated to pin them.
+Docker upload templates require a Docker-enabled Runner and Linux `amd64` tool images that have been published and digest-pinned. See [image build, publishing, and runtime requirements](docs/plugin-images.md). The current planned `1.0.0` image tags have not been published and must not be used in production until the release workflow has produced digests and the specs are updated to pin them.
 
 ## Use in your Manager
 
