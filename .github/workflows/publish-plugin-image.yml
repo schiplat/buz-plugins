@@ -6,20 +6,11 @@ on:
       - master
     paths:
       - plugins/buz/oss-upload/image/**
+      - plugins/buz/oss-upload/*.yaml
+      - plugins/buz/oss-upload/*.yml
       - plugins/buz/s3-upload/image/**
-  workflow_dispatch:
-    inputs:
-      image_family:
-        description: Tool image to publish
-        required: true
-        type: choice
-        options:
-          - oss-tools
-          - aws-tools
-      version:
-        description: Immutable image release tag (X.Y.Z)
-        required: true
-        type: string
+      - plugins/buz/s3-upload/*.yaml
+      - plugins/buz/s3-upload/*.yml
 
 permissions:
   contents: read
@@ -38,46 +29,9 @@ jobs:
       - name: Select changed image families
         id: select
         env:
-          EVENT_NAME: ${{ github.event_name }}
           BEFORE_SHA: ${{ github.event.before }}
-          IMAGE_FAMILY: ${{ inputs.image_family }}
-          IMAGE_VERSION: ${{ inputs.version }}
-        run: |
-          set -euo pipefail
-          families=()
-          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
-            case "$IMAGE_FAMILY" in
-              oss-tools|aws-tools) families+=("$IMAGE_FAMILY") ;;
-              *) echo "Unsupported image family." >&2; exit 1 ;;
-            esac
-            version="$IMAGE_VERSION"
-          else
-            if [[ ! "$BEFORE_SHA" =~ ^0+$ ]]; then
-              changed_files=$(git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA")
-            else
-              changed_files=$(git diff-tree --root --no-commit-id --name-only -r "$GITHUB_SHA")
-            fi
-            while IFS= read -r file; do
-              case "$file" in
-                plugins/buz/oss-upload/image/*) families+=(oss-tools) ;;
-                plugins/buz/s3-upload/image/*) families+=(aws-tools) ;;
-              esac
-            done <<< "$changed_files"
-            version="1.0.${GITHUB_RUN_ID}"
-          fi
-
-          if [[ "$EVENT_NAME" == "workflow_dispatch" && ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Version must be a semantic X.Y.Z tag." >&2
-            exit 1
-          fi
-          if [[ ${#families[@]} -eq 0 ]]; then
-            echo 'families=[]' >> "$GITHUB_OUTPUT"
-          else
-            unique_families=$(printf '%s\n' "${families[@]}" | sort -u)
-            family_json=$(printf '%s\n' "$unique_families" | python3 -c 'import json,sys; print(json.dumps([line.strip() for line in sys.stdin if line.strip()]))')
-            echo "families=$family_json" >> "$GITHUB_OUTPUT"
-          fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
+          AFTER_SHA: ${{ github.sha }}
+        run: python3 scripts/select_plugin_image_families.py --before "$BEFORE_SHA" --after "$AFTER_SHA"
 
   publish:
     needs: detect
@@ -91,7 +45,7 @@ jobs:
       group: publish-plugin-image-${{ matrix.image_family }}-${{ needs.detect.outputs.version }}
       cancel-in-progress: false
     steps:
-      - name: Validate dispatch and resolve image context
+      - name: Validate push and resolve image context
         id: image
         env:
           IMAGE_FAMILY: ${{ matrix.image_family }}
@@ -262,11 +216,11 @@ jobs:
           case "$IMAGE_FAMILY" in
             oss-tools)
               plugin_dir=plugins/buz/oss-upload
-              title="Pin OSS upload image digest"
+              title="[skip image build] Pin OSS upload image digest"
               ;;
             aws-tools)
               plugin_dir=plugins/buz/s3-upload
-              title="Pin S3 upload image digest"
+              title="[skip image build] Pin S3 upload image digest"
               ;;
             *) echo "Unsupported image family." >&2; exit 1 ;;
           esac
@@ -277,7 +231,7 @@ jobs:
           git add -A "$plugin_dir"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "chore: pin ${IMAGE_FAMILY} image digest"
+          git commit -m "[skip image build] chore: pin ${IMAGE_FAMILY} image digest"
           if git ls-remote --exit-code origin "refs/heads/$branch" >/dev/null 2>&1; then
             git fetch origin "refs/heads/$branch:refs/remotes/origin/$branch"
             expected=$(git rev-parse "refs/remotes/origin/$branch")

@@ -1,14 +1,14 @@
 id: buz/oss-upload
 category: upload
 name: Upload file to Alibaba Cloud OSS
-version: 1.0.0
+version: 1.0.2
 description: Upload one file from the Buz workspace to Alibaba Cloud OSS with ossutil v2.
 description_zh: 使用 ossutil v2 将 Buz 工作区中的单个文件上传到阿里云 OSS。
 publisher: official
 author: "buz maintainers"
 keywords: [oss, alibaba-cloud, upload, artifact, storage]
 license: Apache-2.0
-source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/oss-upload/1.0.0.yaml
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/oss-upload/1.0.2.yaml
 engine: docker
 image: docker.io/schiplat/buz-plugins-oss-tools@sha256:b822a353d2803152bb1dc8b8e21d571dce78fb8e29eb5079c8a36201c694aaac
 default_timeout: 10m

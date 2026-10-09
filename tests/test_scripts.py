@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -348,22 +349,23 @@ class PluginImageWorkflowTests(unittest.TestCase):
         self.checker.main()
         workflow = yaml.safe_load((ROOT / ".github/workflows/publish-plugin-image.yml").read_text())
         triggers = workflow.get("on") or workflow.get(True)
-        self.assertEqual(set(triggers), {"push", "workflow_dispatch"})
+        self.assertEqual(set(triggers), {"push"})
         self.assertEqual(triggers["push"]["branches"], ["master"])
         self.assertEqual(
             set(triggers["push"]["paths"]),
             {
                 "plugins/buz/oss-upload/image/**",
+                "plugins/buz/oss-upload/*.yaml",
+                "plugins/buz/oss-upload/*.yml",
                 "plugins/buz/s3-upload/image/**",
+                "plugins/buz/s3-upload/*.yaml",
+                "plugins/buz/s3-upload/*.yml",
             },
         )
         detect = workflow["jobs"]["detect"]
         select = next(step for step in detect["steps"] if step.get("id") == "select")
-        self.assertIn('plugins/buz/oss-upload/image/*) families+=(oss-tools)', select["run"])
-        self.assertIn('plugins/buz/s3-upload/image/*) families+=(aws-tools)', select["run"])
-        self.assertIn("GITHUB_RUN_ID", select["run"])
-        self.assertIn("git diff-tree --root --no-commit-id --name-only -r", select["run"])
         self.assertNotIn("families+=(oss-tools aws-tools)", select["run"])
+        self.assertIn("select_plugin_image_families.py", select["run"])
         publish = workflow["jobs"]["publish"]
         self.assertEqual(publish["strategy"]["matrix"]["image_family"], "${{ fromJSON(needs.detect.outputs.families) }}")
         workflow_text = (ROOT / ".github/workflows/publish-plugin-image.yml").read_text()
@@ -386,6 +388,11 @@ class PluginImageWorkflowTests(unittest.TestCase):
         self.assertIn("gh pr create", workflow_text)
         self.assertIn("gh pr edit", workflow_text)
         self.assertNotIn("gh pr merge", workflow_text)
+        self.assertIn('title="[skip image build] Pin OSS upload image digest"', workflow_text)
+        self.assertIn('title="[skip image build] Pin S3 upload image digest"', workflow_text)
+        selector = (ROOT / "scripts/select_plugin_image_families.py").read_text()
+        self.assertIn("--first-parent", selector)
+        self.assertIn("SKIP_MARKER", selector)
         upload = next(step for step in publish["steps"] if step.get("name") == "Upload published digest")
         self.assertEqual(upload["with"]["name"], "plugin-image-digest-${{ matrix.image_family }}")
         download = next(step for step in pin["steps"] if step.get("name") == "Download published digest")
@@ -394,6 +401,77 @@ class PluginImageWorkflowTests(unittest.TestCase):
         pin_prepare = next(step for step in pin["steps"] if step.get("name") == "Prepare template update")
         self.assertIn("git fetch origin master", pin_prepare["run"])
         self.assertIn("git switch -C \"$branch\" origin/master", pin_prepare["run"])
+
+    def test_image_family_selector_matches_yaml_and_image_changes(self):
+        selector = load_script("select_plugin_image_families")
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            subprocess.run(["git", "init", "-q", "-b", "master"], cwd=root, check=True)
+            subprocess.run(["git", "config", "user.email", "test@example.test"], cwd=root, check=True)
+            subprocess.run(["git", "config", "user.name", "Test"], cwd=root, check=True)
+
+            def commit(path, content, message):
+                target = root / path
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(content)
+                subprocess.run(["git", "add", path], cwd=root, check=True)
+                subprocess.run(["git", "commit", "-m", message], cwd=root, check=True)
+                return subprocess.run(
+                    ["git", "rev-parse", "HEAD"], cwd=root, check=True,
+                    capture_output=True, text=True,
+                ).stdout.strip()
+
+            before = commit("README.md", "root\n", "initial")
+            oss_spec = commit("plugins/buz/oss-upload/1.0.2.yaml", "version: 1.0.2\n", "bump OSS template")
+            self.assertEqual(selector.select_families(root, before, oss_spec), ["oss-tools"])
+            s3_image = commit("plugins/buz/s3-upload/image/Dockerfile", "FROM scratch\n", "change S3 image")
+            self.assertEqual(selector.select_families(root, oss_spec, s3_image), ["aws-tools"])
+            skipped = commit(
+                "plugins/buz/oss-upload/1.0.3.yaml", "version: 1.0.3\n",
+                "[skip image build] Pin OSS upload image digest",
+            )
+            self.assertEqual(selector.select_families(root, s3_image, skipped), [])
+            mixed = commit("plugins/buz/oss-upload/1.0.4.yaml", "version: 1.0.4\n", "normal template change")
+            mixed_skip = commit(
+                "plugins/buz/s3-upload/1.0.3.yaml", "version: 1.0.3\n",
+                "[skip image build] Pin S3 upload image digest",
+            )
+            self.assertEqual(selector.select_families(root, s3_image, mixed_skip), ["oss-tools"])
+            self.assertEqual(selector.select_families(root, mixed, mixed_skip), [])
+            self.assertEqual(
+                selector.select_families(root, "0" * 40, mixed_skip),
+                ["aws-tools", "oss-tools"],
+            )
+
+            branch_point = subprocess.run(
+                ["git", "rev-parse", "HEAD"], cwd=root, check=True,
+                capture_output=True, text=True,
+            ).stdout.strip()
+            subprocess.run(["git", "switch", "-c", "pin-pr"], cwd=root, check=True)
+            (root / "plugins/buz/s3-upload/1.0.4.yaml").write_text("version: 1.0.4\n")
+            subprocess.run(["git", "add", "plugins/buz/s3-upload/1.0.4.yaml"], cwd=root, check=True)
+            subprocess.run(
+                ["git", "commit", "-m", "[skip image build] Pin S3 image digest"],
+                cwd=root, check=True,
+            )
+            subprocess.run(["git", "switch", "master"], cwd=root, check=True)
+            (root / "plugins/buz/oss-upload/1.0.5.yaml").write_text("version: 1.0.5\n")
+            subprocess.run(["git", "add", "plugins/buz/oss-upload/1.0.5.yaml"], cwd=root, check=True)
+            subprocess.run(["git", "commit", "-m", "normal OSS change"], cwd=root, check=True)
+            normal_commit = subprocess.run(
+                ["git", "rev-parse", "HEAD"], cwd=root, check=True,
+                capture_output=True, text=True,
+            ).stdout.strip()
+            subprocess.run(
+                ["git", "merge", "--no-ff", "pin-pr", "-m", "[skip image build] Merge digest pin PR"],
+                cwd=root, check=True,
+            )
+            merge_commit = subprocess.run(
+                ["git", "rev-parse", "HEAD"], cwd=root, check=True,
+                capture_output=True, text=True,
+            ).stdout.strip()
+            self.assertEqual(selector.select_families(root, branch_point, merge_commit), ["oss-tools"])
+            self.assertEqual(selector.select_families(root, normal_commit, merge_commit), [])
 
     def test_image_reference_accepts_expected_tag_or_sha256_pin(self):
         image = "docker.io/schiplat/buz-plugins-oss-tools"
@@ -408,25 +486,20 @@ class PluginImageWorkflowTests(unittest.TestCase):
             with self.subTest(reference=reference):
                 self.assertFalse(self.checker.image_reference_matches(image, reference))
 
-    def test_current_docker_releases_are_patch_bumped_without_changing_template_content(self):
+    def test_current_docker_releases_are_patch_bumped_and_digest_pinned(self):
         for plugin in ("oss-upload", "s3-upload"):
             with self.subTest(plugin=plugin):
                 plugin_dir = ROOT / "plugins" / "buz" / plugin
-                old_path = plugin_dir / "1.0.0.yaml"
-                current_path = plugin_dir / "1.0.1.yaml"
-                old = yaml.safe_load(old_path.read_text())
+                self.assertFalse((plugin_dir / "1.0.0.yaml").exists())
+                current_path = plugin_dir / "1.0.2.yaml"
                 current = yaml.safe_load(current_path.read_text())
 
-                self.assertEqual(old["version"], "1.0.0")
-                self.assertEqual(current["version"], "1.0.1")
+                self.assertEqual(current["version"], "1.0.2")
                 self.assertEqual(
                     current["source_repo"],
-                    f"https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/{plugin}/1.0.1.yaml",
+                    f"https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/{plugin}/1.0.2.yaml",
                 )
                 self.assertIn("@sha256:", current["image"])
-                current["version"] = old["version"]
-                current["source_repo"] = old["source_repo"]
-                self.assertEqual(current, old)
 
     def test_oss_entrypoint_uses_v2_environment_credentials(self):
         entrypoint = (ROOT / "plugins/buz/oss-upload/image/entrypoint.sh").read_text()
@@ -446,7 +519,7 @@ class PluginImageWorkflowTests(unittest.TestCase):
         self.assertIn("ossutil-${OSSUTIL_VERSION}-linux-amd64/ossutil", dockerfile)
 
     def test_s3_template_masks_credentials_and_uses_https_endpoint(self):
-        spec = yaml.safe_load((ROOT / "plugins/buz/s3-upload/1.0.0.yaml").read_text())
+        spec = yaml.safe_load((ROOT / "plugins/buz/s3-upload/1.0.2.yaml").read_text())
         entrypoint = (ROOT / "plugins/buz/s3-upload/image/entrypoint.sh").read_text()
         for name in ("access_key_id", "secret_access_key", "session_token"):
             self.assertTrue(spec["inputs"][name].get("masking"))

@@ -4,7 +4,7 @@ Uploads one file from the Buz workspace to an S3 bucket using AWS CLI v2.
 
 ```yaml
 - name: upload artifact
-  uses: buz/s3-upload@1.0.1
+  uses: buz/s3-upload@1.0.2
   with:
     source: dist/app.tar.gz
     bucket: release-artifacts

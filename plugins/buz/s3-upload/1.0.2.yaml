@@ -1,14 +1,14 @@
 id: buz/s3-upload
 category: upload
 name: Upload file to S3
-version: 1.0.0
+version: 1.0.2
 description: Upload one file from the Buz workspace to an S3 bucket using the official AWS CLI v2.
 description_zh: 使用 AWS CLI v2 将 Buz 工作区中的单个文件上传到 S3 存储桶。
 publisher: official
 author: "buz maintainers"
 keywords: [s3, aws, upload, artifact, storage]
 license: Apache-2.0
-source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/s3-upload/1.0.0.yaml
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/s3-upload/1.0.2.yaml
 engine: docker
 image: docker.io/schiplat/buz-plugins-aws-tools@sha256:68d8b25b19410a57807da0df3ea5b3ca1b6f4f01243022683dd433748d2ec42b
 default_timeout: 10m
