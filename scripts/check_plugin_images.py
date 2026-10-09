@@ -141,6 +141,54 @@ def main() -> None:
     if "steps.build.outputs.digest" not in text:
         raise SystemExit("workflow must record the build manifest digest")
 
+    pin_job = workflow.get("jobs", {}).get("pin-template", {})
+    if pin_job.get("needs") != ["detect", "publish"]:
+        raise SystemExit("digest pin job must wait for detection and publishing")
+    if "always()" not in pin_job.get("if", "") or "needs.publish.result != 'cancelled'" not in pin_job.get("if", "") or "needs.detect.result == 'success'" not in pin_job.get("if", ""):
+        raise SystemExit("digest pin job must run for selected builds, even if a publish matrix leg fails")
+    if pin_job.get("permissions") != {"contents": "write", "pull-requests": "write"}:
+        raise SystemExit("digest pin job must have only contents and pull-request write permissions")
+    if pin_job.get("strategy", {}).get("matrix", {}).get("image_family") != "${{ fromJSON(needs.detect.outputs.families) }}":
+        raise SystemExit("digest pin job must process only the selected image families")
+    pin_steps = pin_job.get("steps", [])
+    if not any(
+        isinstance(step, dict)
+        and step.get("uses", "").startswith("actions/download-artifact@")
+        and step.get("with", {}).get("name") == "plugin-image-digest-${{ matrix.image_family }}"
+        and step.get("continue-on-error") is True
+        for step in pin_steps
+    ):
+        raise SystemExit("digest pin job must tolerate the artifact missing for a failed matrix build")
+    if not any(
+        isinstance(step, dict)
+        and step.get("uses", "").startswith("actions/upload-artifact@")
+        and "plugin-image-digest-${{ matrix.image_family }}" == step.get("with", {}).get("name")
+        for step in steps
+    ):
+        raise SystemExit("each published image must upload its digest in a family-specific artifact")
+    if not any(
+        isinstance(step, dict)
+        and step.get("name") == "Install pin script dependencies"
+        and "pyyaml" in step.get("run", "")
+        for step in pin_steps
+    ):
+        raise SystemExit("pin job must install the YAML parser required by the update script")
+    if not any(
+        isinstance(step, dict)
+        and step.get("name") == "Create or update digest pin pull request"
+        and "git commit" in step.get("run", "")
+        and "git push" in step.get("run", "")
+        and "gh pr create" in step.get("run", "")
+        and "gh pr edit" in step.get("run", "")
+        for step in pin_steps
+    ):
+        raise SystemExit("successful image builds must create or update a digest pin pull request")
+    pin_script = (ROOT / "scripts/pin_plugin_image.py").read_text(encoding="utf-8")
+    if "refusing to overwrite existing template version" not in pin_script or "target_version" not in pin_script:
+        raise SystemExit("digest updates must preserve published template versions")
+    if "automation/pin-${IMAGE_FAMILY}" not in text or "PLUGIN_PR_TOKEN || github.token" not in text:
+        raise SystemExit("digest PRs must use a stable family branch and the documented optional token")
+
     for slug, (image, context, spec_file) in EXPECTED.items():
         if f'docker.io/schiplat/{image.rsplit("/", 1)[-1]}' not in shell_lines:
             raise SystemExit(f"{slug}: image name is absent from validated family selector")

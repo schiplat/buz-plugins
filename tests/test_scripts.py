@@ -287,6 +287,63 @@ class PluginImageWorkflowTests(unittest.TestCase):
     def setUpClass(cls):
         cls.checker = load_script("check_plugin_images")
 
+    def test_digest_pin_updates_initial_template_without_changing_version(self):
+        pin_script = load_script("pin_plugin_image")
+        digest = "sha256:" + "a" * 64
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            spec_dir = root / "plugins/buz/oss-upload"
+            spec_dir.mkdir(parents=True)
+            spec = spec_dir / "1.0.0.yaml"
+            spec.write_text(
+                "id: buz/oss-upload\nversion: 1.0.0\n"
+                "source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/oss-upload/1.0.0.yaml\n"
+                "engine: docker\nimage: docker.io/schiplat/buz-plugins-oss-tools:1.0.0\n"
+            )
+            self.assertEqual(pin_script.pin_spec(root, "oss-tools", digest), spec)
+            updated = yaml.safe_load(spec.read_text())
+            self.assertEqual(updated["version"], "1.0.0")
+            self.assertEqual(updated["image"], f"docker.io/schiplat/buz-plugins-oss-tools@{digest}")
+            self.assertIsNone(pin_script.pin_spec(root, "oss-tools", digest))
+
+    def test_digest_pin_creates_patch_version_after_initial_pin(self):
+        pin_script = load_script("pin_plugin_image")
+        first_digest = "sha256:" + "a" * 64
+        next_digest = "sha256:" + "b" * 64
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            spec_dir = root / "plugins/buz/s3-upload"
+            spec_dir.mkdir(parents=True)
+            original = spec_dir / "1.0.0.yaml"
+            original.write_text(
+                "id: buz/s3-upload\nversion: 1.0.0\n"
+                "source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/s3-upload/1.0.0.yaml\n"
+                "engine: docker\nimage: docker.io/schiplat/buz-plugins-aws-tools@" + first_digest + "\n"
+            )
+            updated = pin_script.pin_spec(root, "aws-tools", next_digest)
+            self.assertEqual(updated, spec_dir / "1.0.1.yaml")
+            self.assertEqual(yaml.safe_load(original.read_text())["image"],
+                             f"docker.io/schiplat/buz-plugins-aws-tools@{first_digest}")
+            new_spec = yaml.safe_load(updated.read_text())
+            self.assertEqual(new_spec["version"], "1.0.1")
+            self.assertEqual(new_spec["image"], f"docker.io/schiplat/buz-plugins-aws-tools@{next_digest}")
+            self.assertTrue(new_spec["source_repo"].endswith("/plugins/buz/s3-upload/1.0.1.yaml"))
+
+    def test_digest_pin_rejects_invalid_digest_and_existing_tag_updates(self):
+        pin_script = load_script("pin_plugin_image")
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            spec_dir = root / "plugins/buz/oss-upload"
+            spec_dir.mkdir(parents=True)
+            (spec_dir / "1.0.0.yaml").write_text(
+                "id: buz/oss-upload\nversion: 1.0.0\n"
+                "image: docker.io/schiplat/buz-plugins-oss-tools:1.0.4\n"
+            )
+            with self.assertRaisesRegex(SystemExit, "lowercase sha256"):
+                pin_script.pin_spec(root, "oss-tools", "sha256:BAD")
+            with self.assertRaisesRegex(SystemExit, "refusing to replace an existing non-initial image tag"):
+                pin_script.pin_spec(root, "oss-tools", "sha256:" + "c" * 64)
+
     def test_workflow_publishes_only_changed_amd64_image_families(self):
         self.checker.main()
         workflow = yaml.safe_load((ROOT / ".github/workflows/publish-plugin-image.yml").read_text())
@@ -318,6 +375,23 @@ class PluginImageWorkflowTests(unittest.TestCase):
         self.assertIn("${{ secrets.DOCKERHUB_TOKEN }}", workflow_text)
         self.assertNotIn("secrets.DOCKERHUB_USERNAME", workflow_text)
         self.assertIn("@1ca370b3a9802c92e886402e0dd88098a2533b12 # v6.4.1", workflow_text)
+        pin = workflow["jobs"]["pin-template"]
+        self.assertEqual(pin["needs"], ["detect", "publish"])
+        self.assertEqual(pin["permissions"], {"contents": "write", "pull-requests": "write"})
+        self.assertIn("always()", pin["if"])
+        self.assertIn("needs.publish.result != 'cancelled'", pin["if"])
+        self.assertIn("needs.detect.result == 'success'", pin["if"])
+        self.assertIn("PLUGIN_PR_TOKEN || github.token", workflow_text)
+        self.assertIn("gh pr create", workflow_text)
+        self.assertIn("gh pr edit", workflow_text)
+        upload = next(step for step in publish["steps"] if step.get("name") == "Upload published digest")
+        self.assertEqual(upload["with"]["name"], "plugin-image-digest-${{ matrix.image_family }}")
+        download = next(step for step in pin["steps"] if step.get("name") == "Download published digest")
+        self.assertEqual(download["with"]["name"], "plugin-image-digest-${{ matrix.image_family }}")
+        self.assertTrue(download.get("continue-on-error"))
+        pin_prepare = next(step for step in pin["steps"] if step.get("name") == "Prepare template update")
+        self.assertIn("git fetch origin master", pin_prepare["run"])
+        self.assertIn("git switch -C \"$branch\" origin/master", pin_prepare["run"])
 
     def test_image_reference_accepts_expected_tag_or_sha256_pin(self):
         image = "docker.io/schiplat/buz-plugins-oss-tools"

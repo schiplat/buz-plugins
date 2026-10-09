@@ -13,9 +13,13 @@ Images target Linux `amd64` (x86_64) only. On pushes to `master`, changes under 
 
 Maintainers can also dispatch `.github/workflows/publish-plugin-image.yml` manually from `master`, select one allowlisted image family, and enter a new `X.Y.Z` image tag. Configure `DOCKERHUB_USERNAME` as a repository Actions variable and `DOCKERHUB_TOKEN` as a repository Actions secret. The workflow refuses an already existing version tag and writes the published image digest to the run summary.
 
-Automatic builds run only for changes under the two image contexts on `master`; template, docs, workflow, and unrelated pushes do not trigger an image build. Use a new image version for each changed image. After publishing, update the matching template's `image` to the actual image digest, such as `docker.io/schiplat/buz-plugins-aws-tools@sha256:<digest>`, and revalidate/re-review that spec hash. A version tag is not an immutable production pin.
+After each successful matrix build, the workflow uploads that family’s manifest digest and opens or updates a family-specific PR pinning its template to `image@sha256:...`. If both families are selected and one build fails, the successful family can still open its PR; fix the failed build before retrying it. The first image release automatically pins the planned `1.0.0` template; later digest changes create a new patch template version and leave published versions unchanged. Identical digests do not create empty PRs. The PR branch is `automation/pin-<family>`.
 
-The upload specs currently reference planned `1.0.0` tags. The images have not been published. These specs are not production-ready until the images are published and their references are changed to verified manifest digests.
+The PR job uses `GITHUB_TOKEN` by default and requires `contents: write` and `pull-requests: write` repository workflow permissions. To make the generated PR trigger the full CI workflow, configure an Actions secret named `PLUGIN_PR_TOKEN` with a fine-grained PAT or GitHub App token that can read and write repository contents and pull requests. Without this token, GitHub suppresses most new workflow runs created with `GITHUB_TOKEN`; the PR is still created, but checks may require a maintainer-triggered run. Keep the token narrowly scoped and rotate it according to its expiration policy.
+
+Automatic builds run only for changes under the two image contexts on `master`; template, docs, workflow, and unrelated pushes do not trigger an image build. The run-ID version tag identifies a build, while the template uses its immutable digest. The `1.0.0` spec is only updated in place for the initial pin from the planned `:1.0.0` tag; later published template versions are immutable. A version tag by itself is not an immutable production pin.
+
+The upload specs currently reference planned `1.0.0` tags until a successful build’s digest PR is merged. They are not production-ready until their references use verified manifest digests.
 
 ## Runtime requirements and credentials
 
