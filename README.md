@@ -44,7 +44,16 @@ sudo cp -r buz-plugins/plugins /opt/buz/pipelines/steps
 #   local_dir = "/etc/buz/steps"
 ```
 
-Save a pipeline referencing a step — the Manager validates `with:` against the template inputs, expands the step, and locks version + content hash. Upstream tag moves never change an already-saved pipeline.
+Save a pipeline referencing a step — the Manager validates `with:` against the template inputs, expands the step, and locks version + content hash. Before saving it, you can check `uses:` resolution and input validation without executing steps using the Buz Manager plan command:
+
+```bash
+buz-manager pipeline plan examples/plugin-uses-dry-run.yml \
+  --step-index ./plugins \
+  --reviews ./reviews.json \
+  --require-reviewed
+```
+
+The example includes both Shell and digest-pinned Docker templates. Planning prints resolved versions and template hashes, but never executes commands or reveals input/secret values. By default it makes a read-only registry manifest request for Docker tags/digests; it does not pull or run images. `not found` fails the command, while private images without credentials and network/registry errors are reported as `unverified`. Add `--offline` to skip those requests. This does not prove an image is pullable by your Runner or that the step will run successfully. The plan also does not check that Manager Secrets or Variables exist or that a Runner is available. See the [Buz pipeline planning guide](https://github.com/schiplat/buz/blob/master/docs/content/docs/01-architecture/authoring/pipeline-format.md#plan-a-pipeline-without-executing-it). Once saved, the Manager locks the resolved template version and hash so upstream changes do not alter an existing pipeline.
 
 ## Authoring
 

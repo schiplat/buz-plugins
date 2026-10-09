@@ -1,0 +1,19 @@
+name: plugin-uses-dry-run
+
+steps:
+  - name: Check service readiness
+    uses: buz/http-check@1.0.0
+    with:
+      url: https://example.invalid/health
+      expect_status: "200"
+
+  - name: Upload test artifact to OSS
+    uses: buz/oss-upload@1.0.0
+    with:
+      source: dist/smoke-test.txt
+      bucket: replace-with-test-bucket
+      object: dry-run/plugin-smoke-test.txt
+      endpoint: https://oss-cn-hangzhou.aliyuncs.com
+      region: cn-hangzhou
+      access_key_id: ${secrets.OSS_ACCESS_KEY_ID}
+      access_key_secret: ${secrets.OSS_ACCESS_KEY_SECRET}
