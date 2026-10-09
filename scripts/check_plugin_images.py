@@ -14,12 +14,12 @@ EXPECTED = {
     "oss-tools": (
         "docker.io/schiplat/buz-plugins-oss-tools",
         "plugins/buz/oss-upload/image",
-        "plugins/buz/oss-upload/1.0.0.yaml",
+        "plugins/buz/oss-upload/1.0.1.yaml",
     ),
     "aws-tools": (
         "docker.io/schiplat/buz-plugins-aws-tools",
         "plugins/buz/s3-upload/image",
-        "plugins/buz/s3-upload/1.0.0.yaml",
+        "plugins/buz/s3-upload/1.0.1.yaml",
     ),
 }
 

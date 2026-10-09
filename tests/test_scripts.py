@@ -408,6 +408,26 @@ class PluginImageWorkflowTests(unittest.TestCase):
             with self.subTest(reference=reference):
                 self.assertFalse(self.checker.image_reference_matches(image, reference))
 
+    def test_current_docker_releases_are_patch_bumped_without_changing_template_content(self):
+        for plugin in ("oss-upload", "s3-upload"):
+            with self.subTest(plugin=plugin):
+                plugin_dir = ROOT / "plugins" / "buz" / plugin
+                old_path = plugin_dir / "1.0.0.yaml"
+                current_path = plugin_dir / "1.0.1.yaml"
+                old = yaml.safe_load(old_path.read_text())
+                current = yaml.safe_load(current_path.read_text())
+
+                self.assertEqual(old["version"], "1.0.0")
+                self.assertEqual(current["version"], "1.0.1")
+                self.assertEqual(
+                    current["source_repo"],
+                    f"https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/{plugin}/1.0.1.yaml",
+                )
+                self.assertIn("@sha256:", current["image"])
+                current["version"] = old["version"]
+                current["source_repo"] = old["source_repo"]
+                self.assertEqual(current, old)
+
     def test_oss_entrypoint_uses_v2_environment_credentials(self):
         entrypoint = (ROOT / "plugins/buz/oss-upload/image/entrypoint.sh").read_text()
         for name in (
