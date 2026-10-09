@@ -53,6 +53,8 @@ def main() -> None:
     detect_outputs = detect_job.get("outputs", {})
     if detect_outputs.get("families") != "${{ steps.select.outputs.families }}":
         raise SystemExit("family selection job must expose detected image families")
+    if detect_outputs.get("versions") != "${{ steps.select.outputs.versions }}":
+        raise SystemExit("family selection job must expose latest template versions")
     detect_steps = detect_job.get("steps", [])
     select_step = next(
         (step for step in detect_steps if isinstance(step, dict) and step.get("id") == "select"),
@@ -133,6 +135,10 @@ def main() -> None:
         raise SystemExit("shell family selector must match the allowlisted families")
     if '[[ ! "$IMAGE_VERSION" =~ ^[0-9]+\\.[0-9]+\\.[0-9]+$ ]]' not in shell_lines:
         raise SystemExit("workflow must reject versions outside X.Y.Z")
+    if '[[ ! "$GITHUB_RUN_NUMBER" =~ ^[0-9]+$ || ! "$GITHUB_RUN_ATTEMPT" =~ ^[0-9]+$ ]]' not in shell_lines:
+        raise SystemExit("workflow must validate numeric run numbers and attempts")
+    if 'fromJSON(needs.detect.outputs.versions)[matrix.image_family]' not in validate_step.get("env", {}).get("IMAGE_VERSION", ""):
+        raise SystemExit("workflow must use the latest version for the selected image family")
     if '"$GITHUB_REF" != "refs/heads/master"' not in shell_lines:
         raise SystemExit("publishing must be restricted to master")
     if "docker/login-action@" not in text:
@@ -194,8 +200,10 @@ def main() -> None:
     if "automation/pin-${IMAGE_FAMILY}" not in text or "BUZ_PLUGIN_GITHUB_PR_TOKEN || github.token" not in text:
         raise SystemExit("digest PRs must use a stable family branch and the documented optional token")
 
-    if "GITHUB_RUN_ID" not in text or "GITHUB_OUTPUT" not in text:
-        raise SystemExit("push builds must use unique run-ID tags and export detected families")
+    if "GITHUB_RUN_NUMBER" not in text or "GITHUB_RUN_ATTEMPT" not in text or "GITHUB_OUTPUT" not in text:
+        raise SystemExit("push builds must use unique run-number tags and export detected families")
+    if "${IMAGE_VERSION}-build.${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}" not in shell_lines:
+        raise SystemExit("image tags must include the template version, run number, and attempt")
     pin_commit_step = next(
         step for step in pin_steps
         if isinstance(step, dict) and step.get("name") == "Create or update digest pin pull request"
