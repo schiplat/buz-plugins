@@ -1,0 +1,70 @@
+id: buz/setup-python
+category: build
+name: Python build environment (pip)
+version: 1.0.0
+description: Run commands inside a pinned Python toolchain (3.14, 3.13, or 3.12) with pip.
+publisher: official
+author: "buz maintainers"
+keywords: [python, pip, build, toolchain, 构建]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/setup-python/1.0.0.yaml
+engine: docker
+image: docker.io/schiplat/buz-plugins-python-tools:1.0.0
+default_timeout: 30m
+inputs:
+  script:
+    type: string
+    required: true
+    description: POSIX sh commands to run; executed with `set -e` from the selected workdir.
+  version:
+    type: choice
+    default: "3.14"
+    options: [3.14, 3.13, 3.12]
+    description: Python toolchain version.
+  workdir:
+    type: string
+    default: "."
+    description: Working directory relative to the workspace root.
+  cache:
+    type: boolean
+    default: "false"
+    description: Persist the pip cache in <workspace>/.cache/python/pip across jobs on this Runner.
+run: |
+  set -eu
+
+  : "${INPUT_SCRIPT:?script is required}"
+
+  workdir="${INPUT_WORKDIR:-.}"
+  case "$workdir" in
+    /*|..|../*|*/../*|*/..)
+      printf 'workdir must be a relative path inside the Buz workspace\n' >&2
+      exit 2
+      ;;
+  esac
+  cd /buz/workspace
+  if [ "$workdir" != "." ]; then
+    cd "$workdir"
+  fi
+
+  version="${INPUT_VERSION:-3.14}"
+  case "$version" in
+    3.14) ;;
+    3.13|3.12)
+      PATH="/opt/python/$version/bin:$PATH"
+      export PATH
+      ;;
+    *)
+      printf 'unsupported python version: %s\n' "$version" >&2
+      exit 2
+      ;;
+  esac
+
+  if [ "${INPUT_CACHE:-false}" = "true" ]; then
+    pip_cache=/buz/workspace/.cache/python/pip
+    mkdir -p "$pip_cache"
+    export PIP_CACHE_DIR="$pip_cache"
+  fi
+
+  script_file="${TMPDIR:-/tmp}/buz-setup-script"
+  printf '%s\n' "$INPUT_SCRIPT" > "$script_file"
+  sh -e "$script_file"

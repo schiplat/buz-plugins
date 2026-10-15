@@ -9,7 +9,7 @@ in [plugin-images.md](plugin-images.md); this page is the authoring contract.
 | Kind | Examples | Shape |
 |------|----------|-------|
 | **Helper** | `buz/oss-upload`, `buz/s3-upload` | The image installs a fixed helper (`entrypoint.sh` → `/usr/local/bin/<helper>`); the spec's `run:` is exactly `exec /usr/local/bin/<helper>` |
-| **Toolchain** | `buz/setup-rust`, `buz/setup-ruby`, `buz/setup-php`, `buz/setup-lua` | The image ships language toolchains; the spec selects one via `version` and executes a required `script` input |
+| **Toolchain** | `buz/setup-rust` … `buz/setup-go` (rust, ruby, php, lua, python, node, java, go) | The image ships language toolchains; the spec selects one via `version` and executes a required `script` input |
 
 ## Directory layout and identity
 

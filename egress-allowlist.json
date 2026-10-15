@@ -77,5 +77,21 @@
   "buz/setup-lua": {
     "hosts": [],
     "endpoint_inputs": []
+  },
+  "buz/setup-python": {
+    "hosts": [],
+    "endpoint_inputs": []
+  },
+  "buz/setup-node": {
+    "hosts": [],
+    "endpoint_inputs": []
+  },
+  "buz/setup-java": {
+    "hosts": [],
+    "endpoint_inputs": []
+  },
+  "buz/setup-go": {
+    "hosts": [],
+    "endpoint_inputs": []
   }
 }

@@ -1,0 +1,70 @@
+id: buz/setup-node
+category: build
+name: Node.js build environment (npm)
+version: 1.0.0
+description: Run commands inside a pinned Node.js toolchain (24 active LTS or 22 maintenance LTS) with npm and corepack.
+publisher: official
+author: "buz maintainers"
+keywords: [node, nodejs, npm, build, toolchain, 构建]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/setup-node/1.0.0.yaml
+engine: docker
+image: docker.io/schiplat/buz-plugins-node-tools:1.0.0
+default_timeout: 30m
+inputs:
+  script:
+    type: string
+    required: true
+    description: POSIX sh commands to run; executed with `set -e` from the selected workdir.
+  version:
+    type: choice
+    default: "24"
+    options: [24, 22]
+    description: Node.js toolchain version.
+  workdir:
+    type: string
+    default: "."
+    description: Working directory relative to the workspace root.
+  cache:
+    type: boolean
+    default: "false"
+    description: Persist the npm cache in <workspace>/.cache/node/npm across jobs on this Runner.
+run: |
+  set -eu
+
+  : "${INPUT_SCRIPT:?script is required}"
+
+  workdir="${INPUT_WORKDIR:-.}"
+  case "$workdir" in
+    /*|..|../*|*/../*|*/..)
+      printf 'workdir must be a relative path inside the Buz workspace\n' >&2
+      exit 2
+      ;;
+  esac
+  cd /buz/workspace
+  if [ "$workdir" != "." ]; then
+    cd "$workdir"
+  fi
+
+  version="${INPUT_VERSION:-24}"
+  case "$version" in
+    24) ;;
+    22)
+      PATH="/opt/node/22/bin:$PATH"
+      export PATH
+      ;;
+    *)
+      printf 'unsupported node version: %s\n' "$version" >&2
+      exit 2
+      ;;
+  esac
+
+  if [ "${INPUT_CACHE:-false}" = "true" ]; then
+    npm_cache=/buz/workspace/.cache/node/npm
+    mkdir -p "$npm_cache"
+    export npm_config_cache="$npm_cache"
+  fi
+
+  script_file="${TMPDIR:-/tmp}/buz-setup-script"
+  printf '%s\n' "$INPUT_SCRIPT" > "$script_file"
+  sh -e "$script_file"
