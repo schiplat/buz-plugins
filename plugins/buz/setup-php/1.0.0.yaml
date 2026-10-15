@@ -60,6 +60,7 @@ run: |
       exit 2
       ;;
   esac
+  php --version
 
   if [ "${INPUT_CACHE:-false}" = "true" ]; then
     composer_home=/buz/workspace/.cache/php/composer

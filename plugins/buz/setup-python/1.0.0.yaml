@@ -58,6 +58,7 @@ run: |
       exit 2
       ;;
   esac
+  python3 --version
 
   if [ "${INPUT_CACHE:-false}" = "true" ]; then
     pip_cache=/buz/workspace/.cache/python/pip

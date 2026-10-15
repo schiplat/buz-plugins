@@ -65,6 +65,7 @@ run: |
   export JAVA_HOME
   PATH="$JAVA_HOME/bin:$PATH"
   export PATH
+  java -version
 
   if [ "${INPUT_CACHE:-false}" = "true" ]; then
     java_cache=/buz/workspace/.cache/java

@@ -66,6 +66,7 @@ run: |
   esac
   export GOROOT
   export PATH
+  go version
 
   if [ "${INPUT_CACHE:-false}" = "true" ]; then
     go_cache=/buz/workspace/.cache/go

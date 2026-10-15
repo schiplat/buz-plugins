@@ -57,6 +57,7 @@ run: |
       exit 2
       ;;
   esac
+  if [ "$version" = "jit" ]; then luajit -v; else lua -v; fi
 
   script_file="${TMPDIR:-/tmp}/buz-setup-script"
   printf '%s\n' "$INPUT_SCRIPT" > "$script_file"
