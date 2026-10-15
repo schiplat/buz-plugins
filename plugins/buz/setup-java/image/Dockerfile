@@ -5,6 +5,7 @@
 FROM eclipse-temurin:21-jdk-bookworm
 
 LABEL org.opencontainers.image.source="https://github.com/schiplat/buz-plugins" \
+      org.opencontainers.image.version="1.0.0" \
       org.opencontainers.image.description="buz/setup-java toolchain image (temurin 21 native + 25/17)"
 
 COPY --from=eclipse-temurin:25-jdk-bookworm /opt/java/openjdk /opt/java/25

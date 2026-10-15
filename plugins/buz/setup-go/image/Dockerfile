@@ -6,6 +6,7 @@
 FROM golang:1.26-bookworm
 
 LABEL org.opencontainers.image.source="https://github.com/schiplat/buz-plugins" \
+      org.opencontainers.image.version="1.0.0" \
       org.opencontainers.image.description="buz/setup-go toolchain image (go 1.26 native + 1.25/tip)"
 
 COPY --from=golang:1.25-bookworm /usr/local/go /opt/go/1.25

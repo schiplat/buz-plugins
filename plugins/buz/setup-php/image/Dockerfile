@@ -6,6 +6,7 @@
 FROM php:8.4-bookworm
 
 LABEL org.opencontainers.image.source="https://github.com/schiplat/buz-plugins" \
+      org.opencontainers.image.version="1.0.0" \
       org.opencontainers.image.description="buz/setup-php toolchain image (php 8.4 native + 8.3, composer)"
 
 ARG COMPOSER_VERSION=2.10.3

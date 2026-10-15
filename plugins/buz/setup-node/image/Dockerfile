@@ -7,6 +7,7 @@
 FROM node:24-bookworm
 
 LABEL org.opencontainers.image.source="https://github.com/schiplat/buz-plugins" \
+      org.opencontainers.image.version="1.0.0" \
       org.opencontainers.image.description="buz/setup-node toolchain image (node 24 native + 22/25)"
 
 COPY --from=node:22-bookworm /usr/local /opt/node/22
