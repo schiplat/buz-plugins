@@ -127,6 +127,13 @@ mapping; keep it in sync when the image gains lines.
 
 ## Pre-push validation checklist
 
+Never push a HEAD commit whose message contains `[skip ci]` (or the other
+GitHub skip markers): it suppresses **every** push-triggered workflow for
+that push — the site deploy and the image builds included. The marker is
+reserved for commits CI itself creates after a completed run (review-badge
+refreshes, digest pins). If you refresh `reviews.json` locally, use a
+different commit message.
+
 ```bash
 python3 tests/test_scripts.py                          # script + wiring tests
 python3 scripts/lint_runs.py plugins                   # run-block heuristics
