@@ -5,6 +5,7 @@
 FROM ruby:3.4-bookworm
 
 LABEL org.opencontainers.image.source="https://github.com/schiplat/buz-plugins" \
+      org.opencontainers.image.version="1.0.0" \
       org.opencontainers.image.description="buz/setup-ruby toolchain image (ruby 3.4 native + 3.3)"
 
 ARG RUBY33_VERSION=3.3.6

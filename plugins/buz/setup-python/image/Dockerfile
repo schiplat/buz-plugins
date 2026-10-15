@@ -7,6 +7,7 @@
 FROM python:3.14-bookworm
 
 LABEL org.opencontainers.image.source="https://github.com/schiplat/buz-plugins" \
+      org.opencontainers.image.version="1.0.0" \
       org.opencontainers.image.description="buz/setup-python toolchain image (python 3.14 native + 3.13/3.12)"
 
 COPY --from=python:3.13-bookworm /usr/local /opt/python/3.13

@@ -5,6 +5,7 @@
 FROM debian:bookworm-slim
 
 LABEL org.opencontainers.image.source="https://github.com/schiplat/buz-plugins" \
+      org.opencontainers.image.version="1.0.0" \
       org.opencontainers.image.description="buz/setup-lua toolchain image (lua 5.4/5.3, luajit)"
 
 RUN apt-get update \
