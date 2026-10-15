@@ -1,6 +1,86 @@
 {
   "reviews": [
     {
+      "id": "buz/setup-rust",
+      "version": "1.0.0",
+      "sha256": "93d1740f09c5843bdbc8bad6822758513d53d800440e8812fb1e30299a41ebcf",
+      "reviewed_at": "2026-10-15",
+      "review_commit": "c28fafd",
+      "scope": "maintainer-reviewed: spec, run wrapper, egress baseline, image build context",
+      "source": "human",
+      "category": "build"
+    },
+    {
+      "id": "buz/setup-ruby",
+      "version": "1.0.0",
+      "sha256": "1a43a92799284c52ad887d2c2a31523d81c8d97d2b6b91349cb25c142e745b64",
+      "reviewed_at": "2026-10-15",
+      "review_commit": "c28fafd",
+      "scope": "maintainer-reviewed: spec, run wrapper, egress baseline, image build context",
+      "source": "human",
+      "category": "build"
+    },
+    {
+      "id": "buz/setup-php",
+      "version": "1.0.0",
+      "sha256": "a9b2e1aac4eca9e748c661321ce91354b8ac6562af82a6366451dca8623e874d",
+      "reviewed_at": "2026-10-15",
+      "review_commit": "c28fafd",
+      "scope": "maintainer-reviewed: spec, run wrapper, egress baseline, image build context",
+      "source": "human",
+      "category": "build"
+    },
+    {
+      "id": "buz/setup-lua",
+      "version": "1.0.0",
+      "sha256": "460ef0eb12f3471b3c6f0be94fdbcd8b6e9e37777cb506669ccdab70d45e1735",
+      "reviewed_at": "2026-10-15",
+      "review_commit": "c28fafd",
+      "scope": "maintainer-reviewed: spec, run wrapper, egress baseline, image build context",
+      "source": "human",
+      "category": "build"
+    },
+    {
+      "id": "buz/setup-python",
+      "version": "1.0.0",
+      "sha256": "5bb3b2ffcbd5b1223597517f806efddae90ef6145231ab51d5e98ff579df216b",
+      "reviewed_at": "2026-10-15",
+      "review_commit": "c28fafd",
+      "scope": "maintainer-reviewed: spec, run wrapper, egress baseline, image build context",
+      "source": "human",
+      "category": "build"
+    },
+    {
+      "id": "buz/setup-node",
+      "version": "1.0.0",
+      "sha256": "9c524b593bb08605e55ee4bebc1c27f7c2f3e5b06ce1aac62c40bff14644a669",
+      "reviewed_at": "2026-10-15",
+      "review_commit": "c28fafd",
+      "scope": "maintainer-reviewed: spec, run wrapper, egress baseline, image build context",
+      "source": "human",
+      "category": "build"
+    },
+    {
+      "id": "buz/setup-java",
+      "version": "1.0.0",
+      "sha256": "2d73f5c65360285ea1fccec7cb1f3bcdf2a1ffb96b4b921edba4a6220f8688b4",
+      "reviewed_at": "2026-10-15",
+      "review_commit": "c28fafd",
+      "scope": "maintainer-reviewed: spec, run wrapper, egress baseline, image build context",
+      "source": "human",
+      "category": "build"
+    },
+    {
+      "id": "buz/setup-go",
+      "version": "1.0.0",
+      "sha256": "35be6bd8c295d8f17152b532fa40cd662f722a97fdd893c296a512b4b1462b97",
+      "reviewed_at": "2026-10-15",
+      "review_commit": "c28fafd",
+      "scope": "maintainer-reviewed: spec, run wrapper, egress baseline, image build context",
+      "source": "human",
+      "category": "build"
+    },
+    {
       "id": "buz/dingtalk",
       "version": "1.0.0",
       "sha256": "4d321e85e531e068d8f3e3daf03aedbb7ab0f6223dd72b2d985d623048c2253a",
