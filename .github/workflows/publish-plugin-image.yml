@@ -15,6 +15,7 @@ on:
       - plugins/buz/setup-node/image/**
       - plugins/buz/setup-java/image/**
       - plugins/buz/setup-go/image/**
+      - plugins/buz/docker/image/**
 
 permissions:
   contents: read
@@ -108,6 +109,10 @@ jobs:
             go-tools)
               image="docker.io/schiplat/go"
               context="plugins/buz/setup-go/image"
+              ;;
+            docker-tools)
+              image="docker.io/schiplat/buz-plugins-docker-tools"
+              context="plugins/buz/docker/image"
               ;;
             *)
               echo "Unsupported image family." >&2
@@ -246,6 +251,7 @@ jobs:
             node-tools) plugin_dir=plugins/buz/setup-node ;;
             java-tools) plugin_dir=plugins/buz/setup-java ;;
             go-tools) plugin_dir=plugins/buz/setup-go ;;
+            docker-tools) plugin_dir=plugins/buz/docker ;;
             *) echo "Unsupported image family." >&2; exit 1 ;;
           esac
           if git status --porcelain -- "$plugin_dir" | grep -q .; then
@@ -302,6 +308,10 @@ jobs:
             go-tools)
               plugin_dir=plugins/buz/setup-go
               title="[skip image build] Pin Go toolchain image digest"
+              ;;
+            docker-tools)
+              plugin_dir=plugins/buz/docker
+              title="[skip image build] Pin Docker tool image digest"
               ;;
             *) echo "Unsupported image family." >&2; exit 1 ;;
           esac

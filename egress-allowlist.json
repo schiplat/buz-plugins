@@ -101,5 +101,9 @@
   "buz/docker-compose": {
     "hosts": [],
     "endpoint_inputs": []
+  },
+  "buz/docker": {
+    "hosts": [],
+    "endpoint_inputs": []
   }
 }
