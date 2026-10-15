@@ -1,0 +1,65 @@
+id: buz/docker-compose
+category: deploy
+name: Docker Compose deployment
+version: 1.0.0
+description: Deploy a Docker Compose project on the target SSH host — optional image injection, pull, recreate, and status. Pair with buz/http-check for readiness.
+description_zh: 在目标 SSH 主机上部署 Docker Compose 项目——可选镜像注入、拉取、重建与状态输出；配合 buz/http-check 做就绪检查。
+publisher: official
+author: "buz maintainers"
+keywords: [docker, compose, deploy, ssh, release, 部署]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/docker-compose/1.0.0.yaml
+requires_buz: ">=1.7.5"
+engine: ssh
+default_timeout: 15m
+inputs:
+  project_dir:
+    type: string
+    required: true
+    description: Absolute path on the target host that contains the compose file (for example /opt/cella).
+  compose_file:
+    type: string
+    default: "docker-compose.yml"
+    description: Compose file name inside project_dir (exported as COMPOSE_FILE).
+  image:
+    type: string
+    description: Optional image reference exported as IMAGE — reference ${IMAGE:-} in your compose file and pass the tag from a trigger input.
+  services:
+    type: string
+    description: Optional space-separated service names to recreate (default all services in the compose file).
+  pull:
+    type: boolean
+    default: "true"
+    description: Run `docker compose pull` before up.
+run: |
+  set -eu
+
+  : "${INPUT_PROJECT_DIR:?project_dir is required}"
+  case "$INPUT_PROJECT_DIR" in
+    /*) ;;
+    *)
+      printf 'project_dir must be an absolute path on the target host\n' >&2
+      exit 2
+      ;;
+  esac
+  cd "$INPUT_PROJECT_DIR"
+
+  export COMPOSE_FILE="${INPUT_COMPOSE_FILE:-docker-compose.yml}"
+  if [ ! -f "$COMPOSE_FILE" ]; then
+    printf 'compose file not found: %s/%s\n' "$INPUT_PROJECT_DIR" "$COMPOSE_FILE" >&2
+    exit 2
+  fi
+
+  if [ -n "${INPUT_IMAGE:-}" ]; then
+    IMAGE="$INPUT_IMAGE"
+    export IMAGE
+  fi
+
+  if [ "${INPUT_PULL:-true}" = "true" ]; then
+    docker compose pull
+  fi
+
+  # services: intentional word splitting — space-separated service names
+  # shellcheck disable=SC2086
+  docker compose up -d --force-recreate --remove-orphans ${INPUT_SERVICES:-}
+  docker compose ps
