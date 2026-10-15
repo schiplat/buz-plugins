@@ -52,7 +52,8 @@ run: |
     exit 2
   fi
 
-  kubeconfig_file="${TMPDIR:-/tmp}/buz-kubeconfig"
+  kubeconfig_file="$(mktemp "${TMPDIR:-/tmp}/buz-kubeconfig.XXXXXX")"
+  trap 'rm -f "$kubeconfig_file"' EXIT
   umask 077
   printf '%s\n' "$INPUT_KUBECONFIG" > "$kubeconfig_file"
   umask 022

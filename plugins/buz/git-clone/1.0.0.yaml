@@ -65,9 +65,10 @@ run: |
   fi
 
   if [ -n "${INPUT_TOKEN:-}" ]; then
-    askpass="${TMPDIR:-/tmp}/buz-git-askpass"
+    askpass="$(mktemp "${TMPDIR:-/tmp}/buz-git-askpass.XXXXXX")"
+    trap 'rm -f "$askpass"' EXIT
     printf '#!/bin/sh\necho "$INPUT_TOKEN"\n' > "$askpass"
-    chmod 0755 "$askpass"
+    chmod 0700 "$askpass"
     GIT_ASKPASS="$askpass"
     export GIT_ASKPASS
     GIT_TERMINAL_PROMPT=0
