@@ -18,9 +18,9 @@ inputs:
     description: POSIX sh commands to run; executed with `set -e` from the selected workdir.
   version:
     type: choice
-    default: "3.14"
-    options: [3.14, 3.13, 3.12]
-    description: Python toolchain version.
+    default: "stable"
+    options: [stable, lts, dev, 3.14, 3.13, 3.12]
+    description: Python version. stable/lts/dev all select 3.14 (Python has no LTS or dev channel in this image).
   workdir:
     type: string
     default: "."
@@ -46,9 +46,9 @@ run: |
     cd "$workdir"
   fi
 
-  version="${INPUT_VERSION:-3.14}"
+  version="${INPUT_VERSION:-stable}"
   case "$version" in
-    3.14) ;;
+    stable|lts|dev|3.14) ;;
     3.13|3.12)
       PATH="/opt/python/$version/bin:$PATH"
       export PATH

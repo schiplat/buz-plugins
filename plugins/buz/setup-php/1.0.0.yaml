@@ -18,9 +18,9 @@ inputs:
     description: POSIX sh commands to run; executed with `set -e` from the selected workdir.
   version:
     type: choice
-    default: "8.4"
-    options: [8.4, 8.3]
-    description: PHP toolchain version.
+    default: "stable"
+    options: [stable, lts, dev, 8.4, 8.3]
+    description: PHP version. stable/lts/dev all select 8.4 (no distinct LTS or dev line in this image); 8.3 is the previous line.
   workdir:
     type: string
     default: "."
@@ -46,9 +46,9 @@ run: |
     cd "$workdir"
   fi
 
-  version="${INPUT_VERSION:-8.4}"
+  version="${INPUT_VERSION:-stable}"
   case "$version" in
-    8.4) ;;
+    stable|lts|dev|8.4) ;;
     8.3)
       PATH="/opt/php/8.3/bin:$PATH"
       export PATH

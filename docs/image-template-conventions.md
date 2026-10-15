@@ -108,6 +108,23 @@ installed entrypoint script instead).
   and Runner egress policy need separate review (documented in
   [plugin-images.md](plugin-images.md)).
 
+## Version aliases
+
+Every toolchain template's `version` input accepts three channel aliases
+alongside concrete versions. They resolve to toolchains shipped in (or
+installed by) the image; rebuilding the image with newer lines is what moves
+an alias forward — a template pin never changes an already-saved pipeline.
+
+| Alias | Meaning |
+|-------|---------|
+| `stable` | The recommended default line (also the template default) |
+| `lts` | The longest-support line; where the language has no LTS concept, equals `stable` |
+| `dev` | The newest line: a real dev channel where the ecosystem provides one (rust → rustup nightly, go → gotip build, node → current line), otherwise the newest shipped line |
+
+Concrete versions always remain available and are the only way to select an
+older line. Each template's `version` description states its exact alias
+mapping; keep it in sync when the image gains lines.
+
 ## Pre-push validation checklist
 
 ```bash
