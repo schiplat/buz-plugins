@@ -40,10 +40,12 @@ for the authoring rules.
 
 ## Using these templates
 
-Manager resolves `uses: buz/<name>@<version>` against the local step index
-(resolve & lock). Point the Manager at this repository's `plugins/` directory
-(`[step_index].local_dir`, or the default `<yaml_scan_dir>/steps`) and save a
-pipeline — the resolved version, content hash, and expanded step JSON are
-locked as provenance at save time. Review status comes from
+Manager resolves `uses: buz/<name>@<version>` against a local step index at
+pipeline-save time and locks the resolved version, content hash, and expanded
+step JSON as provenance — the runtime side of this interface is the
+[Plugin Contract](https://github.com/schiplat/buz/blob/master/docs/content/docs/01-architecture/authoring/plugin-contract.md),
+and resolution/locking semantics are documented in the
+[buz pipeline format guide](https://github.com/schiplat/buz/blob/master/docs/content/docs/01-architecture/authoring/pipeline-format.md).
+Review status comes from
 [`reviews.json`](../../reviews.json): every id in this directory carries a
 human first review, then CI keeps hashes fresh on green master.

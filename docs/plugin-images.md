@@ -18,7 +18,7 @@ The current upload templates are `1.0.2` and retain the previously verified mani
 
 ## Runtime requirements and credentials
 
-Docker templates require Docker to be enabled in the Manager/Runner policy and the Runner host to have the Docker CLI and daemon available. Buz invokes the image command through `sh -elc` and mounts the workspace at `/buz/workspace`; these images therefore set `CMD ["sh"]` and do not define a command-consuming `ENTRYPOINT`.
+Docker templates require Docker to be enabled in the Manager/Runner policy and the Runner host to have the Docker CLI and daemon available. The invocation contract (`sh -elc`, workspace mounted at `/buz/workspace`) is defined by the buz [Plugin Contract](https://github.com/schiplat/buz/blob/master/docs/content/docs/01-architecture/authoring/plugin-contract.md); these images therefore set `CMD ["sh"]` and do not define a command-consuming `ENTRYPOINT`.
 
 OSS upload requires an HTTPS endpoint and region. The entrypoint passes credentials through ossutil v2's documented `OSS_ACCESS_KEY_ID`, `OSS_ACCESS_KEY_SECRET`, `OSS_ENDPOINT`, `OSS_REGION`, and optional `OSS_SESSION_TOKEN` environment variables. S3 upload requires an HTTPS endpoint and region, uses masked AWS credentials, and supports optional STS session tokens. Use least-privilege credentials and short-lived tokens where possible. Runner egress policy must allow the requested storage endpoint. The shell egress checker records endpoint inputs but cannot inspect network calls made inside an image, so image behavior and destination restrictions require separate review.
 

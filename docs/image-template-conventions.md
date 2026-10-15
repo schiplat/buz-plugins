@@ -84,6 +84,13 @@ they diverge:
 
 ## run-block rules
 
+The authoritative runtime-side contract — workspace layout, `sh -elc`
+invocation, `INPUT_*` passing, `BUZ_*` metadata environment, secret masking,
+and the `requires_buz` version gate — is the
+[Plugin Contract](https://github.com/schiplat/buz/blob/master/docs/content/docs/01-architecture/authoring/plugin-contract.md)
+in the buz documentation; this section only lists the authoring rules that
+follow from it.
+
 Buz executes a Docker step's `run:` block via `sh -elc` inside the image with
 the workspace mounted at `/buz/workspace` and `with:` values exposed as
 `INPUT_*` environment variables. Images therefore set `CMD ["sh"]` and no
@@ -127,6 +134,14 @@ an alias forward — a template pin never changes an already-saved pipeline.
 Concrete versions always remain available and are the only way to select an
 older line. Each template's `version` description states its exact alias
 mapping; keep it in sync when the image gains lines.
+
+## Buz compatibility
+
+CI validates specs with a pinned `BUZ_VERSION` (repository variable), so a
+Buz release that changes the spec schema or the Plugin Contract surfaces as
+a failing plugins build instead of a runtime break. After a Buz release,
+bump `BUZ_VERSION` and let CI confirm compatibility before saving pipelines
+that use new schema features.
 
 ## Pre-push validation checklist
 
