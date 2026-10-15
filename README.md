@@ -29,6 +29,10 @@ steps:
 | `buz/archive` | shell | Pack workspace paths into a tar.gz with sha256 checksum |
 | `buz/docker-compose` | ssh | Deploy a Docker Compose project on the target host (Buz 1.7.5+) |
 | `buz/docker` | docker | Build and push an OCI image from a workspace context (requires the host Docker socket) |
+| `buz/git-clone` | shell | Clone a Git repository into the workspace (shallow, token auth) |
+| `buz/webhook-notify` | shell | Generic JSON webhook notifications with job metadata |
+| `buz/k8s-apply` | shell | Apply workspace manifests to Kubernetes with kubectl |
+| `buz/helm-upgrade` | shell | Helm upgrade --install from a workspace chart |
 | `buz/setup-rust` | docker | Rust build environment: pinned toolchain, on-demand rustup install, optional cargo cache |
 | `buz/setup-ruby` | docker | Ruby build environment (3.4/3.3) with gem/bundler caching |
 | `buz/setup-php` | docker | PHP build environment (8.4/8.3) with Composer and its cache |
