@@ -9,10 +9,10 @@ steps:
   - name: Deploy
     uses: buz/docker-compose@1.0.0
     host: $deploy_host
-    registry_secret: ${secrets.ACR_PERSONAL}
+    registry_secret: ${secrets.REGISTRY}
     with:
-      project_dir: /opt/cella
-      image: registry.example.com/dadoulab/cella:0.1.0
+      project_dir: /opt/app
+      image: registry.example.com/app:1.2.0
       services: api worker
 ```
 

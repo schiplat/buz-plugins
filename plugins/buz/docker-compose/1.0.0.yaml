@@ -16,7 +16,7 @@ inputs:
   project_dir:
     type: string
     required: true
-    description: Absolute path on the target host that contains the compose file (for example /opt/cella).
+    description: Absolute path on the target host that contains the compose file (for example /opt/app).
   compose_file:
     type: string
     default: "docker-compose.yml"
