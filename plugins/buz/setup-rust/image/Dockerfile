@@ -5,5 +5,8 @@
 # persist the cargo registry across jobs via the workspace cache).
 FROM rust:1-bookworm
 
+LABEL org.opencontainers.image.source="https://github.com/schiplat/buz-plugins" \
+      org.opencontainers.image.description="buz/setup-rust toolchain image (rustup + stable)"
+
 WORKDIR /buz/workspace
 CMD ["sh"]

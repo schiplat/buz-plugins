@@ -6,6 +6,9 @@
 # smoke tests import compiled extensions to prove each interpreter works.
 FROM python:3.14-bookworm
 
+LABEL org.opencontainers.image.source="https://github.com/schiplat/buz-plugins" \
+      org.opencontainers.image.description="buz/setup-python toolchain image (python 3.14 native + 3.13/3.12)"
+
 COPY --from=python:3.13-bookworm /usr/local /opt/python/3.13
 COPY --from=python:3.12-bookworm /usr/local /opt/python/3.12
 

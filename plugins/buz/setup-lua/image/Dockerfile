@@ -4,6 +4,9 @@
 # /opt/lua, so upstream Debian signing covers every interpreter binary.
 FROM debian:bookworm-slim
 
+LABEL org.opencontainers.image.source="https://github.com/schiplat/buz-plugins" \
+      org.opencontainers.image.description="buz/setup-lua toolchain image (lua 5.4/5.3, luajit)"
+
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates lua5.4 lua5.3 luajit \
     && rm -rf /var/lib/apt/lists/* \

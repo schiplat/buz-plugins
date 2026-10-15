@@ -5,6 +5,9 @@
 # where a generated php.ini overrides extension_dir. Composer is shared.
 FROM php:8.4-bookworm
 
+LABEL org.opencontainers.image.source="https://github.com/schiplat/buz-plugins" \
+      org.opencontainers.image.description="buz/setup-php toolchain image (php 8.4 native + 8.3, composer)"
+
 ARG COMPOSER_VERSION=2.10.3
 
 COPY --from=php:8.3-bookworm /usr/local /opt/php/8.3
