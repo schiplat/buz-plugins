@@ -1,0 +1,14 @@
+# Lua runtime
+
+Runs POSIX `script` commands with a pinned Lua interpreter — `5.4`, `5.3`, or LuaJIT 2.1 (`jit`), all Debian-packaged so interpreter binaries carry upstream signatures.
+
+```yaml
+- name: check
+  uses: buz/setup-lua@1.0.0
+  with:
+    version: 5.4
+    script: |
+      lua -e 'print("hello from", _VERSION)'
+```
+
+`version` accepts `stable`/`lts`/`dev` (= 5.4) or `5.3`/`jit`. Lua has no package cache in this image; each step is an isolated container — pass state between steps through workspace files. Requires a Docker-enabled Runner.

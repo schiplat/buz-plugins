@@ -39,6 +39,9 @@ jobs:
       - name: Lint run blocks (heuristic patterns)
         run: python3 scripts/lint_runs.py plugins
 
+      - name: Check plugin READMEs
+        run: python3 scripts/check_plugin_readmes.py plugins
+
       - name: Check private validator availability
         id: validator-token
         env:

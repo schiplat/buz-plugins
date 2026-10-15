@@ -15,6 +15,7 @@ in [plugin-images.md](plugin-images.md); this page is the authoring contract.
 
 ```text
 plugins/<namespace>/<name>/
+├── README.md           # required — repo rule, enforced by check_plugin_readmes.py in CI
 ├── 1.0.0.yaml          # one file per template version, X.Y.Z == `version:` field
 ├── 1.0.1.yaml          # later versions are added, never rewritten (see lifecycle)
 └── image/
@@ -67,6 +68,8 @@ they diverge:
 
 1. `plugins/<ns>/<name>/image/Dockerfile` (helper kind adds `entrypoint.sh`).
 2. `plugins/<ns>/<name>/<X.Y.Z>.yaml` with `image: …:<X.Y.Z-tag>` as above.
+3. `plugins/<ns>/<name>/README.md` — required for every plugin; CI fails a
+   directory that ships templates without one.
 3. `scripts/select_plugin_image_families.py` → `FAMILY_PATHS`.
 4. `scripts/pin_plugin_image.py` → `FAMILIES` (step id, image, plugin dir).
 5. `.github/workflows/publish-plugin-image.yml` → push `paths` list, the

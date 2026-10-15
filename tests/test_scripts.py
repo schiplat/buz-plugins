@@ -819,5 +819,47 @@ class ReviewMergeTests(unittest.TestCase):
             self.assertEqual(list(Path(tmp).iterdir()), [path])
 
 
+class PluginReadmeTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.check = load_script("check_plugin_readmes")
+
+    def test_plugin_dirs_collect_template_directories_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for path in (
+                "buz/with-readme/1.0.0.yaml",
+                "buz/with-readme/README.md",
+                "buz/no-readme/1.0.0.yaml",
+                "buz/with-readme/image/Dockerfile",
+                ".hidden/1.0.0.yaml",
+                "root-level.yaml",
+            ):
+                target = root / path
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text("x\n")
+            dirs = self.check.plugin_dirs(root)
+            self.assertEqual(dirs, [root / "buz" / "no-readme", root / "buz" / "with-readme"])
+
+    def test_missing_or_empty_readme_fails_and_present_passes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "buz" / "good").mkdir(parents=True)
+            (root / "buz" / "good" / "1.0.0.yaml").write_text("x\n")
+            (root / "buz" / "good" / "README.md").write_text("# good\n")
+            (root / "buz" / "bad").mkdir(parents=True)
+            (root / "buz" / "bad" / "1.0.0.yaml").write_text("x\n")
+            with self.assertRaisesRegex(SystemExit, "1 plugin README\\(s\\) missing"):
+                self.check.main([str(root)])
+            (root / "buz" / "bad" / "README.md").write_text("# bad\n")
+            (root / "buz" / "empty").mkdir(parents=True)
+            (root / "buz" / "empty" / "1.0.0.yaml").write_text("x\n")
+            (root / "buz" / "empty" / "README.md").write_text("   \n")
+            with self.assertRaisesRegex(SystemExit, "1 plugin README\\(s\\) missing"):
+                self.check.main([str(root)])
+            (root / "buz" / "empty" / "README.md").write_text("# empty\n")
+            self.check.main([str(root)])
+
+
 if __name__ == "__main__":
     unittest.main()
