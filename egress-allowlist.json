@@ -97,5 +97,9 @@
   "buz/archive": {
     "hosts": [],
     "endpoint_inputs": []
+  },
+  "buz/docker-compose": {
+    "hosts": [],
+    "endpoint_inputs": []
   }
 }

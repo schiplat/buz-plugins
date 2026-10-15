@@ -27,6 +27,7 @@ steps:
 | `buz/oss-upload` | docker | Upload a workspace file to Alibaba Cloud OSS with ossutil v2 |
 | `buz/s3-upload` | docker | Upload a workspace file to S3 with AWS CLI v2 |
 | `buz/archive` | shell | Pack workspace paths into a tar.gz with sha256 checksum |
+| `buz/docker-compose` | ssh | Deploy a Docker Compose project on the target host (Buz 1.7.5+) |
 | `buz/setup-rust` | docker | Rust build environment: pinned toolchain, on-demand rustup install, optional cargo cache |
 | `buz/setup-ruby` | docker | Ruby build environment (3.4/3.3) with gem/bundler caching |
 | `buz/setup-php` | docker | PHP build environment (8.4/8.3) with Composer and its cache |
