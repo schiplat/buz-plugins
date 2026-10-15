@@ -10,7 +10,7 @@ keywords: [docker, image, build, push, registry, 镜像]
 license: Apache-2.0
 source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/docker/1.0.0.yaml
 engine: docker
-image: docker.io/schiplat/buz-plugins-docker-tools:1.0.0
+image: docker.io/schiplat/buz-plugins-docker-tools@sha256:46e6a2146f01bb1c893896c96c125ab66e8ffe059841bf68063d93ba20698ecf
 default_timeout: 30m
 inputs:
   tags:
