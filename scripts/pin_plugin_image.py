@@ -24,42 +24,42 @@ FAMILIES = {
     ),
     "rust-tools": (
         "buz/setup-rust",
-        "docker.io/schiplat/buz-plugins-rust-tools",
+        "docker.io/schiplat/rust",
         "plugins/buz/setup-rust",
     ),
     "ruby-tools": (
         "buz/setup-ruby",
-        "docker.io/schiplat/buz-plugins-ruby-tools",
+        "docker.io/schiplat/ruby",
         "plugins/buz/setup-ruby",
     ),
     "php-tools": (
         "buz/setup-php",
-        "docker.io/schiplat/buz-plugins-php-tools",
+        "docker.io/schiplat/php",
         "plugins/buz/setup-php",
     ),
     "lua-tools": (
         "buz/setup-lua",
-        "docker.io/schiplat/buz-plugins-lua-tools",
+        "docker.io/schiplat/lua",
         "plugins/buz/setup-lua",
     ),
     "python-tools": (
         "buz/setup-python",
-        "docker.io/schiplat/buz-plugins-python-tools",
+        "docker.io/schiplat/python",
         "plugins/buz/setup-python",
     ),
     "node-tools": (
         "buz/setup-node",
-        "docker.io/schiplat/buz-plugins-node-tools",
+        "docker.io/schiplat/node",
         "plugins/buz/setup-node",
     ),
     "java-tools": (
         "buz/setup-java",
-        "docker.io/schiplat/buz-plugins-java-tools",
+        "docker.io/schiplat/java",
         "plugins/buz/setup-java",
     ),
     "go-tools": (
         "buz/setup-go",
-        "docker.io/schiplat/buz-plugins-go-tools",
+        "docker.io/schiplat/go",
         "plugins/buz/setup-go",
     ),
 }

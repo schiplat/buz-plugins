@@ -27,42 +27,42 @@ EXPECTED = {
 # interpreter and execute a user `script` input instead of a fixed helper.
 TOOLCHAIN = {
     "rust-tools": (
-        "docker.io/schiplat/buz-plugins-rust-tools",
+        "docker.io/schiplat/rust",
         "plugins/buz/setup-rust/image",
         "plugins/buz/setup-rust/1.0.0.yaml",
     ),
     "ruby-tools": (
-        "docker.io/schiplat/buz-plugins-ruby-tools",
+        "docker.io/schiplat/ruby",
         "plugins/buz/setup-ruby/image",
         "plugins/buz/setup-ruby/1.0.0.yaml",
     ),
     "php-tools": (
-        "docker.io/schiplat/buz-plugins-php-tools",
+        "docker.io/schiplat/php",
         "plugins/buz/setup-php/image",
         "plugins/buz/setup-php/1.0.0.yaml",
     ),
     "lua-tools": (
-        "docker.io/schiplat/buz-plugins-lua-tools",
+        "docker.io/schiplat/lua",
         "plugins/buz/setup-lua/image",
         "plugins/buz/setup-lua/1.0.0.yaml",
     ),
     "python-tools": (
-        "docker.io/schiplat/buz-plugins-python-tools",
+        "docker.io/schiplat/python",
         "plugins/buz/setup-python/image",
         "plugins/buz/setup-python/1.0.0.yaml",
     ),
     "node-tools": (
-        "docker.io/schiplat/buz-plugins-node-tools",
+        "docker.io/schiplat/node",
         "plugins/buz/setup-node/image",
         "plugins/buz/setup-node/1.0.0.yaml",
     ),
     "java-tools": (
-        "docker.io/schiplat/buz-plugins-java-tools",
+        "docker.io/schiplat/java",
         "plugins/buz/setup-java/image",
         "plugins/buz/setup-java/1.0.0.yaml",
     ),
     "go-tools": (
-        "docker.io/schiplat/buz-plugins-go-tools",
+        "docker.io/schiplat/go",
         "plugins/buz/setup-go/image",
         "plugins/buz/setup-go/1.0.0.yaml",
     ),

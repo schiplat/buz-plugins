@@ -22,14 +22,14 @@ built automatically by CI from the `image/` contexts in this repository:
 
 - Upload tool images: [`buz-plugins-oss-tools`](https://hub.docker.com/r/schiplat/buz-plugins-oss-tools),
   [`buz-plugins-aws-tools`](https://hub.docker.com/r/schiplat/buz-plugins-aws-tools)
-- Language toolchains: [`buz-plugins-rust-tools`](https://hub.docker.com/r/schiplat/buz-plugins-rust-tools),
-  [`buz-plugins-ruby-tools`](https://hub.docker.com/r/schiplat/buz-plugins-ruby-tools),
-  [`buz-plugins-php-tools`](https://hub.docker.com/r/schiplat/buz-plugins-php-tools),
-  [`buz-plugins-lua-tools`](https://hub.docker.com/r/schiplat/buz-plugins-lua-tools),
-  [`buz-plugins-python-tools`](https://hub.docker.com/r/schiplat/buz-plugins-python-tools),
-  [`buz-plugins-node-tools`](https://hub.docker.com/r/schiplat/buz-plugins-node-tools),
-  [`buz-plugins-java-tools`](https://hub.docker.com/r/schiplat/buz-plugins-java-tools),
-  [`buz-plugins-go-tools`](https://hub.docker.com/r/schiplat/buz-plugins-go-tools)
+- Language toolchains: [`rust`](https://hub.docker.com/r/schiplat/rust),
+  [`ruby`](https://hub.docker.com/r/schiplat/ruby),
+  [`php`](https://hub.docker.com/r/schiplat/php),
+  [`lua`](https://hub.docker.com/r/schiplat/lua),
+  [`python`](https://hub.docker.com/r/schiplat/python),
+  [`node`](https://hub.docker.com/r/schiplat/node),
+  [`java`](https://hub.docker.com/r/schiplat/java),
+  [`go`](https://hub.docker.com/r/schiplat/go)
 
 Specs never reference `:latest` — after CI builds an image, an automation PR
 pins the template to an immutable `@sha256:` manifest digest. Images are

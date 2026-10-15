@@ -9,7 +9,7 @@ keywords: [php, composer, build, toolchain, 构建]
 license: Apache-2.0
 source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/setup-php/1.0.0.yaml
 engine: docker
-image: docker.io/schiplat/buz-plugins-php-tools:1.0.0
+image: docker.io/schiplat/php:1.0.0
 default_timeout: 30m
 inputs:
   script:
