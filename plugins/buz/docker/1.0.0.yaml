@@ -1,0 +1,79 @@
+id: buz/docker
+category: build
+name: Docker image build and push
+version: 1.0.0
+description: Build an OCI image from a workspace context and push it to a registry. The pipeline step must mount the host Docker socket (docker-out-of-docker).
+description_zh: 从 workspace 构建上下文构建 OCI 镜像并推送至镜像仓库。Pipeline step 需挂载宿主 Docker socket（docker-out-of-docker）。
+publisher: official
+author: "buz maintainers"
+keywords: [docker, image, build, push, registry, 镜像]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/docker/1.0.0.yaml
+engine: docker
+image: docker.io/schiplat/buz-plugins-docker-tools:1.0.0
+default_timeout: 30m
+inputs:
+  tags:
+    type: string
+    required: true
+    description: Space-separated full image references to tag and push (for example registry.example.com/app:1.2.0 registry.example.com/app:latest).
+  context:
+    type: string
+    default: "."
+    description: Build context, workspace-relative.
+  dockerfile:
+    type: string
+    default: "Dockerfile"
+    description: Dockerfile path, workspace-relative.
+  build_args:
+    type: string
+    description: Optional space-separated KEY=VALUE build arguments.
+  push:
+    type: boolean
+    default: "true"
+    description: Push the tagged images after building.
+run: |
+  set -eu
+
+  : "${INPUT_TAGS:?tags is required}"
+
+  context="${INPUT_CONTEXT:-.}"
+  case "$context" in
+    /*|..|../*|*/../*|*/..)
+      printf 'context must be a relative path inside the Buz workspace\n' >&2
+      exit 2
+      ;;
+  esac
+  cd /buz/workspace
+  if [ "$context" != "." ]; then
+    cd "$context"
+  fi
+
+  dockerfile="${INPUT_DOCKERFILE:-Dockerfile}"
+  if [ ! -f "$dockerfile" ]; then
+    printf 'dockerfile not found: %s\n' "$dockerfile" >&2
+    exit 2
+  fi
+
+  docker info >/dev/null 2>&1 || {
+    printf 'docker daemon unreachable — mount /var/run/docker.sock into the step (see the buz/docker README)\n' >&2
+    exit 2
+  }
+
+  set --
+  for arg in ${INPUT_BUILD_ARGS:-}; do
+    set -- "$@" --build-arg "$arg"
+  done
+  for tag in $INPUT_TAGS; do
+    set -- "$@" --tag "$tag"
+  done
+
+  # tags/build_args: intentional word splitting — space-separated entries
+  # shellcheck disable=SC2086
+  docker build -f "$dockerfile" "$@" .
+
+  if [ "${INPUT_PUSH:-true}" = "true" ]; then
+    for tag in $INPUT_TAGS; do
+      docker push "$tag"
+    done
+  fi

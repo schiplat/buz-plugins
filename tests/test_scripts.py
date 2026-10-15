@@ -366,6 +366,7 @@ class PluginImageWorkflowTests(unittest.TestCase):
                     "setup-node",
                     "setup-java",
                     "setup-go",
+                    "docker",
                 )
             },
         )

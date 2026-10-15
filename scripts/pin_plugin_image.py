@@ -62,6 +62,11 @@ FAMILIES = {
         "docker.io/schiplat/go",
         "plugins/buz/setup-go",
     ),
+    "docker-tools": (
+        "buz/docker",
+        "docker.io/schiplat/buz-plugins-docker-tools",
+        "plugins/buz/docker",
+    ),
 }
 DIGEST_RE = re.compile(r"sha256:[0-9a-f]{64}\Z")
 VERSION_RE = re.compile(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\Z")

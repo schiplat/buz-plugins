@@ -67,7 +67,16 @@ TOOLCHAIN = {
         "plugins/buz/setup-go/1.0.0.yaml",
     ),
 }
-ALL_FAMILIES = {**EXPECTED, **TOOLCHAIN}
+# Tool families wrap a CLI and drive it through declared inputs — no
+# `script` input, no upload helper.
+TOOL = {
+    "docker-tools": (
+        "docker.io/schiplat/buz-plugins-docker-tools",
+        "plugins/buz/docker/image",
+        "plugins/buz/docker/1.0.0.yaml",
+    ),
+}
+ALL_FAMILIES = {**EXPECTED, **TOOLCHAIN, **TOOL}
 
 
 def image_reference_matches(image: str, reference: object) -> bool:
@@ -97,6 +106,7 @@ def main() -> None:
             "setup-node",
             "setup-java",
             "setup-go",
+            "docker",
         )
     }:
         raise SystemExit("automatic publishing must be limited to Docker image contexts and plugin specs on master")
@@ -133,8 +143,9 @@ def main() -> None:
         "node-tools": ("plugins/buz/setup-node",),
         "java-tools": ("plugins/buz/setup-java",),
         "go-tools": ("plugins/buz/setup-go",),
+        "docker-tools": ("plugins/buz/docker",),
     }:
-        raise SystemExit("family selector must map the OSS and S3 plugin directories to their image families")
+        raise SystemExit("family selector must map every image family to its plugin directory")
     selector_script = selector_path.read_text(encoding="utf-8")
     if "/image/" not in selector_script:
         raise SystemExit("family selector must trigger on image build contexts only")
@@ -314,12 +325,18 @@ def main() -> None:
                 raise SystemExit("aws-tools: verify the x86_64 AWS CLI against the intact pinned public key")
             if spec.get("run", "").strip() != f"exec /usr/local/bin/{helper_name}":
                 raise SystemExit(f"{slug}: template must invoke the image-side upload helper")
-        else:
+        elif slug in TOOLCHAIN:
             script_input = (spec.get("inputs") or {}).get("script")
             if not isinstance(script_input, dict) or not script_input.get("required"):
                 raise SystemExit(f"{slug}: template must require a `script` input")
             if "INPUT_SCRIPT" not in spec.get("run", ""):
                 raise SystemExit(f"{slug}: template run block must execute the script input")
+        else:
+            tags_input = (spec.get("inputs") or {}).get("tags")
+            if not isinstance(tags_input, dict) or not tags_input.get("required"):
+                raise SystemExit(f"{slug}: template must require a `tags` input")
+            if "INPUT_TAGS" not in spec.get("run", ""):
+                raise SystemExit(f"{slug}: template run block must use the tags input")
 
     print("plugin image workflow: push-triggered family selection, amd64 build, digest PR, and output verified")
 
