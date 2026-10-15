@@ -22,6 +22,26 @@ FAMILIES = {
         "docker.io/schiplat/buz-plugins-aws-tools",
         "plugins/buz/s3-upload",
     ),
+    "rust-tools": (
+        "buz/setup-rust",
+        "docker.io/schiplat/buz-plugins-rust-tools",
+        "plugins/buz/setup-rust",
+    ),
+    "ruby-tools": (
+        "buz/setup-ruby",
+        "docker.io/schiplat/buz-plugins-ruby-tools",
+        "plugins/buz/setup-ruby",
+    ),
+    "php-tools": (
+        "buz/setup-php",
+        "docker.io/schiplat/buz-plugins-php-tools",
+        "plugins/buz/setup-php",
+    ),
+    "lua-tools": (
+        "buz/setup-lua",
+        "docker.io/schiplat/buz-plugins-lua-tools",
+        "plugins/buz/setup-lua",
+    ),
 }
 DIGEST_RE = re.compile(r"sha256:[0-9a-f]{64}\Z")
 VERSION_RE = re.compile(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\Z")

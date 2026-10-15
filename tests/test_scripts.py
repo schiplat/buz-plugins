@@ -360,6 +360,18 @@ class PluginImageWorkflowTests(unittest.TestCase):
                 "plugins/buz/s3-upload/image/**",
                 "plugins/buz/s3-upload/*.yaml",
                 "plugins/buz/s3-upload/*.yml",
+                "plugins/buz/setup-rust/image/**",
+                "plugins/buz/setup-rust/*.yaml",
+                "plugins/buz/setup-rust/*.yml",
+                "plugins/buz/setup-ruby/image/**",
+                "plugins/buz/setup-ruby/*.yaml",
+                "plugins/buz/setup-ruby/*.yml",
+                "plugins/buz/setup-php/image/**",
+                "plugins/buz/setup-php/*.yaml",
+                "plugins/buz/setup-php/*.yml",
+                "plugins/buz/setup-lua/image/**",
+                "plugins/buz/setup-lua/*.yaml",
+                "plugins/buz/setup-lua/*.yml",
             },
         )
         detect = workflow["jobs"]["detect"]

@@ -61,5 +61,21 @@
     "endpoint_inputs": [
       "webhook"
     ]
+  },
+  "buz/setup-rust": {
+    "hosts": [],
+    "endpoint_inputs": []
+  },
+  "buz/setup-ruby": {
+    "hosts": [],
+    "endpoint_inputs": []
+  },
+  "buz/setup-php": {
+    "hosts": [],
+    "endpoint_inputs": []
+  },
+  "buz/setup-lua": {
+    "hosts": [],
+    "endpoint_inputs": []
   }
 }

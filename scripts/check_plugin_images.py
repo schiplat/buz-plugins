@@ -23,6 +23,31 @@ EXPECTED = {
         "plugins/buz/s3-upload/1.0.2.yaml",
     ),
 }
+# Toolchain families publish a language image; their templates select the
+# interpreter and execute a user `script` input instead of a fixed helper.
+TOOLCHAIN = {
+    "rust-tools": (
+        "docker.io/schiplat/buz-plugins-rust-tools",
+        "plugins/buz/setup-rust/image",
+        "plugins/buz/setup-rust/1.0.0.yaml",
+    ),
+    "ruby-tools": (
+        "docker.io/schiplat/buz-plugins-ruby-tools",
+        "plugins/buz/setup-ruby/image",
+        "plugins/buz/setup-ruby/1.0.0.yaml",
+    ),
+    "php-tools": (
+        "docker.io/schiplat/buz-plugins-php-tools",
+        "plugins/buz/setup-php/image",
+        "plugins/buz/setup-php/1.0.0.yaml",
+    ),
+    "lua-tools": (
+        "docker.io/schiplat/buz-plugins-lua-tools",
+        "plugins/buz/setup-lua/image",
+        "plugins/buz/setup-lua/1.0.0.yaml",
+    ),
+}
+ALL_FAMILIES = {**EXPECTED, **TOOLCHAIN}
 
 
 def image_reference_matches(image: str, reference: object) -> bool:
@@ -46,6 +71,18 @@ def main() -> None:
         "plugins/buz/s3-upload/image/**",
         "plugins/buz/s3-upload/*.yaml",
         "plugins/buz/s3-upload/*.yml",
+        "plugins/buz/setup-rust/image/**",
+        "plugins/buz/setup-rust/*.yaml",
+        "plugins/buz/setup-rust/*.yml",
+        "plugins/buz/setup-ruby/image/**",
+        "plugins/buz/setup-ruby/*.yaml",
+        "plugins/buz/setup-ruby/*.yml",
+        "plugins/buz/setup-php/image/**",
+        "plugins/buz/setup-php/*.yaml",
+        "plugins/buz/setup-php/*.yml",
+        "plugins/buz/setup-lua/image/**",
+        "plugins/buz/setup-lua/*.yaml",
+        "plugins/buz/setup-lua/*.yml",
     }:
         raise SystemExit("automatic publishing must be limited to Docker image contexts and plugin specs on master")
 
@@ -73,6 +110,10 @@ def main() -> None:
     if selector_module.FAMILY_PATHS != {
         "oss-tools": ("plugins/buz/oss-upload",),
         "aws-tools": ("plugins/buz/s3-upload",),
+        "rust-tools": ("plugins/buz/setup-rust",),
+        "ruby-tools": ("plugins/buz/setup-ruby",),
+        "php-tools": ("plugins/buz/setup-php",),
+        "lua-tools": ("plugins/buz/setup-lua",),
     }:
         raise SystemExit("family selector must map the OSS and S3 plugin directories to their image families")
     selector_script = selector_path.read_text(encoding="utf-8")
@@ -131,7 +172,7 @@ def main() -> None:
         if not line.lstrip().startswith("#")
     )
     family_matches = re.findall(r'^\s*([a-z][a-z0-9-]*)\)\s*$', shell_lines, re.MULTILINE)
-    if set(family_matches) != set(EXPECTED):
+    if set(family_matches) != set(ALL_FAMILIES):
         raise SystemExit("shell family selector must match the allowlisted families")
     if '[[ ! "$IMAGE_VERSION" =~ ^[0-9]+\\.[0-9]+\\.[0-9]+$ ]]' not in shell_lines:
         raise SystemExit("workflow must reject versions outside X.Y.Z")
@@ -209,40 +250,57 @@ def main() -> None:
         if isinstance(step, dict) and step.get("name") == "Create or update digest pin pull request"
     )
     pin_run = pin_commit_step.get("run", "")
-    if "git commit -m \"[skip image build]" not in pin_run or '[skip image build] Pin OSS upload image digest' not in pin_run or '[skip image build] Pin S3 upload image digest' not in pin_run:
+    expected_pin_titles = (
+        '[skip image build] Pin OSS upload image digest',
+        '[skip image build] Pin S3 upload image digest',
+        '[skip image build] Pin Rust toolchain image digest',
+        '[skip image build] Pin Ruby toolchain image digest',
+        '[skip image build] Pin PHP toolchain image digest',
+        '[skip image build] Pin Lua toolchain image digest',
+    )
+    if "git commit -m \"[skip image build]" not in pin_run or any(
+        title not in pin_run for title in expected_pin_titles
+    ):
         raise SystemExit("generated pin PRs must carry the build-skip marker in commits and titles")
     if "gh pr merge" in pin_run:
         raise SystemExit("digest pin PRs must remain manual-review only")
 
-    for slug, (image, context, spec_file) in EXPECTED.items():
+    for slug, (image, context, spec_file) in ALL_FAMILIES.items():
         if f'docker.io/schiplat/{image.rsplit("/", 1)[-1]}' not in shell_lines:
             raise SystemExit(f"{slug}: image name is absent from validated family selector")
         if context not in shell_lines:
             raise SystemExit(f"{slug}: context is absent from validated family selector")
         dockerfile = (ROOT / context / "Dockerfile").read_text(encoding="utf-8")
-        helper_name = "buz-oss-upload" if slug == "oss-tools" else "buz-s3-upload"
-        if f"COPY entrypoint.sh /usr/local/bin/{helper_name}" not in dockerfile:
-            raise SystemExit(f"{slug}: image must install its upload helper")
-        if f"RUN chmod 0755 /usr/local/bin/{helper_name}" not in dockerfile:
-            raise SystemExit(f"{slug}: upload helper must be executable")
         if "TARGETARCH" in dockerfile or "arm64" in dockerfile or "aarch64" in dockerfile:
             raise SystemExit(f"{slug}: Dockerfile must target Linux amd64 only")
-        if slug == "oss-tools" and (
-            "OSSUTIL_SHA256_AMD64" not in dockerfile
-            or "ossutil-${OSSUTIL_VERSION}-linux-amd64/ossutil" not in dockerfile
-        ):
-            raise SystemExit("oss-tools: install the checksum-verified amd64 binary from its archive directory")
-        if slug == "aws-tools" and (
-            "awscli-exe-linux-x86_64-" not in dockerfile
-            or "FB5DB77FD5C118B80511ADA8A6310ACC4672475C" not in dockerfile
-            or "Y/RlOHXlzLuQMRE6sR1wOdRxc9TsrNWTGiBK65cvSWOy03JeBkQQ8pesqltiyxI9" not in (ROOT / context / "aws-cli-team-public-key.asc").read_text(encoding="utf-8")
-        ):
-            raise SystemExit("aws-tools: verify the x86_64 AWS CLI against the intact pinned public key")
         spec = yaml.safe_load((ROOT / spec_file).read_text(encoding="utf-8"))
         if spec.get("engine") != "docker" or not image_reference_matches(image, spec.get("image")):
             raise SystemExit(f"{slug}: template image reference must use the expected tag or a pinned sha256 digest")
-        if spec.get("run", "").strip() != f"exec /usr/local/bin/{helper_name}":
-            raise SystemExit(f"{slug}: template must invoke the image-side upload helper")
+        if slug in EXPECTED:
+            helper_name = "buz-oss-upload" if slug == "oss-tools" else "buz-s3-upload"
+            if f"COPY entrypoint.sh /usr/local/bin/{helper_name}" not in dockerfile:
+                raise SystemExit(f"{slug}: image must install its upload helper")
+            if f"RUN chmod 0755 /usr/local/bin/{helper_name}" not in dockerfile:
+                raise SystemExit(f"{slug}: upload helper must be executable")
+            if slug == "oss-tools" and (
+                "OSSUTIL_SHA256_AMD64" not in dockerfile
+                or "ossutil-${OSSUTIL_VERSION}-linux-amd64/ossutil" not in dockerfile
+            ):
+                raise SystemExit("oss-tools: install the checksum-verified amd64 binary from its archive directory")
+            if slug == "aws-tools" and (
+                "awscli-exe-linux-x86_64-" not in dockerfile
+                or "FB5DB77FD5C118B80511ADA8A6310ACC4672475C" not in dockerfile
+                or "Y/RlOHXlzLuQMRE6sR1wOdRxc9TsrNWTGiBK65cvSWOy03JeBkQQ8pesqltiyxI9" not in (ROOT / context / "aws-cli-team-public-key.asc").read_text(encoding="utf-8")
+            ):
+                raise SystemExit("aws-tools: verify the x86_64 AWS CLI against the intact pinned public key")
+            if spec.get("run", "").strip() != f"exec /usr/local/bin/{helper_name}":
+                raise SystemExit(f"{slug}: template must invoke the image-side upload helper")
+        else:
+            script_input = (spec.get("inputs") or {}).get("script")
+            if not isinstance(script_input, dict) or not script_input.get("required"):
+                raise SystemExit(f"{slug}: template must require a `script` input")
+            if "INPUT_SCRIPT" not in spec.get("run", ""):
+                raise SystemExit(f"{slug}: template run block must execute the script input")
 
     print("plugin image workflow: push-triggered family selection, amd64 build, digest PR, and output verified")
 
