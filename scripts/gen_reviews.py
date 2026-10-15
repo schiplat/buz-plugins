@@ -3,22 +3,25 @@
 
 Two entry kinds live in reviews.json, distinguished by `source`:
 
-- `ci`   — official templates (`buz/*`). Trust model: the same org writes
-  and reviews these, so a human sign-off adds no independent signal.
-  Instead, green CI is the gate: step-validate + lint_runs + egress
-  allowlist all passing on the exact content hash. Entries carry
-  `source: "ci"` and are REGENERATED on every run — never hand-edited.
-- `human`— community templates. Human review is mandatory (CI green is a
-  prerequisite, never a substitute). Emit entries with the manual mode
-  below AFTER reviewing the exact file contents; the entry binds the
-  review to the content sha256, so any later content change invalidates
-  it automatically.
+- `ci`   — official templates (`buz/*`) whose id already carries a review.
+  The FIRST review of an official id is human: a brand-new official id is
+  never auto-blessed; record it with the manual command below after
+  reviewing the exact file contents. Once the id is blessed, green CI is
+  the tracking gate — step-validate + lint_runs + egress allowlist all
+  passing on the exact content hash — and every version of that id is
+  refreshed on each run. Entries carry `source: "ci"` and are
+  REGENERATED per run — never hand-edited.
+- `human`— community templates, and the bootstrap entry for new official
+  ids. Human review is mandatory (CI green is a prerequisite, never a
+  substitute). Emit entries with the manual mode below AFTER reviewing
+  the exact file contents; the entry binds the review to the content
+  sha256, so any later content change invalidates it automatically.
 
-Auto mode (official):
+Auto mode (official, blessed ids only):
 
     python3 scripts/gen_reviews.py --auto [--commit <sha>] [--date YYYY-MM-DD]
 
-Manual mode (community, human-reviewed):
+Manual mode (community, and first review of new official ids):
 
     python3 scripts/gen_reviews.py \
         --date 2026-10-04 --commit $(git rev-parse --short HEAD) \
@@ -72,8 +75,16 @@ def load_index() -> dict[str, dict]:
     return steps_by_pair
 
 
-def auto_entries(args: argparse.Namespace) -> list[dict]:
+def auto_entries(args: argparse.Namespace, existing: list[dict]) -> list[dict]:
+    """Track blessed official ids only; never auto-bless a new official id.
+
+    An id counts as blessed when any review entry for it already exists in
+    reviews.json. All versions of a blessed id are kept fresh (including
+    versions added later); a brand-new official id is skipped here and must
+    be recorded manually after its first human review.
+    """
     by_pair = load_index()
+    blessed_ids = {entry.get("id") for entry in existing}
     official = [
         (step_id, version, step)
         for (step_id, version), step in by_pair.items()
@@ -81,6 +92,18 @@ def auto_entries(args: argparse.Namespace) -> list[dict]:
     ]
     if not official:
         raise SystemExit("no buz/* templates in index.json — nothing to auto-badge")
+    known = sorted(
+        (step_id, version, step)
+        for step_id, version, step in official
+        if step_id in blessed_ids
+    )
+    new_ids = sorted({step_id for step_id, _, _ in official} - blessed_ids)
+    if new_ids:
+        print(
+            "first review is manual — new official id(s) not auto-blessed: "
+            + ", ".join(new_ids),
+            file=sys.stderr,
+        )
     return [
         {
             "id": step_id,
@@ -92,7 +115,7 @@ def auto_entries(args: argparse.Namespace) -> list[dict]:
             "source": AUTO_SOURCE,
             **({"category": step["category"]} if step.get("category") else {}),
         }
-        for step_id, version, step in sorted(official)
+        for step_id, version, step in known
     ]
 
 
@@ -155,16 +178,22 @@ def merge_reviews(
     return new_entries + retained
 
 
+def load_existing_reviews() -> list[dict]:
+    out_path = resolve("reviews.json")
+    if not out_path.exists():
+        return []
+    data = json.loads(out_path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict) or not isinstance(data.get("reviews"), list):
+        raise SystemExit(f"{out_path}: expected a `reviews` array")
+    existing = data["reviews"]
+    if not all(isinstance(review, dict) for review in existing):
+        raise SystemExit(f"{out_path}: every review must be an object")
+    return existing
+
+
 def merge_and_write(new_entries: list[dict], keep_manual: bool) -> None:
     out_path = resolve("reviews.json")
-    existing: list[dict] = []
-    if out_path.exists():
-        data = json.loads(out_path.read_text(encoding="utf-8"))
-        if not isinstance(data, dict) or not isinstance(data.get("reviews"), list):
-            raise SystemExit(f"{out_path}: expected a `reviews` array")
-        existing = data["reviews"]
-        if not all(isinstance(review, dict) for review in existing):
-            raise SystemExit(f"{out_path}: every review must be an object")
+    existing = load_existing_reviews()
     merged = merge_reviews(existing, new_entries, keep_manual)
     content = json.dumps({"reviews": merged}, indent=2, ensure_ascii=False) + "\n"
     # Write atomically so an interrupted command cannot truncate the trust file.
@@ -189,7 +218,8 @@ def main() -> None:
     parser.add_argument(
         "--auto",
         action="store_true",
-        help="regenerate entries for all buz/* templates (official CI gate)",
+        help="refresh ci-tracked entries for already-blessed buz/* ids "
+        "(new official ids need a manual first review)",
     )
     parser.add_argument("--date", help="review date, e.g. 2026-10-04 (auto: today UTC)")
     parser.add_argument(
@@ -225,7 +255,7 @@ def main() -> None:
     if args.auto:
         if args.ids:
             parser.error("ids are manual-mode only — use --auto without ids")
-        merge_and_write(auto_entries(args), keep_manual=True)
+        merge_and_write(auto_entries(args, load_existing_reviews()), keep_manual=True)
     else:
         if not args.ids:
             parser.error("manual mode needs at least one template id")

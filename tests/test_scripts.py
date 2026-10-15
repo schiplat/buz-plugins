@@ -744,17 +744,23 @@ class ReviewMergeTests(unittest.TestCase):
         self.assertEqual(merged[1]["version"], "1.0.0")
         self.assertEqual([entry["id"] for entry in merged[1:]], ["author/step", "other/step", "buz/official"])
 
-    def test_auto_reviews_cover_every_official_id_version_pair(self):
+    def test_auto_tracks_blessed_ids_and_skips_new_official_ones(self):
         steps = [
             {"id": "buz/example", "version": "1.9.0", "sha256": "sha-1.9"},
             {"id": "buz/example", "version": "1.10.0", "sha256": "sha-1.10"},
+            {"id": "buz/newcomer", "version": "1.0.0", "sha256": "sha-new"},
             {"id": "community/example", "version": "1.0.0", "sha256": "community"},
         ]
         args = type("Args", (), {"date": "2026-10-05", "commit": "abc123"})()
+        existing = [
+            {"id": "buz/example", "version": "1.0.0", "sha256": "old", "source": "ci"},
+        ]
         with patch.object(self.gen_reviews, "load_index", return_value={
             (step["id"], step["version"]): step for step in steps
         }):
-            entries = self.gen_reviews.auto_entries(args)
+            entries = self.gen_reviews.auto_entries(args, existing)
+        # buz/example is blessed — both versions stay fresh; buz/newcomer has
+        # no review entry yet, so its first review must be manual.
         self.assertEqual(
             [(entry["id"], entry["version"], entry["sha256"]) for entry in entries],
             [
