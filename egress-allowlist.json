@@ -105,5 +105,25 @@
   "buz/docker": {
     "hosts": [],
     "endpoint_inputs": []
+  },
+  "buz/git-clone": {
+    "hosts": [],
+    "endpoint_inputs": []
+  },
+  "buz/webhook-notify": {
+    "hosts": [],
+    "endpoint_inputs": [
+      "url"
+    ]
+  },
+  "buz/k8s-apply": {
+    "hosts": [],
+    "endpoint_inputs": [
+      "server_side"
+    ]
+  },
+  "buz/helm-upgrade": {
+    "hosts": [],
+    "endpoint_inputs": []
   }
 }

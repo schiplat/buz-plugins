@@ -1,0 +1,79 @@
+id: buz/helm-upgrade
+category: deploy
+name: Helm upgrade
+version: 1.0.0
+description: Run `helm upgrade --install` on the Runner host against a Kubernetes cluster — chart from the workspace, cluster credential passed as a masked secret.
+description_zh: 在 Runner 宿主机上对 Kubernetes 集群执行 `helm upgrade --install`——chart 来自 workspace，集群凭证以掩码 secret 传入。
+publisher: official
+author: "buz maintainers"
+keywords: [helm, kubernetes, upgrade, deploy, 部署]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/helm-upgrade/1.0.0.yaml
+engine: shell
+default_timeout: 15m
+inputs:
+  kubeconfig:
+    type: string
+    required: true
+    masking: true
+    description: Full kubeconfig YAML for the target cluster (least-privileged ServiceAccount recommended).
+  release:
+    type: string
+    required: true
+    description: Helm release name.
+  chart:
+    type: string
+    required: true
+    description: Chart path, workspace-relative (a local chart directory).
+  namespace:
+    type: string
+    default: "default"
+    description: Target namespace (created with --create-namespace when missing).
+  values:
+    type: string
+    description: Values file, workspace-relative (passed via -f).
+  set:
+    type: string
+    description: Space-separated `key=value` overrides (passed via --set).
+run: |
+  set -eu
+
+  : "${INPUT_RELEASE:?release is required}"
+  : "${INPUT_CHART:?chart is required}"
+
+  case "$INPUT_CHART" in
+    /*|..|../*|*/../*|*/..)
+      printf 'chart must be a relative path inside the Buz workspace\n' >&2
+      exit 2
+      ;;
+  esac
+  if [ ! -d "$INPUT_CHART" ] && [ ! -f "$INPUT_CHART" ]; then
+    printf 'chart not found: %s\n' "$INPUT_CHART" >&2
+    exit 2
+  fi
+
+  kubeconfig_file="${TMPDIR:-/tmp}/buz-kubeconfig"
+  umask 077
+  printf '%s\n' "$INPUT_KUBECONFIG" > "$kubeconfig_file"
+  umask 022
+  export KUBECONFIG="$kubeconfig_file"
+
+  set --
+  if [ -n "${INPUT_VALUES:-}" ]; then
+    case "$INPUT_VALUES" in
+      /*|..|../*|*/../*|*/..)
+        printf 'values must be a relative path inside the Buz workspace\n' >&2
+        exit 2
+        ;;
+    esac
+    set -- "$@" -f "$INPUT_VALUES"
+  fi
+  for kv in ${INPUT_SET:-}; do
+    set -- "$@" --set "$kv"
+  done
+
+  # $set: intentional word splitting — space-separated key=value entries
+  # shellcheck disable=SC2086
+  helm upgrade --install "$INPUT_RELEASE" "$INPUT_CHART" \
+    --namespace "$INPUT_NAMESPACE" --create-namespace "$@" \
+    --wait --timeout 10m

@@ -1,0 +1,66 @@
+id: buz/k8s-apply
+category: deploy
+name: Kubernetes apply
+version: 1.0.0
+description: Apply a manifest from the workspace to a Kubernetes cluster using kubectl on the Runner host, with the cluster credential passed as a masked secret.
+description_zh: 使用 Runner 宿主机上的 kubectl，将 workspace 中的清单应用到 Kubernetes 集群——集群凭证以掩码 secret 传入。
+publisher: official
+author: "buz maintainers"
+keywords: [kubernetes, kubectl, apply, deploy, 部署]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/k8s-apply/1.0.0.yaml
+engine: shell
+default_timeout: 15m
+inputs:
+  kubeconfig:
+    type: string
+    required: true
+    masking: true
+    description: Full kubeconfig YAML for the target cluster (least-privileged ServiceAccount recommended).
+  manifest:
+    type: string
+    required: true
+    description: Manifest file to apply, workspace-relative (pass through `kubectl apply -f`).
+  namespace:
+    type: string
+    description: Target namespace (default whatever the manifest/context defines).
+  server_side:
+    type: boolean
+    default: "false"
+    description: Use `--server-side` apply.
+run: |
+  set -eu
+
+  : "${INPUT_MANIFEST:?manifest is required}"
+
+  case "$INPUT_MANIFEST" in
+    /*|..|../*|*/../*|*/..)
+      printf 'manifest must be a relative path inside the Buz workspace\n' >&2
+      exit 2
+      ;;
+  esac
+  if [ ! -f "$INPUT_MANIFEST" ]; then
+    printf 'manifest not found: %s\n' "$INPUT_MANIFEST" >&2
+    exit 2
+  fi
+
+  kubeconfig_file="${TMPDIR:-/tmp}/buz-kubeconfig"
+  umask 077
+  printf '%s\n' "$INPUT_KUBECONFIG" > "$kubeconfig_file"
+  umask 022
+  export KUBECONFIG="$kubeconfig_file"
+
+  server_side_args=""
+  if [ "${INPUT_SERVER_SIDE:-false}" = "true" ]; then
+    server_side_args="--server-side"
+  fi
+
+  # $server_side_args: intentional word splitting — a single optional flag
+  # shellcheck disable=SC2086
+  if [ -n "${INPUT_NAMESPACE:-}" ]; then
+    kubectl apply -f "$INPUT_MANIFEST" --namespace "$INPUT_NAMESPACE" $server_side_args
+    kubectl get events --sort-by=.lastTimestamp --namespace "$INPUT_NAMESPACE" | tail -20
+  else
+    kubectl apply -f "$INPUT_MANIFEST" $server_side_args
+    kubectl get events --sort-by=.lastTimestamp | tail -20
+  fi

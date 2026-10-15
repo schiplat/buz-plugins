@@ -1,0 +1,78 @@
+id: buz/git-clone
+category: source
+name: Git clone
+version: 1.0.0
+description: Clone a Git repository into a workspace subdirectory (branch or tag, optional shallow, optional token for private HTTPS repos).
+description_zh: 将 Git 仓库克隆到 workspace 子目录（支持分支/标签、浅克隆，可选 token 访问私有 HTTPS 仓库）。
+publisher: official
+author: "buz maintainers"
+keywords: [git, clone, source, checkout, 克隆]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/git-clone/1.0.0.yaml
+engine: shell
+default_timeout: 15m
+inputs:
+  repo:
+    type: string
+    required: true
+    description: Repository URL (HTTPS). Embed credentials via the token input, not in the URL.
+  dir:
+    type: string
+    required: true
+    description: Target directory, workspace-relative (must not already exist).
+  ref:
+    type: string
+    description: Branch or tag to check out (default the remote HEAD).
+  depth:
+    type: string
+    default: "1"
+    description: Shallow clone depth; "0" performs a full clone.
+  token:
+    type: string
+    masking: true
+    description: Access token for private HTTPS repositories (sent as the HTTP password).
+run: |
+  set -eu
+
+  : "${INPUT_REPO:?repo is required}"
+  : "${INPUT_DIR:?dir is required}"
+
+  case "$INPUT_DIR" in
+    /*|..|../*|*/../*|*/..|.|"")
+      printf 'dir must be a non-empty relative path inside the Buz workspace\n' >&2
+      exit 2
+      ;;
+  esac
+  if [ -e "$INPUT_DIR" ]; then
+    printf 'dir already exists: %s\n' "$INPUT_DIR" >&2
+    exit 2
+  fi
+
+  depth="${INPUT_DEPTH:-1}"
+  case "$depth" in
+    ""|*[!0-9]*)
+      printf 'depth must be a non-negative integer\n' >&2
+      exit 2
+      ;;
+  esac
+
+  set --
+  if [ "$depth" != "0" ]; then
+    set -- "$@" --depth "$depth"
+  fi
+  if [ -n "${INPUT_REF:-}" ]; then
+    set -- "$@" --branch "$INPUT_REF"
+  fi
+
+  if [ -n "${INPUT_TOKEN:-}" ]; then
+    askpass="${TMPDIR:-/tmp}/buz-git-askpass"
+    printf '#!/bin/sh\necho "$INPUT_TOKEN"\n' > "$askpass"
+    chmod 0755 "$askpass"
+    GIT_ASKPASS="$askpass"
+    export GIT_ASKPASS
+    GIT_TERMINAL_PROMPT=0
+    export GIT_TERMINAL_PROMPT
+  fi
+
+  git clone "$@" "$INPUT_REPO" "$INPUT_DIR"
+  git -C "$INPUT_DIR" log --oneline -1

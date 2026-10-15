@@ -1,0 +1,46 @@
+id: buz/webhook-notify
+category: notifications
+name: Generic webhook notification
+version: 1.0.0
+description: POST a JSON message to any webhook endpoint — the engine-agnostic notification for targets without a dedicated plugin.
+description_zh: 向任意 webhook 端点 POST JSON 消息——没有专用插件的通知目标用它。自动附加 job 元数据。
+publisher: official
+author: "buz maintainers"
+keywords: [webhook, notify, http, json, 通知]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/webhook-notify/1.0.0.yaml
+engine: shell
+default_timeout: 30s
+inputs:
+  url:
+    type: string
+    required: true
+    masking: true
+    description: Webhook endpoint URL (HTTPS, receives a JSON POST).
+  title:
+    type: string
+    default: Buz job notification
+    description: Message title / first line.
+  content:
+    type: string
+    description: Extra message body appended under the title.
+run: |
+  set -e
+  TEXT="${INPUT_TITLE:-Buz job notification}"
+  if [ -n "${INPUT_CONTENT:-}" ]; then
+    TEXT="${TEXT}
+  ${INPUT_CONTENT}"
+  fi
+  if [ -n "${BUZ_PIPELINE_NAME:-}" ]; then
+    TEXT="${TEXT}
+  Pipeline: ${BUZ_PIPELINE_NAME}"
+  fi
+  if [ -n "${BUZ_JOB_URL:-}" ]; then
+    TEXT="${TEXT}
+  ${BUZ_JOB_URL}"
+  fi
+  ESCAPED=$(printf '%s' "$TEXT" | sed 's/\\/\\\\/g; s/"/\\"/g')
+  PAYLOAD=$(printf '{"text":"%s"}' "$ESCAPED")
+  RESULT=$(curl -fsSL -X POST "$INPUT_URL" \
+    -H 'Content-Type: application/json' -d "$PAYLOAD")
+  printf '%s\n' "$RESULT" | head -c 200; echo
