@@ -23,6 +23,18 @@ on:
       - plugins/buz/setup-lua/image/**
       - plugins/buz/setup-lua/*.yaml
       - plugins/buz/setup-lua/*.yml
+      - plugins/buz/setup-python/image/**
+      - plugins/buz/setup-python/*.yaml
+      - plugins/buz/setup-python/*.yml
+      - plugins/buz/setup-node/image/**
+      - plugins/buz/setup-node/*.yaml
+      - plugins/buz/setup-node/*.yml
+      - plugins/buz/setup-java/image/**
+      - plugins/buz/setup-java/*.yaml
+      - plugins/buz/setup-java/*.yml
+      - plugins/buz/setup-go/image/**
+      - plugins/buz/setup-go/*.yaml
+      - plugins/buz/setup-go/*.yml
 
 permissions:
   contents: read
@@ -100,6 +112,22 @@ jobs:
             lua-tools)
               image="docker.io/schiplat/buz-plugins-lua-tools"
               context="plugins/buz/setup-lua/image"
+              ;;
+            python-tools)
+              image="docker.io/schiplat/buz-plugins-python-tools"
+              context="plugins/buz/setup-python/image"
+              ;;
+            node-tools)
+              image="docker.io/schiplat/buz-plugins-node-tools"
+              context="plugins/buz/setup-node/image"
+              ;;
+            java-tools)
+              image="docker.io/schiplat/buz-plugins-java-tools"
+              context="plugins/buz/setup-java/image"
+              ;;
+            go-tools)
+              image="docker.io/schiplat/buz-plugins-go-tools"
+              context="plugins/buz/setup-go/image"
               ;;
             *)
               echo "Unsupported image family." >&2
@@ -234,6 +262,10 @@ jobs:
             ruby-tools) plugin_dir=plugins/buz/setup-ruby ;;
             php-tools) plugin_dir=plugins/buz/setup-php ;;
             lua-tools) plugin_dir=plugins/buz/setup-lua ;;
+            python-tools) plugin_dir=plugins/buz/setup-python ;;
+            node-tools) plugin_dir=plugins/buz/setup-node ;;
+            java-tools) plugin_dir=plugins/buz/setup-java ;;
+            go-tools) plugin_dir=plugins/buz/setup-go ;;
             *) echo "Unsupported image family." >&2; exit 1 ;;
           esac
           if git status --porcelain -- "$plugin_dir" | grep -q .; then
@@ -274,6 +306,22 @@ jobs:
             lua-tools)
               plugin_dir=plugins/buz/setup-lua
               title="[skip image build] Pin Lua toolchain image digest"
+              ;;
+            python-tools)
+              plugin_dir=plugins/buz/setup-python
+              title="[skip image build] Pin Python toolchain image digest"
+              ;;
+            node-tools)
+              plugin_dir=plugins/buz/setup-node
+              title="[skip image build] Pin Node.js toolchain image digest"
+              ;;
+            java-tools)
+              plugin_dir=plugins/buz/setup-java
+              title="[skip image build] Pin Java toolchain image digest"
+              ;;
+            go-tools)
+              plugin_dir=plugins/buz/setup-go
+              title="[skip image build] Pin Go toolchain image digest"
               ;;
             *) echo "Unsupported image family." >&2; exit 1 ;;
           esac

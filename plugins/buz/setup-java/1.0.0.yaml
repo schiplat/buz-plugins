@@ -1,0 +1,78 @@
+id: buz/setup-java
+category: build
+name: Java build environment (Temurin JDK)
+version: 1.0.0
+description: Run commands inside a pinned Temurin JDK (21, 25, or 17) with JAVA_HOME exported. Maven users can add -Dmaven.repo.local to share the local repository via the cache.
+publisher: official
+author: "buz maintainers"
+keywords: [java, jdk, temurin, maven, gradle, build, toolchain, 构建]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/setup-java/1.0.0.yaml
+engine: docker
+image: docker.io/schiplat/buz-plugins-java-tools:1.0.0
+default_timeout: 30m
+inputs:
+  script:
+    type: string
+    required: true
+    description: POSIX sh commands to run; executed with `set -e` from the selected workdir.
+  version:
+    type: choice
+    default: "21"
+    options: [21, 25, 17]
+    description: Temurin JDK version.
+  workdir:
+    type: string
+    default: "."
+    description: Working directory relative to the workspace root.
+  cache:
+    type: boolean
+    default: "false"
+    description: Persist build-tool caches in <workspace>/.cache/java (Gradle via GRADLE_USER_HOME; for Maven pass -Dmaven.repo.local=/buz/workspace/.cache/java/m2).
+run: |
+  set -eu
+
+  : "${INPUT_SCRIPT:?script is required}"
+
+  workdir="${INPUT_WORKDIR:-.}"
+  case "$workdir" in
+    /*|..|../*|*/../*|*/..)
+      printf 'workdir must be a relative path inside the Buz workspace\n' >&2
+      exit 2
+      ;;
+  esac
+  cd /buz/workspace
+  if [ "$workdir" != "." ]; then
+    cd "$workdir"
+  fi
+
+  version="${INPUT_VERSION:-21}"
+  case "$version" in
+    21)
+      JAVA_HOME=/opt/java/openjdk
+      ;;
+    25)
+      JAVA_HOME=/opt/java/25
+      ;;
+    17)
+      JAVA_HOME=/opt/java/17
+      ;;
+    *)
+      printf 'unsupported java version: %s\n' "$version" >&2
+      exit 2
+      ;;
+  esac
+  JAVA_HOME="$JAVA_HOME"
+  export JAVA_HOME
+  PATH="$JAVA_HOME/bin:$PATH"
+  export PATH
+
+  if [ "${INPUT_CACHE:-false}" = "true" ]; then
+    java_cache=/buz/workspace/.cache/java
+    mkdir -p "$java_cache/gradle"
+    export GRADLE_USER_HOME="$java_cache/gradle"
+  fi
+
+  script_file="${TMPDIR:-/tmp}/buz-setup-script"
+  printf '%s\n' "$INPUT_SCRIPT" > "$script_file"
+  sh -e "$script_file"

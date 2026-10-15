@@ -1,0 +1,77 @@
+id: buz/setup-go
+category: build
+name: Go build environment
+version: 1.0.0
+description: Run commands inside a pinned Go toolchain (1.26 or 1.25) with an explicit GOROOT.
+publisher: official
+author: "buz maintainers"
+keywords: [go, golang, build, toolchain, 构建]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/setup-go/1.0.0.yaml
+engine: docker
+image: docker.io/schiplat/buz-plugins-go-tools:1.0.0
+default_timeout: 30m
+inputs:
+  script:
+    type: string
+    required: true
+    description: POSIX sh commands to run; executed with `set -e` from the selected workdir.
+  version:
+    type: choice
+    default: "1.26"
+    options: [1.26, 1.25]
+    description: Go toolchain version.
+  workdir:
+    type: string
+    default: "."
+    description: Working directory relative to the workspace root.
+  cache:
+    type: boolean
+    default: "false"
+    description: Persist the module and build caches in <workspace>/.cache/go across jobs on this Runner.
+run: |
+  set -eu
+
+  : "${INPUT_SCRIPT:?script is required}"
+
+  workdir="${INPUT_WORKDIR:-.}"
+  case "$workdir" in
+    /*|..|../*|*/../*|*/..)
+      printf 'workdir must be a relative path inside the Buz workspace\n' >&2
+      exit 2
+      ;;
+  esac
+  cd /buz/workspace
+  if [ "$workdir" != "." ]; then
+    cd "$workdir"
+  fi
+
+  version="${INPUT_VERSION:-1.26}"
+  case "$version" in
+    1.26)
+      GOROOT=/usr/local/go
+      ;;
+    1.25)
+      GOROOT=/opt/go/1.25
+      PATH="/opt/go/1.25/bin:$PATH"
+      ;;
+    *)
+      printf 'unsupported go version: %s\n' "$version" >&2
+      exit 2
+      ;;
+  esac
+  GOROOT="$GOROOT"
+  export GOROOT
+  export PATH
+
+  if [ "${INPUT_CACHE:-false}" = "true" ]; then
+    go_cache=/buz/workspace/.cache/go
+    mkdir -p "$go_cache/pkg/mod" "$go_cache/build"
+    export GOPATH="$go_cache"
+    export GOMODCACHE="$go_cache/pkg/mod"
+    export GOCACHE="$go_cache/build"
+  fi
+
+  script_file="${TMPDIR:-/tmp}/buz-setup-script"
+  printf '%s\n' "$INPUT_SCRIPT" > "$script_file"
+  sh -e "$script_file"

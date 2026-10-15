@@ -372,6 +372,18 @@ class PluginImageWorkflowTests(unittest.TestCase):
                 "plugins/buz/setup-lua/image/**",
                 "plugins/buz/setup-lua/*.yaml",
                 "plugins/buz/setup-lua/*.yml",
+                "plugins/buz/setup-python/image/**",
+                "plugins/buz/setup-python/*.yaml",
+                "plugins/buz/setup-python/*.yml",
+                "plugins/buz/setup-node/image/**",
+                "plugins/buz/setup-node/*.yaml",
+                "plugins/buz/setup-node/*.yml",
+                "plugins/buz/setup-java/image/**",
+                "plugins/buz/setup-java/*.yaml",
+                "plugins/buz/setup-java/*.yml",
+                "plugins/buz/setup-go/image/**",
+                "plugins/buz/setup-go/*.yaml",
+                "plugins/buz/setup-go/*.yml",
             },
         )
         detect = workflow["jobs"]["detect"]

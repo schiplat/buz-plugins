@@ -46,6 +46,26 @@ TOOLCHAIN = {
         "plugins/buz/setup-lua/image",
         "plugins/buz/setup-lua/1.0.0.yaml",
     ),
+    "python-tools": (
+        "docker.io/schiplat/buz-plugins-python-tools",
+        "plugins/buz/setup-python/image",
+        "plugins/buz/setup-python/1.0.0.yaml",
+    ),
+    "node-tools": (
+        "docker.io/schiplat/buz-plugins-node-tools",
+        "plugins/buz/setup-node/image",
+        "plugins/buz/setup-node/1.0.0.yaml",
+    ),
+    "java-tools": (
+        "docker.io/schiplat/buz-plugins-java-tools",
+        "plugins/buz/setup-java/image",
+        "plugins/buz/setup-java/1.0.0.yaml",
+    ),
+    "go-tools": (
+        "docker.io/schiplat/buz-plugins-go-tools",
+        "plugins/buz/setup-go/image",
+        "plugins/buz/setup-go/1.0.0.yaml",
+    ),
 }
 ALL_FAMILIES = {**EXPECTED, **TOOLCHAIN}
 
@@ -83,6 +103,18 @@ def main() -> None:
         "plugins/buz/setup-lua/image/**",
         "plugins/buz/setup-lua/*.yaml",
         "plugins/buz/setup-lua/*.yml",
+        "plugins/buz/setup-python/image/**",
+        "plugins/buz/setup-python/*.yaml",
+        "plugins/buz/setup-python/*.yml",
+        "plugins/buz/setup-node/image/**",
+        "plugins/buz/setup-node/*.yaml",
+        "plugins/buz/setup-node/*.yml",
+        "plugins/buz/setup-java/image/**",
+        "plugins/buz/setup-java/*.yaml",
+        "plugins/buz/setup-java/*.yml",
+        "plugins/buz/setup-go/image/**",
+        "plugins/buz/setup-go/*.yaml",
+        "plugins/buz/setup-go/*.yml",
     }:
         raise SystemExit("automatic publishing must be limited to Docker image contexts and plugin specs on master")
 
@@ -114,6 +146,10 @@ def main() -> None:
         "ruby-tools": ("plugins/buz/setup-ruby",),
         "php-tools": ("plugins/buz/setup-php",),
         "lua-tools": ("plugins/buz/setup-lua",),
+        "python-tools": ("plugins/buz/setup-python",),
+        "node-tools": ("plugins/buz/setup-node",),
+        "java-tools": ("plugins/buz/setup-java",),
+        "go-tools": ("plugins/buz/setup-go",),
     }:
         raise SystemExit("family selector must map the OSS and S3 plugin directories to their image families")
     selector_script = selector_path.read_text(encoding="utf-8")

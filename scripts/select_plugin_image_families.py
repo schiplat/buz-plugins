@@ -17,6 +17,10 @@ FAMILY_PATHS = {
     "ruby-tools": ("plugins/buz/setup-ruby",),
     "php-tools": ("plugins/buz/setup-php",),
     "lua-tools": ("plugins/buz/setup-lua",),
+    "python-tools": ("plugins/buz/setup-python",),
+    "node-tools": ("plugins/buz/setup-node",),
+    "java-tools": ("plugins/buz/setup-java",),
+    "go-tools": ("plugins/buz/setup-go",),
 }
 SKIP_MARKER = "[skip image build]"
 VERSION_PATTERN = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")

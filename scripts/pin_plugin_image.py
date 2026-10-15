@@ -42,6 +42,26 @@ FAMILIES = {
         "docker.io/schiplat/buz-plugins-lua-tools",
         "plugins/buz/setup-lua",
     ),
+    "python-tools": (
+        "buz/setup-python",
+        "docker.io/schiplat/buz-plugins-python-tools",
+        "plugins/buz/setup-python",
+    ),
+    "node-tools": (
+        "buz/setup-node",
+        "docker.io/schiplat/buz-plugins-node-tools",
+        "plugins/buz/setup-node",
+    ),
+    "java-tools": (
+        "buz/setup-java",
+        "docker.io/schiplat/buz-plugins-java-tools",
+        "plugins/buz/setup-java",
+    ),
+    "go-tools": (
+        "buz/setup-go",
+        "docker.io/schiplat/buz-plugins-go-tools",
+        "plugins/buz/setup-go",
+    ),
 }
 DIGEST_RE = re.compile(r"sha256:[0-9a-f]{64}\Z")
 VERSION_RE = re.compile(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\Z")
