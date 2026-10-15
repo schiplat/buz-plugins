@@ -98,35 +98,35 @@ jobs:
               context="plugins/buz/s3-upload/image"
               ;;
             rust-tools)
-              image="docker.io/schiplat/buz-plugins-rust-tools"
+              image="docker.io/schiplat/rust"
               context="plugins/buz/setup-rust/image"
               ;;
             ruby-tools)
-              image="docker.io/schiplat/buz-plugins-ruby-tools"
+              image="docker.io/schiplat/ruby"
               context="plugins/buz/setup-ruby/image"
               ;;
             php-tools)
-              image="docker.io/schiplat/buz-plugins-php-tools"
+              image="docker.io/schiplat/php"
               context="plugins/buz/setup-php/image"
               ;;
             lua-tools)
-              image="docker.io/schiplat/buz-plugins-lua-tools"
+              image="docker.io/schiplat/lua"
               context="plugins/buz/setup-lua/image"
               ;;
             python-tools)
-              image="docker.io/schiplat/buz-plugins-python-tools"
+              image="docker.io/schiplat/python"
               context="plugins/buz/setup-python/image"
               ;;
             node-tools)
-              image="docker.io/schiplat/buz-plugins-node-tools"
+              image="docker.io/schiplat/node"
               context="plugins/buz/setup-node/image"
               ;;
             java-tools)
-              image="docker.io/schiplat/buz-plugins-java-tools"
+              image="docker.io/schiplat/java"
               context="plugins/buz/setup-java/image"
               ;;
             go-tools)
-              image="docker.io/schiplat/buz-plugins-go-tools"
+              image="docker.io/schiplat/go"
               context="plugins/buz/setup-go/image"
               ;;
             *)
