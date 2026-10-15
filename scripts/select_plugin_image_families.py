@@ -13,6 +13,10 @@ from pathlib import Path
 FAMILY_PATHS = {
     "oss-tools": ("plugins/buz/oss-upload",),
     "aws-tools": ("plugins/buz/s3-upload",),
+    "rust-tools": ("plugins/buz/setup-rust",),
+    "ruby-tools": ("plugins/buz/setup-ruby",),
+    "php-tools": ("plugins/buz/setup-php",),
+    "lua-tools": ("plugins/buz/setup-lua",),
 }
 SKIP_MARKER = "[skip image build]"
 VERSION_PATTERN = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")

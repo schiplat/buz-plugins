@@ -26,8 +26,14 @@ steps:
 | `buz/ssh-wait` | shell | Wait for SSH on a target host (after reboot/rebuild) |
 | `buz/oss-upload` | docker | Upload a workspace file to Alibaba Cloud OSS with ossutil v2 |
 | `buz/s3-upload` | docker | Upload a workspace file to S3 with AWS CLI v2 |
+| `buz/setup-rust` | docker | Rust build environment: pinned toolchain, on-demand rustup install, optional cargo cache |
+| `buz/setup-ruby` | docker | Ruby build environment (3.4/3.3) with gem/bundler caching |
+| `buz/setup-php` | docker | PHP build environment (8.4/8.3) with Composer and its cache |
+| `buz/setup-lua` | docker | Lua interpreter 5.4 / 5.3 / LuaJIT 2.1 (Debian-packaged) |
 
-Docker upload templates require a Docker-enabled Runner and Linux `amd64` tool images that have been published and digest-pinned. Changes to an image's build context or its own YAML template automatically publish only that image from `master`; after a successful build, the workflow opens or updates a family-specific PR to pin its template to the published digest. See [image build, publishing, and runtime requirements](docs/plugin-images.md) for the optional `BUZ_PLUGIN_GITHUB_PR_TOKEN` needed to trigger CI on generated PRs. The current templates are `1.0.2`; use their digest-pinned references for production.
+Each `buz/setup-*` step executes its `script` input in the selected toolchain from a `workdir` inside the workspace; every step is an isolated container, so state travels between steps via workspace files, not the environment. With `cache: true` the package-manager cache lives under `<workspace>/.cache/` and is reused by later jobs on the same Runner. Builds download dependencies from the language ecosystems (crates.io, rubygems.org, packagist.org, …); make sure Runner egress policy allows the endpoints your build needs.
+
+Docker templates require a Docker-enabled Runner and Linux `amd64` tool images that have been published and digest-pinned. Changes to an image's build context or its own YAML template automatically publish only that image from `master`; after a successful build, the workflow opens or updates a family-specific PR to pin its template to the published digest. See [image build, publishing, and runtime requirements](docs/plugin-images.md) for the optional `BUZ_PLUGIN_GITHUB_PR_TOKEN` needed to trigger CI on generated PRs. The upload templates are currently `1.0.2`; use their digest-pinned references for production.
 
 ## Use in your Manager
 

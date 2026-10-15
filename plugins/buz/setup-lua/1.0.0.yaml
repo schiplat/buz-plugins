@@ -1,0 +1,59 @@
+id: buz/setup-lua
+category: build
+name: Lua runtime (5.4/5.3/LuaJIT)
+version: 1.0.0
+description: Run commands with a pinned Lua interpreter — lua 5.4, lua 5.3, or LuaJIT 2.1, all Debian-packaged.
+publisher: official
+author: "buz maintainers"
+keywords: [lua, luajit, build, toolchain, 构建]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/setup-lua/1.0.0.yaml
+engine: docker
+image: docker.io/schiplat/buz-plugins-lua-tools:1.0.0
+default_timeout: 30m
+inputs:
+  script:
+    type: string
+    required: true
+    description: POSIX sh commands to run; executed with `set -e` from the selected workdir.
+  version:
+    type: choice
+    default: "5.4"
+    options: [5.4, 5.3, jit]
+    description: Lua interpreter (jit selects LuaJIT 2.1).
+  workdir:
+    type: string
+    default: "."
+    description: Working directory relative to the workspace root.
+run: |
+  set -eu
+
+  : "${INPUT_SCRIPT:?script is required}"
+
+  workdir="${INPUT_WORKDIR:-.}"
+  case "$workdir" in
+    /*|..|../*|*/../*|*/..)
+      printf 'workdir must be a relative path inside the Buz workspace\n' >&2
+      exit 2
+      ;;
+  esac
+  cd /buz/workspace
+  if [ "$workdir" != "." ]; then
+    cd "$workdir"
+  fi
+
+  version="${INPUT_VERSION:-5.4}"
+  case "$version" in
+    5.4|5.3|jit)
+      PATH="/opt/lua/$version/bin:$PATH"
+      export PATH
+      ;;
+    *)
+      printf 'unsupported lua version: %s\n' "$version" >&2
+      exit 2
+      ;;
+  esac
+
+  script_file="${TMPDIR:-/tmp}/buz-setup-script"
+  printf '%s\n' "$INPUT_SCRIPT" > "$script_file"
+  sh -e "$script_file"

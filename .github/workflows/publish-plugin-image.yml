@@ -11,6 +11,18 @@ on:
       - plugins/buz/s3-upload/image/**
       - plugins/buz/s3-upload/*.yaml
       - plugins/buz/s3-upload/*.yml
+      - plugins/buz/setup-rust/image/**
+      - plugins/buz/setup-rust/*.yaml
+      - plugins/buz/setup-rust/*.yml
+      - plugins/buz/setup-ruby/image/**
+      - plugins/buz/setup-ruby/*.yaml
+      - plugins/buz/setup-ruby/*.yml
+      - plugins/buz/setup-php/image/**
+      - plugins/buz/setup-php/*.yaml
+      - plugins/buz/setup-php/*.yml
+      - plugins/buz/setup-lua/image/**
+      - plugins/buz/setup-lua/*.yaml
+      - plugins/buz/setup-lua/*.yml
 
 permissions:
   contents: read
@@ -72,6 +84,22 @@ jobs:
             aws-tools)
               image="docker.io/schiplat/buz-plugins-aws-tools"
               context="plugins/buz/s3-upload/image"
+              ;;
+            rust-tools)
+              image="docker.io/schiplat/buz-plugins-rust-tools"
+              context="plugins/buz/setup-rust/image"
+              ;;
+            ruby-tools)
+              image="docker.io/schiplat/buz-plugins-ruby-tools"
+              context="plugins/buz/setup-ruby/image"
+              ;;
+            php-tools)
+              image="docker.io/schiplat/buz-plugins-php-tools"
+              context="plugins/buz/setup-php/image"
+              ;;
+            lua-tools)
+              image="docker.io/schiplat/buz-plugins-lua-tools"
+              context="plugins/buz/setup-lua/image"
               ;;
             *)
               echo "Unsupported image family." >&2
@@ -202,6 +230,10 @@ jobs:
           case "$IMAGE_FAMILY" in
             oss-tools) plugin_dir=plugins/buz/oss-upload ;;
             aws-tools) plugin_dir=plugins/buz/s3-upload ;;
+            rust-tools) plugin_dir=plugins/buz/setup-rust ;;
+            ruby-tools) plugin_dir=plugins/buz/setup-ruby ;;
+            php-tools) plugin_dir=plugins/buz/setup-php ;;
+            lua-tools) plugin_dir=plugins/buz/setup-lua ;;
             *) echo "Unsupported image family." >&2; exit 1 ;;
           esac
           if git status --porcelain -- "$plugin_dir" | grep -q .; then
@@ -226,6 +258,22 @@ jobs:
             aws-tools)
               plugin_dir=plugins/buz/s3-upload
               title="[skip image build] Pin S3 upload image digest"
+              ;;
+            rust-tools)
+              plugin_dir=plugins/buz/setup-rust
+              title="[skip image build] Pin Rust toolchain image digest"
+              ;;
+            ruby-tools)
+              plugin_dir=plugins/buz/setup-ruby
+              title="[skip image build] Pin Ruby toolchain image digest"
+              ;;
+            php-tools)
+              plugin_dir=plugins/buz/setup-php
+              title="[skip image build] Pin PHP toolchain image digest"
+              ;;
+            lua-tools)
+              plugin_dir=plugins/buz/setup-lua
+              title="[skip image build] Pin Lua toolchain image digest"
               ;;
             *) echo "Unsupported image family." >&2; exit 1 ;;
           esac

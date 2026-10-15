@@ -1,0 +1,73 @@
+id: buz/setup-php
+category: build
+name: PHP build environment (composer)
+version: 1.0.0
+description: Run commands inside a pinned PHP toolchain (8.4 or 8.3) with Composer.
+publisher: official
+author: "buz maintainers"
+keywords: [php, composer, build, toolchain, 构建]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/setup-php/1.0.0.yaml
+engine: docker
+image: docker.io/schiplat/buz-plugins-php-tools:1.0.0
+default_timeout: 30m
+inputs:
+  script:
+    type: string
+    required: true
+    description: POSIX sh commands to run; executed with `set -e` from the selected workdir.
+  version:
+    type: choice
+    default: "8.4"
+    options: [8.4, 8.3]
+    description: PHP toolchain version.
+  workdir:
+    type: string
+    default: "."
+    description: Working directory relative to the workspace root.
+  cache:
+    type: boolean
+    default: "false"
+    description: Persist the Composer cache in <workspace>/.cache/php across jobs on this Runner.
+run: |
+  set -eu
+
+  : "${INPUT_SCRIPT:?script is required}"
+
+  workdir="${INPUT_WORKDIR:-.}"
+  case "$workdir" in
+    /*|..|../*|*/../*|*/..)
+      printf 'workdir must be a relative path inside the Buz workspace\n' >&2
+      exit 2
+      ;;
+  esac
+  cd /buz/workspace
+  if [ "$workdir" != "." ]; then
+    cd "$workdir"
+  fi
+
+  version="${INPUT_VERSION:-8.4}"
+  case "$version" in
+    8.4) ;;
+    8.3)
+      PATH="/opt/php/8.3/bin:$PATH"
+      export PATH
+      PHPRC=/opt/php/8.3/etc/php.ini
+      export PHPRC
+      ;;
+    *)
+      printf 'unsupported php version: %s\n' "$version" >&2
+      exit 2
+      ;;
+  esac
+
+  if [ "${INPUT_CACHE:-false}" = "true" ]; then
+    composer_home=/buz/workspace/.cache/php/composer
+    mkdir -p "$composer_home"
+    export COMPOSER_HOME="$composer_home"
+    export COMPOSER_CACHE_DIR="$composer_home/cache"
+  fi
+
+  script_file="${TMPDIR:-/tmp}/buz-setup-script"
+  printf '%s\n' "$INPUT_SCRIPT" > "$script_file"
+  sh -e "$script_file"
