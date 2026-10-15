@@ -135,6 +135,12 @@ Concrete versions always remain available and are the only way to select an
 older line. Each template's `version` description states its exact alias
 mapping; keep it in sync when the image gains lines.
 
+## Governance
+
+The two-tier trust model (official certification vs unmanaged community),
+the egress baseline's scope, and the ssh engine policy are specified in
+[governance.md](governance.md).
+
 ## Buz compatibility
 
 CI validates specs with a real `buz-manager` release: the `BUZ_VERSION`
