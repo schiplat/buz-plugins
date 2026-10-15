@@ -58,6 +58,7 @@ run: |
       exit 2
       ;;
   esac
+  ruby --version
 
   if [ "${INPUT_CACHE:-false}" = "true" ]; then
     ruby_cache=/buz/workspace/.cache/ruby

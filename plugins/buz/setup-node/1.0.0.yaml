@@ -62,6 +62,7 @@ run: |
       exit 2
       ;;
   esac
+  node --version
 
   if [ "${INPUT_CACHE:-false}" = "true" ]; then
     npm_cache=/buz/workspace/.cache/node/npm

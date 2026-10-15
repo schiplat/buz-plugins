@@ -14,3 +14,12 @@ Runs POSIX `script` commands inside a pinned Ruby toolchain (3.4 or 3.3) with ge
 ```
 
 `version` accepts `stable`/`lts`/`dev` (= 3.4, the newest line in the image) or `3.3`. With `cache: true`, gems and the bundler path persist in `<workspace>/.cache/ruby` across jobs on the same Runner. Each step is an isolated container — pass state between steps through workspace files. Requires a Docker-enabled Runner with egress to rubygems.org.
+
+## Versions in image 1.0.0
+
+| `version` | Resolves to |
+|-----------|-------------|
+| `stable` (default), `lts`, `dev` | Ruby 3.4 |
+| `3.3` | Ruby 3.3 (EOL upstream, kept for existing apps) |
+
+Every run prints the resolved `ruby --version` as the first log line.
