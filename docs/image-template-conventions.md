@@ -137,11 +137,12 @@ mapping; keep it in sync when the image gains lines.
 
 ## Buz compatibility
 
-CI validates specs with a pinned `BUZ_VERSION` (repository variable), so a
-Buz release that changes the spec schema or the Plugin Contract surfaces as
-a failing plugins build instead of a runtime break. After a Buz release,
-bump `BUZ_VERSION` and let CI confirm compatibility before saving pipelines
-that use new schema features.
+CI validates specs with a real `buz-manager` release: the `BUZ_VERSION`
+repository variable selects one, and when it is unset (the default) CI
+tracks the **latest** schiplatv2/buz release. A Buz release that changes
+the spec schema or the Plugin Contract therefore surfaces as a failing
+plugins build instead of a runtime break. Pin `BUZ_VERSION` only when you
+want to roll Buz upgrades forward deliberately.
 
 ## Pre-push validation checklist
 
