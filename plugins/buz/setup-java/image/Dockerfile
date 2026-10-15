@@ -4,6 +4,9 @@
 # launcher resolves its home from the binary location).
 FROM eclipse-temurin:21-jdk-bookworm
 
+LABEL org.opencontainers.image.source="https://github.com/schiplat/buz-plugins" \
+      org.opencontainers.image.description="buz/setup-java toolchain image (temurin 21 native + 25/17)"
+
 COPY --from=eclipse-temurin:25-jdk-bookworm /opt/java/openjdk /opt/java/25
 COPY --from=eclipse-temurin:17-jdk-bookworm /opt/java/openjdk /opt/java/17
 
