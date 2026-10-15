@@ -19,8 +19,8 @@ inputs:
   version:
     type: string
     default: "stable"
-    pattern: "^(stable|[0-9]+\\.[0-9]+)$"
-    description: Toolchain selector. "stable" is built into the image; "X.Y" (for example 1.85) installs via rustup at run time.
+    pattern: "^(stable|lts|dev|nightly|[0-9]+\\.[0-9]+)$"
+    description: Toolchain selector. stable/lts use the image-built stable toolchain; dev/nightly install the nightly channel via rustup at run time; X.Y (for example 1.85) installs that release via rustup.
   workdir:
     type: string
     default: "."
@@ -48,7 +48,11 @@ run: |
 
   version="${INPUT_VERSION:-stable}"
   case "$version" in
-    stable) ;;
+    stable|lts) ;;
+    dev|nightly)
+      rustup toolchain install nightly --profile minimal
+      rustup default nightly
+      ;;
     *)
       rustup toolchain install "$version" --profile minimal
       rustup default "$version"

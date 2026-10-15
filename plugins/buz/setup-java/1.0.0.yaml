@@ -18,9 +18,9 @@ inputs:
     description: POSIX sh commands to run; executed with `set -e` from the selected workdir.
   version:
     type: choice
-    default: "21"
-    options: [21, 25, 17]
-    description: Temurin JDK version.
+    default: "stable"
+    options: [stable, lts, dev, 21, 25, 17]
+    description: Temurin JDK version. stable/lts select 21; dev selects 25 (newest LTS).
   workdir:
     type: string
     default: "."
@@ -46,12 +46,12 @@ run: |
     cd "$workdir"
   fi
 
-  version="${INPUT_VERSION:-21}"
+  version="${INPUT_VERSION:-stable}"
   case "$version" in
-    21)
+    stable|lts|21)
       JAVA_HOME=/opt/java/openjdk
       ;;
-    25)
+    25|dev)
       JAVA_HOME=/opt/java/25
       ;;
     17)
@@ -62,7 +62,6 @@ run: |
       exit 2
       ;;
   esac
-  JAVA_HOME="$JAVA_HOME"
   export JAVA_HOME
   PATH="$JAVA_HOME/bin:$PATH"
   export PATH

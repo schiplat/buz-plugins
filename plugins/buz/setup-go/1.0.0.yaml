@@ -18,9 +18,9 @@ inputs:
     description: POSIX sh commands to run; executed with `set -e` from the selected workdir.
   version:
     type: choice
-    default: "1.26"
-    options: [1.26, 1.25]
-    description: Go toolchain version.
+    default: "stable"
+    options: [stable, lts, dev, 1.26, 1.25]
+    description: Go version. stable selects 1.26; lts selects 1.25 (previous release); dev selects the gotip build frozen into the image.
   workdir:
     type: string
     default: "."
@@ -46,21 +46,24 @@ run: |
     cd "$workdir"
   fi
 
-  version="${INPUT_VERSION:-1.26}"
+  version="${INPUT_VERSION:-stable}"
   case "$version" in
-    1.26)
+    stable|1.26)
       GOROOT=/usr/local/go
       ;;
-    1.25)
+    lts|1.25)
       GOROOT=/opt/go/1.25
       PATH="/opt/go/1.25/bin:$PATH"
+      ;;
+    dev)
+      GOROOT=/opt/go/tip
+      PATH="/opt/go/tip/bin:$PATH"
       ;;
     *)
       printf 'unsupported go version: %s\n' "$version" >&2
       exit 2
       ;;
   esac
-  GOROOT="$GOROOT"
   export GOROOT
   export PATH
 

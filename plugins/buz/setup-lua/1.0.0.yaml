@@ -18,9 +18,9 @@ inputs:
     description: POSIX sh commands to run; executed with `set -e` from the selected workdir.
   version:
     type: choice
-    default: "5.4"
-    options: [5.4, 5.3, jit]
-    description: Lua interpreter (jit selects LuaJIT 2.1).
+    default: "stable"
+    options: [stable, lts, dev, 5.4, 5.3, jit]
+    description: Lua interpreter (jit selects LuaJIT 2.1). stable/lts/dev all select 5.4 (Lua has no LTS or dev channel in this image).
   workdir:
     type: string
     default: "."
@@ -42,9 +42,13 @@ run: |
     cd "$workdir"
   fi
 
-  version="${INPUT_VERSION:-5.4}"
+  version="${INPUT_VERSION:-stable}"
   case "$version" in
-    5.4|5.3|jit)
+    stable|lts|dev|5.4)
+      PATH="/opt/lua/5.4/bin:$PATH"
+      export PATH
+      ;;
+    5.3|jit)
       PATH="/opt/lua/$version/bin:$PATH"
       export PATH
       ;;

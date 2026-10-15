@@ -18,9 +18,9 @@ inputs:
     description: POSIX sh commands to run; executed with `set -e` from the selected workdir.
   version:
     type: choice
-    default: "24"
-    options: [24, 22]
-    description: Node.js toolchain version.
+    default: "stable"
+    options: [stable, lts, dev, 24, 25, 22]
+    description: Node.js version. stable/lts select 24 (active LTS); dev selects 25 (current line).
   workdir:
     type: string
     default: "."
@@ -46,9 +46,13 @@ run: |
     cd "$workdir"
   fi
 
-  version="${INPUT_VERSION:-24}"
+  version="${INPUT_VERSION:-stable}"
   case "$version" in
-    24) ;;
+    stable|lts|24) ;;
+    25|dev)
+      PATH="/opt/node/25/bin:$PATH"
+      export PATH
+      ;;
     22)
       PATH="/opt/node/22/bin:$PATH"
       export PATH
