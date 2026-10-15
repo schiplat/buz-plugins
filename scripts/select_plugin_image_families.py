@@ -53,13 +53,11 @@ def select_families(root: Path, before: str, after: str) -> list[str]:
     families: set[str] = set()
 
     def collect(paths: list[str]) -> None:
+        # Only image build contexts trigger builds — template-only edits never
+        # rebuild an image (its digest does not depend on the spec text).
         for path in paths:
             for family, (plugin_dir,) in FAMILY_PATHS.items():
-                if path.startswith(f"{plugin_dir}/image/") or (
-                    path.startswith(f"{plugin_dir}/")
-                    and "/" not in path[len(plugin_dir) + 1 :]
-                    and Path(path).suffix in {".yaml", ".yml"}
-                ):
+                if path.startswith(f"{plugin_dir}/image/"):
                     families.add(family)
 
     for commit in commits:

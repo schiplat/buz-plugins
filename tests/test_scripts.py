@@ -354,36 +354,19 @@ class PluginImageWorkflowTests(unittest.TestCase):
         self.assertEqual(
             set(triggers["push"]["paths"]),
             {
-                "plugins/buz/oss-upload/image/**",
-                "plugins/buz/oss-upload/*.yaml",
-                "plugins/buz/oss-upload/*.yml",
-                "plugins/buz/s3-upload/image/**",
-                "plugins/buz/s3-upload/*.yaml",
-                "plugins/buz/s3-upload/*.yml",
-                "plugins/buz/setup-rust/image/**",
-                "plugins/buz/setup-rust/*.yaml",
-                "plugins/buz/setup-rust/*.yml",
-                "plugins/buz/setup-ruby/image/**",
-                "plugins/buz/setup-ruby/*.yaml",
-                "plugins/buz/setup-ruby/*.yml",
-                "plugins/buz/setup-php/image/**",
-                "plugins/buz/setup-php/*.yaml",
-                "plugins/buz/setup-php/*.yml",
-                "plugins/buz/setup-lua/image/**",
-                "plugins/buz/setup-lua/*.yaml",
-                "plugins/buz/setup-lua/*.yml",
-                "plugins/buz/setup-python/image/**",
-                "plugins/buz/setup-python/*.yaml",
-                "plugins/buz/setup-python/*.yml",
-                "plugins/buz/setup-node/image/**",
-                "plugins/buz/setup-node/*.yaml",
-                "plugins/buz/setup-node/*.yml",
-                "plugins/buz/setup-java/image/**",
-                "plugins/buz/setup-java/*.yaml",
-                "plugins/buz/setup-java/*.yml",
-                "plugins/buz/setup-go/image/**",
-                "plugins/buz/setup-go/*.yaml",
-                "plugins/buz/setup-go/*.yml",
+                f"plugins/buz/{plugin}/image/**"
+                for plugin in (
+                    "oss-upload",
+                    "s3-upload",
+                    "setup-rust",
+                    "setup-ruby",
+                    "setup-php",
+                    "setup-lua",
+                    "setup-python",
+                    "setup-node",
+                    "setup-java",
+                    "setup-go",
+                )
             },
         )
         detect = workflow["jobs"]["detect"]
@@ -429,7 +412,7 @@ class PluginImageWorkflowTests(unittest.TestCase):
         self.assertIn("git fetch origin master", pin_prepare["run"])
         self.assertIn("git switch -C \"$branch\" origin/master", pin_prepare["run"])
 
-    def test_image_family_selector_matches_yaml_and_image_changes(self):
+    def test_image_family_selector_matches_image_context_changes_only(self):
         selector = load_script("select_plugin_image_families")
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -449,8 +432,10 @@ class PluginImageWorkflowTests(unittest.TestCase):
                 ).stdout.strip()
 
             before = commit("README.md", "root\n", "initial")
+            # Template-only edits never rebuild an image (the digest does not
+            # depend on the spec text) — yaml/yml changes select nothing.
             oss_spec = commit("plugins/buz/oss-upload/1.0.2.yaml", "version: 1.0.2\n", "bump OSS template")
-            self.assertEqual(selector.select_families(root, before, oss_spec), ["oss-tools"])
+            self.assertEqual(selector.select_families(root, before, oss_spec), [])
             s3_image = commit("plugins/buz/s3-upload/image/Dockerfile", "FROM scratch\n", "change S3 image")
             self.assertEqual(selector.select_families(root, oss_spec, s3_image), ["aws-tools"])
             skipped = commit(
@@ -458,17 +443,11 @@ class PluginImageWorkflowTests(unittest.TestCase):
                 "[skip image build] Pin OSS upload image digest",
             )
             self.assertEqual(selector.select_families(root, s3_image, skipped), [])
-            mixed = commit("plugins/buz/oss-upload/1.0.4.yaml", "version: 1.0.4\n", "normal template change")
             mixed_skip = commit(
                 "plugins/buz/s3-upload/1.0.3.yaml", "version: 1.0.3\n",
                 "[skip image build] Pin S3 upload image digest",
             )
-            self.assertEqual(selector.select_families(root, s3_image, mixed_skip), ["oss-tools"])
-            self.assertEqual(selector.select_families(root, mixed, mixed_skip), [])
-            self.assertEqual(
-                selector.select_families(root, "0" * 40, mixed_skip),
-                ["aws-tools", "oss-tools"],
-            )
+            self.assertEqual(selector.select_families(root, s3_image, mixed_skip), [])
             (root / "plugins/buz/oss-upload/1.0.9.yaml").write_text("version: 1.0.9\n")
             (root / "plugins/buz/oss-upload/1.0.10.yaml").write_text("version: 1.0.10\n")
             (root / "plugins/buz/s3-upload/2.3.4.yaml").write_text("version: 2.3.4\n")
@@ -504,7 +483,8 @@ class PluginImageWorkflowTests(unittest.TestCase):
                 ["git", "rev-parse", "HEAD"], cwd=root, check=True,
                 capture_output=True, text=True,
             ).stdout.strip()
-            self.assertEqual(selector.select_families(root, branch_point, merge_commit), ["oss-tools"])
+            # both commits in the merge range are template-only — nothing selects
+            self.assertEqual(selector.select_families(root, branch_point, merge_commit), [])
             self.assertEqual(selector.select_families(root, normal_commit, merge_commit), [])
 
     def test_image_reference_accepts_expected_tag_or_sha256_pin(self):

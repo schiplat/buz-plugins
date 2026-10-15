@@ -85,36 +85,19 @@ def main() -> None:
         raise SystemExit("image publishing must run only from path-filtered pushes")
     push = triggers["push"]
     if push.get("branches") != ["master"] or set(push.get("paths", [])) != {
-        "plugins/buz/oss-upload/image/**",
-        "plugins/buz/oss-upload/*.yaml",
-        "plugins/buz/oss-upload/*.yml",
-        "plugins/buz/s3-upload/image/**",
-        "plugins/buz/s3-upload/*.yaml",
-        "plugins/buz/s3-upload/*.yml",
-        "plugins/buz/setup-rust/image/**",
-        "plugins/buz/setup-rust/*.yaml",
-        "plugins/buz/setup-rust/*.yml",
-        "plugins/buz/setup-ruby/image/**",
-        "plugins/buz/setup-ruby/*.yaml",
-        "plugins/buz/setup-ruby/*.yml",
-        "plugins/buz/setup-php/image/**",
-        "plugins/buz/setup-php/*.yaml",
-        "plugins/buz/setup-php/*.yml",
-        "plugins/buz/setup-lua/image/**",
-        "plugins/buz/setup-lua/*.yaml",
-        "plugins/buz/setup-lua/*.yml",
-        "plugins/buz/setup-python/image/**",
-        "plugins/buz/setup-python/*.yaml",
-        "plugins/buz/setup-python/*.yml",
-        "plugins/buz/setup-node/image/**",
-        "plugins/buz/setup-node/*.yaml",
-        "plugins/buz/setup-node/*.yml",
-        "plugins/buz/setup-java/image/**",
-        "plugins/buz/setup-java/*.yaml",
-        "plugins/buz/setup-java/*.yml",
-        "plugins/buz/setup-go/image/**",
-        "plugins/buz/setup-go/*.yaml",
-        "plugins/buz/setup-go/*.yml",
+        f"plugins/buz/{plugin}/image/**"
+        for plugin in (
+            "oss-upload",
+            "s3-upload",
+            "setup-rust",
+            "setup-ruby",
+            "setup-php",
+            "setup-lua",
+            "setup-python",
+            "setup-node",
+            "setup-java",
+            "setup-go",
+        )
     }:
         raise SystemExit("automatic publishing must be limited to Docker image contexts and plugin specs on master")
 
@@ -153,8 +136,8 @@ def main() -> None:
     }:
         raise SystemExit("family selector must map the OSS and S3 plugin directories to their image families")
     selector_script = selector_path.read_text(encoding="utf-8")
-    if "/image/" not in selector_script or "{\".yaml\", \".yml\"}" not in selector_script:
-        raise SystemExit("family selector must match image contexts and direct YAML/YML templates")
+    if "/image/" not in selector_script:
+        raise SystemExit("family selector must trigger on image build contexts only")
     if "families+=(oss-tools aws-tools)" in select_run:
         raise SystemExit("push builds must not rebuild unchanged image families")
     publish_job = workflow.get("jobs", {}).get("publish", {})
