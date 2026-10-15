@@ -4,71 +4,11 @@
       "id": "buz/archive",
       "version": "1.0.0",
       "sha256": "8885fee963c8944b64f62887366bb5427f66a6f10171fb4080e1663c69824011",
-      "reviewed_at": "2026-10-16",
-      "review_commit": "caaf512",
-      "scope": "maintainer-reviewed: spec, run wrapper, egress baseline, prerequisites documented",
-      "source": "human",
+      "reviewed_at": "2026-10-15",
+      "review_commit": "9018393",
+      "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
+      "source": "ci",
       "category": "artifact"
-    },
-    {
-      "id": "buz/docker-compose",
-      "version": "1.0.0",
-      "sha256": "c5325efb7262cf227f481b0b0cbd9c92659744a99dd7ad4d83058b2b42478a2e",
-      "reviewed_at": "2026-10-16",
-      "review_commit": "caaf512",
-      "scope": "maintainer-reviewed: spec, run wrapper, egress baseline, prerequisites documented",
-      "source": "human",
-      "category": "deploy"
-    },
-    {
-      "id": "buz/docker",
-      "version": "1.0.0",
-      "sha256": "43dde7ad70e6a7b3b859e45f0da31b8e40a6776bb54d41cd46da8b51cf2d1abc",
-      "reviewed_at": "2026-10-16",
-      "review_commit": "caaf512",
-      "scope": "maintainer-reviewed: spec, run wrapper, egress baseline, prerequisites documented",
-      "source": "human",
-      "category": "build"
-    },
-    {
-      "id": "buz/git-clone",
-      "version": "1.0.0",
-      "sha256": "880175443061048f3042c14f6ce799f866b21abf1ba577b17b18de8f1c0420b4",
-      "reviewed_at": "2026-10-16",
-      "review_commit": "caaf512",
-      "scope": "maintainer-reviewed: spec, run wrapper, egress baseline, prerequisites documented",
-      "source": "human",
-      "category": "source"
-    },
-    {
-      "id": "buz/webhook-notify",
-      "version": "1.0.0",
-      "sha256": "5aa03ada210f08b592267106e3cf194eac478e28f75242ef817b00a6303676fe",
-      "reviewed_at": "2026-10-16",
-      "review_commit": "caaf512",
-      "scope": "maintainer-reviewed: spec, run wrapper, egress baseline, prerequisites documented",
-      "source": "human",
-      "category": "notifications"
-    },
-    {
-      "id": "buz/k8s-apply",
-      "version": "1.0.0",
-      "sha256": "e94dcf5f9cdd898aed69fb7e0904df3b6da5472d49c628781c5c128d09878810",
-      "reviewed_at": "2026-10-16",
-      "review_commit": "caaf512",
-      "scope": "maintainer-reviewed: spec, run wrapper, egress baseline, prerequisites documented",
-      "source": "human",
-      "category": "deploy"
-    },
-    {
-      "id": "buz/helm-upgrade",
-      "version": "1.0.0",
-      "sha256": "5edc18374ea856518afa9a08c7b931a6093643db32e45739dbb0f9769fc23517",
-      "reviewed_at": "2026-10-16",
-      "review_commit": "caaf512",
-      "scope": "maintainer-reviewed: spec, run wrapper, egress baseline, prerequisites documented",
-      "source": "human",
-      "category": "deploy"
     },
     {
       "id": "buz/dingtalk",
@@ -81,6 +21,26 @@
       "category": "notifications"
     },
     {
+      "id": "buz/docker",
+      "version": "1.0.0",
+      "sha256": "43dde7ad70e6a7b3b859e45f0da31b8e40a6776bb54d41cd46da8b51cf2d1abc",
+      "reviewed_at": "2026-10-15",
+      "review_commit": "9018393",
+      "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
+      "source": "ci",
+      "category": "build"
+    },
+    {
+      "id": "buz/docker-compose",
+      "version": "1.0.0",
+      "sha256": "c5325efb7262cf227f481b0b0cbd9c92659744a99dd7ad4d83058b2b42478a2e",
+      "reviewed_at": "2026-10-15",
+      "review_commit": "9018393",
+      "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
+      "source": "ci",
+      "category": "deploy"
+    },
+    {
       "id": "buz/feishu",
       "version": "1.0.0",
       "sha256": "78b0739fffb8f2e3715de25b4fe5e30e92c9be28f1735bba18c05baa92695134",
@@ -91,6 +51,26 @@
       "category": "notifications"
     },
     {
+      "id": "buz/git-clone",
+      "version": "1.0.0",
+      "sha256": "880175443061048f3042c14f6ce799f866b21abf1ba577b17b18de8f1c0420b4",
+      "reviewed_at": "2026-10-15",
+      "review_commit": "9018393",
+      "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
+      "source": "ci",
+      "category": "source"
+    },
+    {
+      "id": "buz/helm-upgrade",
+      "version": "1.0.0",
+      "sha256": "5edc18374ea856518afa9a08c7b931a6093643db32e45739dbb0f9769fc23517",
+      "reviewed_at": "2026-10-15",
+      "review_commit": "9018393",
+      "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
+      "source": "ci",
+      "category": "deploy"
+    },
+    {
       "id": "buz/http-check",
       "version": "1.0.0",
       "sha256": "5f21d3640399b2cfc4d261fe84b41678b4251ffb7d00495d108502a1a0d8b6e1",
@@ -99,6 +79,16 @@
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "healthcheck"
+    },
+    {
+      "id": "buz/k8s-apply",
+      "version": "1.0.0",
+      "sha256": "e94dcf5f9cdd898aed69fb7e0904df3b6da5472d49c628781c5c128d09878810",
+      "reviewed_at": "2026-10-15",
+      "review_commit": "9018393",
+      "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
+      "source": "ci",
+      "category": "deploy"
     },
     {
       "id": "buz/oss-upload",
@@ -249,6 +239,16 @@
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "networking"
+    },
+    {
+      "id": "buz/webhook-notify",
+      "version": "1.0.0",
+      "sha256": "5aa03ada210f08b592267106e3cf194eac478e28f75242ef817b00a6303676fe",
+      "reviewed_at": "2026-10-15",
+      "review_commit": "9018393",
+      "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
+      "source": "ci",
+      "category": "notifications"
     },
     {
       "id": "buz/wecom",
