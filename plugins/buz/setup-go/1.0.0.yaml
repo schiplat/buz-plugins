@@ -9,7 +9,7 @@ keywords: [go, golang, build, toolchain, 构建]
 license: Apache-2.0
 source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/setup-go/1.0.0.yaml
 engine: docker
-image: docker.io/schiplat/go:1.0.0
+image: docker.io/schiplat/go@sha256:47f83f55e968ab6d6cbe8f79057910383c5ba707d06c3225dc2cd02f4f696259
 default_timeout: 30m
 inputs:
   script:
