@@ -45,7 +45,7 @@ The `image:` field is the contract between a template and the build pipeline:
 1. **Initial template** must reference `docker.io/schiplat/<family-image>:1.0.0`
    (the literal tag, matching the spec version `1.0.0`). The tag does not need
    to exist in the registry yet.
-2. A push that touches `image/**` (or the template) publishes
+2. A push that touches the image build context publishes
    `<image>:<VERSION>-build.<RUN_NUMBER>.<RUN_ATTEMPT>` — a unique build tag,
    never a production pin.
 3. The `pin-template` job then opens/updates a PR on branch

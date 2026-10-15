@@ -28,7 +28,7 @@ inputs:
   cache:
     type: boolean
     default: "false"
-    description: Persist the cargo registry in <workspace>/.cache/rust/cargo across jobs on this Runner.
+    description: Persist the cargo registry and on-demand rustup toolchains in <workspace>/.cache/rust across jobs on this Runner.
 run: |
   set -eu
 
@@ -46,27 +46,36 @@ run: |
     cd "$workdir"
   fi
 
-  version="${INPUT_VERSION:-stable}"
-  case "$version" in
-    stable|lts) ;;
-    dev|nightly)
-      rustup toolchain install nightly --profile minimal
-      rustup default nightly
-      ;;
-    *)
-      rustup toolchain install "$version" --profile minimal
-      rustup default "$version"
-      ;;
-  esac
-  rustc --version
-
-  if [ "${INPUT_CACHE:-false}" = "true" ]; then
+  cache="${INPUT_CACHE:-false}"
+  if [ "$cache" = "true" ]; then
     cargo_cache=/buz/workspace/.cache/rust/cargo
     mkdir -p "$cargo_cache"
     export CARGO_HOME="$cargo_cache"
     PATH="/usr/local/cargo/bin:$cargo_cache/bin:$PATH"
     export PATH
   fi
+
+  version="${INPUT_VERSION:-stable}"
+  case "$version" in
+    stable|lts) ;;
+    *)
+      # persist on-demand toolchains so later jobs skip the download
+      if [ "$cache" = "true" ]; then
+        rustup_home=/buz/workspace/.cache/rust/rustup
+        mkdir -p "$rustup_home"
+        export RUSTUP_HOME="$rustup_home"
+        PATH="/usr/local/cargo/bin:$PATH"
+        export PATH
+      fi
+      case "$version" in
+        dev|nightly) toolchain=nightly ;;
+        *) toolchain="$version" ;;
+      esac
+      rustup toolchain install "$toolchain" --profile minimal
+      rustup default "$toolchain"
+      ;;
+  esac
+  rustc --version
 
   script_file="${TMPDIR:-/tmp}/buz-setup-script"
   printf '%s\n' "$INPUT_SCRIPT" > "$script_file"

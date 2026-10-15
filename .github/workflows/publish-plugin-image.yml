@@ -6,35 +6,15 @@ on:
       - master
     paths:
       - plugins/buz/oss-upload/image/**
-      - plugins/buz/oss-upload/*.yaml
-      - plugins/buz/oss-upload/*.yml
       - plugins/buz/s3-upload/image/**
-      - plugins/buz/s3-upload/*.yaml
-      - plugins/buz/s3-upload/*.yml
       - plugins/buz/setup-rust/image/**
-      - plugins/buz/setup-rust/*.yaml
-      - plugins/buz/setup-rust/*.yml
       - plugins/buz/setup-ruby/image/**
-      - plugins/buz/setup-ruby/*.yaml
-      - plugins/buz/setup-ruby/*.yml
       - plugins/buz/setup-php/image/**
-      - plugins/buz/setup-php/*.yaml
-      - plugins/buz/setup-php/*.yml
       - plugins/buz/setup-lua/image/**
-      - plugins/buz/setup-lua/*.yaml
-      - plugins/buz/setup-lua/*.yml
       - plugins/buz/setup-python/image/**
-      - plugins/buz/setup-python/*.yaml
-      - plugins/buz/setup-python/*.yml
       - plugins/buz/setup-node/image/**
-      - plugins/buz/setup-node/*.yaml
-      - plugins/buz/setup-node/*.yml
       - plugins/buz/setup-java/image/**
-      - plugins/buz/setup-java/*.yaml
-      - plugins/buz/setup-java/*.yml
       - plugins/buz/setup-go/image/**
-      - plugins/buz/setup-go/*.yaml
-      - plugins/buz/setup-go/*.yml
 
 permissions:
   contents: read

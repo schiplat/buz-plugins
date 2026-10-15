@@ -24,4 +24,4 @@ Runs POSIX `script` commands inside a pinned Rust toolchain (cargo/rustc). The i
 
 Every run prints the resolved `rustc --version` as the first log line. A rebuild of the image moves `stable` to the then-current release and bumps the template version.
 
-`cache: true` persists the cargo registry in `<workspace>/.cache/rust/cargo` and is reused by later jobs on the same Runner. Each step is an isolated container — pass state between steps through workspace files. Requires a Docker-enabled Runner with egress to crates.io/static.rust-lang.org.
+`cache: true` persists the cargo registry and any on-demand installed toolchains in `<workspace>/.cache/rust` and is reused by later jobs on the same Runner. Each step is an isolated container — pass state between steps through workspace files. Requires a Docker-enabled Runner with egress to crates.io/static.rust-lang.org.
