@@ -1,5 +1,9 @@
 # Plugin tool images
 
+Authoring conventions for templates that ship a tool image (image reference
+lifecycle, registering a family, run-block rules): see
+[image-template-conventions.md](image-template-conventions.md).
+
 Images target Linux `amd64` (x86_64) only. A push to `master` automatically triggers builds when an image build context changes (the OSS/S3 upload families under `plugins/buz/oss-upload` and `plugins/buz/s3-upload`, or the language toolchain families under `plugins/buz/setup-rust`, `plugins/buz/setup-ruby`, `plugins/buz/setup-php`, and `plugins/buz/setup-lua`), or when a YAML/YML template directly inside that plugin directory changes. The workflow builds only the corresponding image family; if multiple plugin families change in one push, it builds each as a separate matrix job. Documentation, workflow files, nested directories, and unrelated paths do not trigger a build. Automatic image tags use `1.0.<GitHub Actions run ID>`, making each run unique. The workflow is push-triggered only; it has no manual dispatch entry point. Configure `DOCKERHUB_USERNAME` as a repository Actions variable and `DOCKERHUB_TOKEN` as a repository Actions secret. The workflow refuses an existing version tag and writes a successful build's digest to the run summary.
 
 After each successful matrix build, the workflow uploads that family's manifest digest and opens or updates a family-specific PR pinning its template to `image@sha256:...`. If both families are selected and one build fails, the successful family can still open its PR; fix the failed build before retrying it. Identical digests do not create empty PRs. The PR branch is `automation/pin-<family>`.
