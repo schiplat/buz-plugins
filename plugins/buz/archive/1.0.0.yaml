@@ -1,0 +1,57 @@
+id: buz/archive
+category: artifact
+name: Archive workspace paths
+version: 1.0.0
+description: Pack workspace paths into a tar.gz archive with a sha256 checksum — pair with buz/oss-upload or buz/s3-upload to publish it.
+description_zh: 将 workspace 中的路径打包为 tar.gz 归档并生成 sha256 校验和——配合 buz/oss-upload 或 buz/s3-upload 发布。
+publisher: official
+author: "buz maintainers"
+keywords: [archive, tar, artifact, package, checksum, 打包]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/archive/1.0.0.yaml
+engine: shell
+default_timeout: 10m
+inputs:
+  paths:
+    type: string
+    required: true
+    description: Space-separated workspace-relative files or directories to pack.
+  output:
+    type: string
+    required: true
+    description: Archive path to create, workspace-relative (for example dist/release.tar.gz — parent directories are created).
+run: |
+  set -eu
+
+  : "${INPUT_PATHS:?paths is required}"
+  : "${INPUT_OUTPUT:?output is required}"
+
+  case "$INPUT_OUTPUT" in
+    /*|..|../*|*/../*|*/..)
+      printf 'output must be a relative path inside the Buz workspace\n' >&2
+      exit 2
+      ;;
+  esac
+
+  for p in $INPUT_PATHS; do
+    case "$p" in
+      /*|..|../*|*/../*|*/..)
+        printf 'paths must be relative inside the Buz workspace: %s\n' "$p" >&2
+        exit 2
+        ;;
+    esac
+    if [ ! -e "$p" ]; then
+      printf 'path does not exist: %s\n' "$p" >&2
+      exit 2
+    fi
+  done
+
+  output_dir=$(dirname "$INPUT_OUTPUT")
+  mkdir -p "$output_dir"
+
+  # paths: intentional word splitting — space-separated entries
+  # shellcheck disable=SC2086
+  tar -czf "$INPUT_OUTPUT" $INPUT_PATHS
+  sha256sum "$INPUT_OUTPUT" > "$INPUT_OUTPUT.sha256"
+
+  ls -l "$INPUT_OUTPUT" "$INPUT_OUTPUT.sha256"

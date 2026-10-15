@@ -93,5 +93,9 @@
   "buz/setup-go": {
     "hosts": [],
     "endpoint_inputs": []
+  },
+  "buz/archive": {
+    "hosts": [],
+    "endpoint_inputs": []
   }
 }
