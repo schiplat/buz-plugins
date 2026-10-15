@@ -9,7 +9,7 @@ keywords: [lua, luajit, build, toolchain, 构建]
 license: Apache-2.0
 source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/setup-lua/1.0.0.yaml
 engine: docker
-image: docker.io/schiplat/lua:1.0.0
+image: docker.io/schiplat/lua@sha256:8f1a0f1d5a0e542039484d1918fe75b8a8b378bd330ef1888fe5e6bdf6bdf1e3
 default_timeout: 30m
 inputs:
   script:
