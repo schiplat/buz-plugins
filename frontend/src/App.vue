@@ -160,6 +160,7 @@ const paged = computed(() => {
 })
 
 watch([search, publisher, engine, category, review, selectedKeywords], () => (page.value = 1))
+watch(page, () => window.scrollTo({ top: 0 }))
 
 function openPlugin(plugin: StepPlugin) {
   selectedPlugin.value = plugin
