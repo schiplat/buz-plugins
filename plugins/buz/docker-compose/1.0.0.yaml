@@ -2,8 +2,8 @@ id: buz/docker-compose
 category: deploy
 name: Docker Compose deployment
 version: 1.0.0
-description: Deploy a Docker Compose project on the target SSH host — optional image injection, pull, recreate, and status. Pair with buz/http-check for readiness.
-description_zh: 在目标 SSH 主机上部署 Docker Compose 项目——可选镜像注入、拉取、重建与状态输出；配合 buz/http-check 做就绪检查。
+description: Deploy a Docker Compose project on the target SSH host — optional image injection, pull, recreate, and status. Pair with buz/net-check for readiness.
+description_zh: 在目标 SSH 主机上部署 Docker Compose 项目——可选镜像注入、拉取、重建与状态输出；配合 buz/net-check 做就绪检查。
 publisher: official
 author: "buz maintainers"
 keywords: [docker, compose, deploy, ssh, release, 部署]
