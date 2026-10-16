@@ -21,7 +21,7 @@ steps:
 | `buz/dingtalk` | shell | DingTalk group-bot notification (optional HMAC signing) |
 | `buz/wecom` | shell | WeCom (WeChat Work) group-bot notification |
 | `buz/slack` | shell | Slack incoming webhook |
-| `buz/net-check` | shell | Readiness checks — HTTP status / TCP port / best-effort UDP polling (absorbs http-check & wait-for-tunnel) |
+| `buz/http-check` | shell | Readiness checks — HTTP status / TCP port / best-effort UDP polling (absorbs wait-for-tunnel) |
 | `buz/ssh-wait` | shell | Wait for SSH on a target host (after reboot/rebuild) |
 | `buz/oss-upload` | docker | Upload a workspace file to Alibaba Cloud OSS with ossutil v2 |
 | `buz/s3-upload` | docker | Upload a workspace file to S3 with AWS CLI v2 |

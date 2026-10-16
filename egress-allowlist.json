@@ -144,7 +144,7 @@
       "port"
     ]
   },
-  "buz/net-check": {
+  "buz/http-check": {
     "hosts": [],
     "endpoint_inputs": [
       "url",

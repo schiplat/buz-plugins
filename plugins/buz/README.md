@@ -11,7 +11,7 @@ under their own author namespace, not here.
 |-------|---------|---------|
 | Notifications | `feishu`, `dingtalk`, `wecom`, `slack` | Push job results to IM group bots (webhook, masked secret) |
 | Artifact upload | `oss-upload`, `s3-upload` | Upload a workspace file to Alibaba Cloud OSS / S3 |
-| Readiness & wait | `net-check`, `ssh-wait` | Poll HTTP/TCP/UDP or SSH until a deploy target is ready |
+| Readiness & wait | `http-check`, `ssh-wait` | Poll HTTP/TCP/UDP or SSH until a deploy target is ready |
 | Build toolchains | `setup-rust`, `setup-ruby`, `setup-php`, `setup-lua`, `setup-python`, `setup-node`, `setup-java`, `setup-go` | Run builds/tests inside pinned language toolchains (`stable`/`lts`/`dev` aliases, optional workspace cache) |
 
 ## Docker Hub

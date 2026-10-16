@@ -1,11 +1,11 @@
-# Network readiness check (HTTP / TCP / UDP)
+# HTTP / TCP / UDP check
 
-Polls a service until it is ready — one template for the three checks that used to be spread across `buz/http-check` and `buz/wait-for-tunnel` (both merged into this template). Requires `curl` and `nc` (openbsd-netcat) on the runner host.
+Polls a service until it is ready — one check template that covers HTTP status polling, TCP port probes, and best-effort UDP — the TCP cases that used to need `buz/wait-for-tunnel` are built in. Requires `curl` and `nc` (openbsd-netcat) on the runner host.
 
 ```yaml
 # HTTP status polling (default)
 - name: wait for http
-  uses: buz/net-check@1.0.0
+  uses: buz/http-check@1.0.0
   with:
     url: http://192.168.39.130:8081/health
     expect_status: 200
@@ -14,7 +14,7 @@ Polls a service until it is ready — one template for the three checks that use
 
 # TCP port probe (tunnel / frp scenarios)
 - name: wait for tcp
-  uses: buz/net-check@1.0.0
+  uses: buz/http-check@1.0.0
   protocol: tcp
   host: tunnel.example.com
   port: 7000
