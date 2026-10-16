@@ -18,6 +18,15 @@ Polls a service until it is ready — one check template that covers HTTP status
   protocol: tcp
   host: tunnel.example.com
   port: 7000
+
+# HTTP with Basic auth (1.1.0+)
+- name: wait for http (authenticated)
+  uses: buz/http-check@1.1.0
+  with:
+    url: https://service.example.com/health
+    username: ${secrets.HEALTH_USER}
+    password: ${secrets.HEALTH_PASSWORD}
+    expect_status: 200
 ```
 
 ## Inputs
@@ -28,6 +37,8 @@ Polls a service until it is ready — one check template that covers HTTP status
 | `url` | http | URL to poll — **required for http** |
 | `expect_status` | http | Expected status code (default `200`) |
 | `insecure` | http | Skip TLS verification (default `false`) |
+| `username` | http (1.1.0+) | HTTP Basic auth username — set together with `password` |
+| `password` | http (1.1.0+) | HTTP Basic auth password (masked; delivered via a curl config file, never a CLI argument) |
 | `host` | tcp/udp | Target host — **required for tcp/udp** |
 | `port` | tcp/udp | Target port |
 | `interval` | all | Sleep between attempts (sleep(1) format, default `5s`) |
