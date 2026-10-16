@@ -8,7 +8,7 @@ publisher: official
 author: "buz maintainers"
 keywords: [healthcheck, http, tcp, udp, nc, poll, readiness, wait, tunnel, frp, 健康检查, 就绪, 隧道]
 license: Apache-2.0
-source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz-http-check.yaml
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/http-check/1.1.0.yaml
 engine: shell
 default_timeout: 5m
 inputs:

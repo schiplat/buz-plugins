@@ -8,7 +8,7 @@ publisher: official
 author: "buz maintainers"
 keywords: [config, fetch, download, presigned, oss, s3, minio, r2, 配置, 下载]
 license: Apache-2.0
-source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz-config-fetch.yaml
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/config-fetch/1.0.0.yaml
 engine: shell
 default_timeout: 10m
 inputs:

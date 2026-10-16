@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import os
 from html.parser import HTMLParser
 from pathlib import Path, PurePosixPath
 from urllib.parse import urlsplit
@@ -38,6 +39,10 @@ class Links(HTMLParser):
             self.current = None
 
 
+def repo_root() -> str:
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dist-dir", default="dist", type=Path)
@@ -55,6 +60,14 @@ def main():
         if tmpl.get("publisher") == "official" and not source:
             errors.append(f"{tmpl.get('id')}: official template is missing source_repo")
             continue
+        # The link must resolve to a real file in this repo — stale flat-layout
+        # paths (plugins/buz-<name>.yaml) 404'd on the published site.
+        if source and source.startswith("https://github.com/schiplat/buz-plugins/blob/master/"):
+            rel = source.split("blob/master/", 1)[1]
+            if not os.path.exists(os.path.join(repo_root(), rel)):
+                errors.append(
+                    f"{tmpl.get('id')}: source_repo path does not exist in the repo: {rel}"
+                )
         if not source:
             continue
 

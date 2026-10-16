@@ -8,7 +8,7 @@ publisher: official
 author: "buz maintainers"
 keywords: [ssh, wait, reboot, deploy, deploy-wait, 重启, 部署]
 license: Apache-2.0
-source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz-ssh-wait.yaml
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/ssh-wait/1.0.0.yaml
 engine: shell
 default_timeout: 15m
 inputs:

@@ -8,7 +8,7 @@ publisher: official
 author: "buz maintainers"
 keywords: [docker, login, registry, push, pull, 登录, 镜像仓库]
 license: Apache-2.0
-source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz-docker-login.yaml
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/docker-login/1.0.0.yaml
 engine: shell
 engines: [shell, ssh]
 default_timeout: 2m
