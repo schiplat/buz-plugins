@@ -2,6 +2,16 @@
   "reviews": [
     {
       "id": "buz/http-check",
+      "version": "1.1.0",
+      "sha256": "41e5fed11689311edfeeca2615d2a9d4a522f70b85866511ac9eb4ac519275e7",
+      "reviewed_at": "2026-10-16",
+      "review_commit": "a78de07",
+      "scope": "static-lint + manual",
+      "source": "human",
+      "category": "healthcheck"
+    },
+    {
+      "id": "buz/http-check",
       "version": "1.0.0",
       "sha256": "05c846d44096cf7abc77fc265efebd09b607cd1b42b21bd43039f4b1bd4e6ae0",
       "reviewed_at": "2026-10-16",

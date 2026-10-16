@@ -1,0 +1,122 @@
+id: buz/http-check
+category: healthcheck
+name: Network readiness check (HTTP / TCP / UDP)
+version: 1.1.0
+description: "Poll a service until it is ready — HTTP status polling (curl), TCP port probe (nc -z), or best-effort UDP probe. Absorbs the old buz/http-check and buz/wait-for-tunnel use cases. Requires curl and nc (openbsd-netcat) on the Runner."
+description_zh: "轮询服务直至就绪——HTTP 状态码轮询（curl）、TCP 端口探测（nc -z）、尽力而为的 UDP 探测。整合原 buz/http-check 与 buz/wait-for-tunnel 的场景。需要 Runner 装有 curl 和 nc（openbsd-netcat）。"
+publisher: official
+author: "buz maintainers"
+keywords: [healthcheck, http, tcp, udp, nc, poll, readiness, wait, tunnel, frp, 健康检查, 就绪, 隧道]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz-http-check.yaml
+engine: shell
+default_timeout: 5m
+inputs:
+  # Each input is tagged with the protocol(s) it applies to:
+  #   [all]  every protocol   [http]  protocol=http only
+  #   [tcp/udp] protocol=tcp or udp
+  protocol:
+    type: string
+    default: http
+    description: "[all] Check protocol — http (default) | tcp | udp. Determines which other inputs apply."
+  url:                # [http]
+    type: string
+    description: "[http] URL to poll — required when protocol=http"
+  expect_status:      # [http]
+    type: number
+    default: "200"
+    description: "[http] Expected HTTP status code"
+  insecure:           # [http]
+    type: boolean
+    default: "false"
+    description: "[http] Skip TLS certificate verification"
+  username:           # [http] (1.1.0+)
+    type: string
+    description: "[http] HTTP Basic auth username — set together with password (delivered via a curl config file, never a CLI argument)"
+  password:           # [http] (1.1.0+)
+    type: string
+    masking: true
+    description: "[http] HTTP Basic auth password — set together with username"
+  host:               # [tcp/udp]
+    type: string
+    description: "[tcp/udp] Target host — required when protocol=tcp or udp"
+  port:               # [tcp/udp]
+    type: number
+    description: "[tcp/udp] Target port — required when protocol=tcp or udp"
+  interval:           # [all]
+    type: string
+    default: 5s
+    description: "[all] Sleep between attempts (sleep(1) suffix format)"
+  attempts:           # [all]
+    type: number
+    default: "24"
+    description: "[all] Total attempts before failing"
+run: |
+  set -eu
+  PROTO=$(printf '%s' "${INPUT_PROTOCOL:-http}" | tr '[:upper:]' '[:lower:]')
+  case "$PROTO" in
+    http|tcp|udp) ;;
+    *)
+      printf 'protocol: unknown value %s — use http, tcp, or udp\n' "$PROTO" >&2
+      exit 2
+      ;;
+  esac
+  if [ "$PROTO" = "http" ]; then
+    : "${INPUT_URL:?url is required for protocol http}"
+  else
+    : "${INPUT_HOST:?host is required for protocol $PROTO}"
+    : "${INPUT_PORT:?port is required for protocol $PROTO}"
+  fi
+
+  i=1
+  while [ "$i" -le "${INPUT_ATTEMPTS:-24}" ]; do
+    OK=1
+    DETAIL=""
+    case "$PROTO" in
+      http)
+        # Optional HTTP Basic auth via a curl config file —
+        # values never appear as CLI arguments.
+        CURL_CFG=""
+        if [ -n "${INPUT_USERNAME:-}" ] && [ -n "${INPUT_PASSWORD:-}" ]; then
+          CURL_CFG="$(mktemp /tmp/buz-http-check-curl.XXXXXX)"
+          trap 'rm -f "$CURL_CFG"' EXIT
+          printf 'user = "%s:%s"\n' "$INPUT_USERNAME" "$INPUT_PASSWORD" > "$CURL_CFG"
+        elif [ -n "${INPUT_USERNAME:-}" ] || [ -n "${INPUT_PASSWORD:-}" ]; then
+          printf 'username and password must be set together\n' >&2
+          exit 2
+        fi
+        CURL_FLAGS="-fsS -o /dev/null -w %{http_code} -m 10"
+        if [ "${INPUT_INSECURE:-false}" = "true" ]; then
+          CURL_FLAGS="$CURL_FLAGS -k"
+        fi
+        if [ -n "$CURL_CFG" ]; then
+          STATUS=$(curl $CURL_FLAGS -K "$CURL_CFG" "$INPUT_URL" 2>/dev/null || true)
+        else
+          STATUS=$(curl $CURL_FLAGS "$INPUT_URL" 2>/dev/null || true)
+        fi
+        DETAIL="$INPUT_URL -> ${STATUS:-no-response}"
+        [ "$STATUS" = "${INPUT_EXPECT_STATUS:-200}" ] && OK=0
+        ;;
+      tcp)
+        # udp: best-effort — most UDP services never reply to empty probes;
+        # prefer an application-level check when confirmation matters.
+        if [ "$PROTO" = "udp" ]; then
+          nc -u -z -w 5 "$INPUT_HOST" "$INPUT_PORT" && OK=0
+          DETAIL="$INPUT_HOST:$INPUT_PORT/udp (best-effort)"
+        else
+          nc -z -w 5 "$INPUT_HOST" "$INPUT_PORT" && OK=0
+          DETAIL="$INPUT_HOST:$INPUT_PORT"
+        fi
+        ;;
+    esac
+    if [ "$OK" = "0" ]; then
+      printf 'ready after %s attempt(s): %s\n' "$i" "$DETAIL"
+      exit 0
+    fi
+    printf 'attempt %s/%s failed: %s\n' "$i" "${INPUT_ATTEMPTS:-24}" "$DETAIL"
+    sleep "${INPUT_INTERVAL:-5s}"
+    i=$((i + 1))
+  done
+  printf 'health check failed: %s never became ready after %s attempts\n' \
+    "$DETAIL" "${INPUT_ATTEMPTS:-24}" >&2
+  exit 1
