@@ -1,6 +1,16 @@
 {
   "reviews": [
     {
+      "id": "buz/net-check",
+      "version": "1.0.0",
+      "sha256": "2a940255a56ab05b29fa67654a0f636f94d1c7cb95015581660a16b8a7eb5878",
+      "reviewed_at": "2026-10-16",
+      "review_commit": "311a147",
+      "scope": "static-lint + manual",
+      "source": "human",
+      "category": "healthcheck"
+    },
+    {
       "id": "buz/scp",
       "version": "1.0.0",
       "sha256": "ee19e26097c3f989fb2e92ac282a7e627f92a4157b097ca28cb4aca0f96607e3",

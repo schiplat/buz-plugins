@@ -25,19 +25,6 @@
       "endpoint_url"
     ]
   },
-  "buz/http-check": {
-    "hosts": [],
-    "endpoint_inputs": [
-      "url"
-    ]
-  },
-  "buz/wait-for-tunnel": {
-    "hosts": [],
-    "endpoint_inputs": [
-      "host",
-      "port"
-    ]
-  },
   "buz/dingtalk": {
     "hosts": [],
     "endpoint_inputs": [
@@ -153,6 +140,14 @@
   "buz/scp": {
     "hosts": [],
     "endpoint_inputs": [
+      "host",
+      "port"
+    ]
+  },
+  "buz/net-check": {
+    "hosts": [],
+    "endpoint_inputs": [
+      "url",
       "host",
       "port"
     ]

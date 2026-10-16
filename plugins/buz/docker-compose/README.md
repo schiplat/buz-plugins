@@ -35,5 +35,5 @@ steps:
   the compose file; pass the tag from a trigger input.
 - Requires Buz 1.7.5+ (`requires_buz`). Image pulls run on the target host's
   Docker daemon — outside the template egress checker's view.
-- Pair with [`buz/http-check`](../http-check/README.md) after this step for
+- Pair with [`buz/net-check`](../http-check/README.md) after this step for
   readiness polling, and store registry/webhook values as Manager Secrets.
