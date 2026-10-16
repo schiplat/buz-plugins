@@ -1,0 +1,53 @@
+id: buz/config-fetch
+category: source
+name: Fetch config bundle into the workspace
+version: 1.0.0
+description: Download a configuration bundle (tar.gz) into the workspace and unpack it — typically a presigned object-storage URL (OSS / S3 / MinIO / R2). Pair with the `config.render` block on later steps (render-only mode) to render env files. Requires curl and tar on the Runner host.
+description_zh: 下载配置包（tar.gz）到工作区并解包——通常使用对象存储的预签名 URL（OSS / S3 / MinIO / R2 通用）。后续步骤配合 config.render（render-only 模式）渲染 env 文件。需要 Runner 主机装有 curl 和 tar。
+publisher: official
+author: "buz maintainers"
+keywords: [config, fetch, download, presigned, oss, s3, minio, r2, 配置, 下载]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz-config-fetch.yaml
+engine: shell
+default_timeout: 10m
+inputs:
+  url:
+    type: string
+    required: true
+    masking: true
+    description: HTTPS URL of a .tar.gz bundle — presigned object-storage URLs keep bucket credentials out of the pipeline entirely
+  dest:
+    type: string
+    required: true
+    description: Relative workspace directory to unpack into (created as needed; absolute paths and `..` are rejected)
+  strip_components:
+    type: number
+    default: "0"
+    description: Remove leading path components when unpacking (tar --strip-components)
+  max_time:
+    type: number
+    default: "540"
+    description: Download timeout in seconds (curl --max-time; stays under the 10m step timeout)
+run: |
+  set -eu
+  : "${INPUT_URL:?url is required}"
+  : "${INPUT_DEST:?dest is required}"
+  case "$INPUT_DEST" in
+    /*|*..*)
+      printf 'dest must be a relative path inside the workspace (no leading /, no ..): %s\n' \
+        "$INPUT_DEST" >&2
+      exit 2
+      ;;
+  esac
+  mkdir -p "$INPUT_DEST"
+  tmp="$(mktemp "${TMPDIR:-/tmp}/buz-config-fetch.XXXXXX")"
+  trap 'rm -f "$tmp"' EXIT
+  curl -fsSL --retry 2 --max-time "${INPUT_MAX_TIME:-540}" -o "$tmp" "$INPUT_URL"
+  if [ "${INPUT_STRIP_COMPONENTS:-0}" != "0" ]; then
+    tar -xzf "$tmp" --strip-components="$INPUT_STRIP_COMPONENTS" -C "$INPUT_DEST"
+  else
+    tar -xzf "$tmp" -C "$INPUT_DEST"
+  fi
+  printf 'config bundle unpacked to %s (%s bytes downloaded)\n' \
+    "$INPUT_DEST" "$(wc -c < "$tmp" | tr -d ' ')"

@@ -1,0 +1,34 @@
+id: buz/docker-login
+category: build
+name: Docker registry login
+version: 1.0.0
+description: Log the Docker CLI into a registry for later steps (docker build/push, engine docker pulls). Credentials land in the job-scoped DOCKER_CONFIG dir and are removed when the job ends. Requires the Docker CLI on the Runner host.
+description_zh: 登录容器镜像仓库，供后续步骤使用（docker build/push、docker 引擎拉私有镜像）。凭证写入 job 级 DOCKER_CONFIG 目录，job 结束即清除。需要 Runner 主机装有 Docker CLI。
+publisher: official
+author: "buz maintainers"
+keywords: [docker, login, registry, push, pull, 登录, 镜像仓库]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz-docker-login.yaml
+engine: shell
+default_timeout: 2m
+inputs:
+  registry:
+    type: string
+    required: true
+    description: Registry host (e.g. registry.example.com); multiple registries → one step each
+  username:
+    type: string
+    required: true
+  password:
+    type: string
+    required: true
+    masking: true
+    description: Password or access token — delivered via --password-stdin, never a CLI argument
+run: |
+  set -eu
+  : "${INPUT_REGISTRY:?registry is required}"
+  : "${INPUT_USERNAME:?username is required}"
+  : "${INPUT_PASSWORD:?password is required}"
+  printf '%s\n' "$INPUT_PASSWORD" | docker login --username "$INPUT_USERNAME" --password-stdin "$INPUT_REGISTRY"
+  printf 'docker login ok: %s (config dir: %s)\n' \
+    "$INPUT_REGISTRY" "${DOCKER_CONFIG:-$HOME/.docker}"

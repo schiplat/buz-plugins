@@ -125,5 +125,23 @@
   "buz/helm-upgrade": {
     "hosts": [],
     "endpoint_inputs": []
+  },
+  "buz/docker-login": {
+    "hosts": [],
+    "endpoint_inputs": [
+      "registry"
+    ]
+  },
+  "buz/docker-logout": {
+    "hosts": [],
+    "endpoint_inputs": [
+      "registry"
+    ]
+  },
+  "buz/config-fetch": {
+    "hosts": [],
+    "endpoint_inputs": [
+      "url"
+    ]
   }
 }
