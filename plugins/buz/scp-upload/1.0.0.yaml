@@ -1,0 +1,71 @@
+id: buz/scp-upload
+category: deploy
+name: Upload file to target host via scp
+version: 1.0.0
+description: "Copy one file from the Buz workspace to a target host over SSH/SCP (engine: shell — runs on the Runner). Key-based auth only: the private key is a masked input written to a per-step temp file and removed afterwards. Prerequisites: ssh/scp on the Runner; the target's `authorized_keys` must trust the matching public key (config only — nothing is installed on the target)."
+description_zh: "通过 SSH/SCP 将 Buz 工作区中的单个文件复制到目标主机(engine: shell,在 Runner 上执行)。仅支持密钥认证:私钥为 masked 输入,写入步骤级临时文件用后即删。前提:Runner 装有 ssh/scp;目标机 authorized_keys 信任对应公钥(仅配置,目标机不安装任何东西)。"
+publisher: official
+author: "buz maintainers"
+keywords: [scp, ssh, upload, copy, deploy, target, 上传, 目标机]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz-scp-upload.yaml
+engine: shell
+default_timeout: 10m
+inputs:
+  host:
+    type: string
+    required: true
+    description: Target host (IP or hostname)
+  port:
+    type: number
+    default: "22"
+  user:
+    type: string
+    default: root
+  ssh_private_key:
+    type: string
+    required: true
+    masking: true
+    description: Private key (OpenSSH format, multi-line) whose public key is trusted by the target's authorized_keys
+  source:
+    type: string
+    required: true
+    description: File path relative to the Buz workspace (absolute paths and `..` are rejected)
+  dest:
+    type: string
+    required: true
+    description: Absolute destination path on the target host (parent directories are created via ssh mkdir)
+run: |
+  set -eu
+  : "${INPUT_HOST:?host is required}"
+  : "${INPUT_USER:?user is required}"
+  : "${INPUT_SSH_PRIVATE_KEY:?ssh_private_key is required}"
+  : "${INPUT_SOURCE:?source is required}"
+  : "${INPUT_DEST:?dest is required}"
+  case "$INPUT_SOURCE" in
+    /*|..|../*|*/../*|*/..|*..*)
+      printf 'source must be a relative path inside the Buz workspace (no ..)\n' >&2
+      exit 2
+      ;;
+  esac
+  case "$INPUT_DEST" in
+    /*) ;;
+    *)
+      printf 'dest must be an absolute path on the target host (for example /opt/app/file.tar.gz)\n' >&2
+      exit 2
+      ;;
+  esac
+  [ -f "$INPUT_SOURCE" ] || { printf 'source file not found in workspace: %s\n' "$INPUT_SOURCE" >&2; exit 2; }
+
+  key="$(mktemp /tmp/buz-scp-key.XXXXXX)"
+  trap 'rm -f "$key"' EXIT
+  printf '%s\n' "$INPUT_SSH_PRIVATE_KEY" > "$key"
+  chmod 600 "$key"
+
+  ssh -i "$key" -o StrictHostKeyChecking=accept-new -o BatchMode=yes \
+    -p "${INPUT_PORT:-22}" "${INPUT_USER}@${INPUT_HOST}" \
+    "mkdir -p '$(printf '%s' "$INPUT_DEST" | sed "s/'/'\\\\''/g" | sed "s|[^/]*$||")'"
+
+  scp -i "$key" -o StrictHostKeyChecking=accept-new -o BatchMode=yes \
+    -P "${INPUT_PORT:-22}" "$INPUT_SOURCE" "${INPUT_USER}@${INPUT_HOST}:$INPUT_DEST"
+  printf 'scp ok: %s -> %s@%s:%s\n' "$INPUT_SOURCE" "$INPUT_USER" "$INPUT_HOST" "$INPUT_DEST"

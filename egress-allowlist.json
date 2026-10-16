@@ -149,5 +149,12 @@
     "endpoint_inputs": [
       "endpoint"
     ]
+  },
+  "buz/scp-upload": {
+    "hosts": [],
+    "endpoint_inputs": [
+      "host",
+      "port"
+    ]
   }
 }
