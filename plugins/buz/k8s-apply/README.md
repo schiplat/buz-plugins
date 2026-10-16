@@ -32,4 +32,4 @@ steps:
 - The kubeconfig temp file is removed when the step process exits; secrets
   are additionally masked in streamed logs.
 - Pair with a `kubectl rollout status` follow-up (via the same pattern) or a
-  `buz/http-check` step when the workload exposes an endpoint.
+  `buz/net-check` step when the workload exposes an endpoint.
