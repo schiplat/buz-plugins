@@ -31,7 +31,7 @@ steps:
 | `buz/docker` | docker | Build and push an OCI image from a workspace context (requires the host Docker socket) |
 | `buz/docker-login` | shell/ssh | Registry login — Runner host by default, or target hosts via `engine: ssh` (pair with `buz/docker-logout`) |
 | `buz/docker-logout` | shell | Best-effort registry logout on the Runner host |
-| `buz/config-fetch` | shell/ssh | Download + unpack a config bundle (presigned OSS/S3/MinIO/R2 URL) — Runner workspace or target hosts via `engine: ssh` |
+| `buz/config-fetch` | shell/ssh | Download + unpack a config bundle (presigned OSS/S3/MinIO/R2 URL, optional Basic/header auth) — Runner workspace or target hosts via `engine: ssh` |
 | `buz/git-clone` | shell | Clone a Git repository into the workspace (shallow, token auth) |
 | `buz/webhook-notify` | shell | Generic JSON webhook notifications with job metadata |
 | `buz/k8s-apply` | shell | Apply workspace manifests to Kubernetes with kubectl |

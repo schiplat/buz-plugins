@@ -1,0 +1,93 @@
+id: buz/config-fetch
+category: source
+name: Fetch config bundle into the workspace
+version: 1.1.0
+description: "Download a configuration bundle (tar.gz) and unpack it from a presigned object-storage URL (OSS / S3 / MinIO / R2), with optional HTTP Basic or header-based authentication. Dual engine: shell unpacks into the Runner workspace; engine: ssh (set `host:`) unpacks into an absolute directory on each target host. Pair with the `config.render` block on later steps (render-only mode). Requires curl and tar where it runs."
+description_zh: 下载配置包（tar.gz）到工作区并解包——通常使用对象存储的预签名 URL（OSS / S3 / MinIO / R2 通用）。后续步骤配合 config.render（render-only 模式）渲染 env 文件。需要 Runner 主机装有 curl 和 tar。
+publisher: official
+author: "buz maintainers"
+keywords: [config, fetch, download, presigned, oss, s3, minio, r2, 配置, 下载]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz-config-fetch.yaml
+engine: shell
+engines: [shell, ssh]
+default_timeout: 10m
+inputs:
+  url:
+    type: string
+    required: true
+    masking: true
+    description: HTTPS URL of a .tar.gz bundle — presigned object-storage URLs keep bucket credentials out of the pipeline entirely
+  username:
+    type: string
+    description: HTTP Basic auth username — set together with password (delivered via curl config, never a CLI argument)
+  password:
+    type: string
+    masking: true
+    description: HTTP Basic auth password — set together with username
+  headers:
+    type: string
+    masking: true
+    description: 'Extra curl headers, one per line (for example "Authorization: Bearer <token>"); each non-empty line is passed as a single -H'
+  dest:
+    type: string
+    required: true
+    description: Relative workspace directory to unpack into (created as needed; absolute paths and `..` are rejected)
+  strip_components:
+    type: number
+    default: "0"
+    description: Remove leading path components when unpacking (tar --strip-components)
+  max_time:
+    type: number
+    default: "540"
+    description: Download timeout in seconds (curl --max-time; stays under the 10m step timeout)
+run: |
+  set -eu
+  : "${INPUT_URL:?url is required}"
+  : "${INPUT_DEST:?dest is required}"
+  # dest context (engine overridable — buz/docker-login style dual engine):
+  #   shell  (Runner host) → relative, inside the job workspace
+  #   ssh    (target host) → absolute path on that host
+  case "$INPUT_DEST" in
+    /*|*..*)
+      if [ "$BUZ_STEP_ENGINE" != "ssh" ]; then
+        printf 'dest must be a relative path inside the workspace (no leading /, no ..): %s\n' \
+          "$INPUT_DEST" >&2
+        exit 2
+      fi
+      ;;
+    *)
+      if [ "$BUZ_STEP_ENGINE" = "ssh" ]; then
+        printf 'relative dest resolves inside the Runner workspace — use an absolute dest with engine: ssh\n' >&2
+        exit 2
+      fi
+      ;;
+  esac
+  mkdir -p "$INPUT_DEST"
+  tmp="$(mktemp "${TMPDIR:-/tmp}/buz-config-fetch.XXXXXX")"
+  trap 'rm -f "$tmp"' EXIT
+  # Optional auth (Basic and/or extra headers) via a curl config file —
+  # values never appear as CLI arguments.
+  cfg="$(mktemp /tmp/buz-config-fetch-curl.XXXXXX)"
+  trap 'rm -f "$tmp" "$cfg"' EXIT
+  {
+    if [ -n "${INPUT_USERNAME:-}" ] && [ -n "${INPUT_PASSWORD:-}" ]; then
+      printf 'user = "%s:%s"\n' "$INPUT_USERNAME" "$INPUT_PASSWORD"
+    elif [ -n "${INPUT_USERNAME:-}" ] || [ -n "${INPUT_PASSWORD:-}" ]; then
+      printf 'username and password must be set together\n' >&2
+      exit 2
+    fi
+    if [ -n "${INPUT_HEADERS:-}" ]; then
+      printf '%s\n' "$INPUT_HEADERS" | while IFS= read -r h; do
+        [ -n "$h" ] && printf 'header = %s\n' "$h"
+      done
+    fi
+  } > "$cfg"
+  curl -fsSL --retry 2 --max-time "${INPUT_MAX_TIME:-540}" -K "$cfg" -o "$tmp" "$INPUT_URL"
+  if [ "${INPUT_STRIP_COMPONENTS:-0}" != "0" ]; then
+    tar -xzf "$tmp" --strip-components="$INPUT_STRIP_COMPONENTS" -C "$INPUT_DEST"
+  else
+    tar -xzf "$tmp" -C "$INPUT_DEST"
+  fi
+  printf 'config bundle unpacked to %s (%s bytes downloaded)\n' \
+    "$INPUT_DEST" "$(wc -c < "$tmp" | tr -d ' ')"
