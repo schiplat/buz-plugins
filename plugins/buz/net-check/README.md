@@ -1,6 +1,6 @@
 # Network readiness check (HTTP / TCP / UDP)
 
-Polls a service until it is ready — one template for the three checks that used to be spread across `buz/net-check` and `buz/wait-for-tunnel`. Requires `curl` and `nc` (openbsd-netcat) on the runner host.
+Polls a service until it is ready — one template for the three checks that used to be spread across `buz/http-check` and `buz/wait-for-tunnel` (both merged into this template). Requires `curl` and `nc` (openbsd-netcat) on the runner host.
 
 ```yaml
 # HTTP status polling (default)
