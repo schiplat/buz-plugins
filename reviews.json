@@ -1,6 +1,16 @@
 {
   "reviews": [
     {
+      "id": "buz/scp-upload",
+      "version": "1.0.0",
+      "sha256": "ef759501d9608c3ab407b61657d27da3c75a54d57657284d86079c06f4b4bb48",
+      "reviewed_at": "2026-10-16",
+      "review_commit": "a149814",
+      "scope": "static-lint + manual",
+      "source": "human",
+      "category": "deploy"
+    },
+    {
       "id": "buz/oss-download",
       "version": "1.0.0",
       "sha256": "ae05501317a2e61baf92a212d5f42e3dc3b834ea4f52baf9e2501cded70c42cf",
