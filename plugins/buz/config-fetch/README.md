@@ -31,7 +31,8 @@ Downloads a configuration bundle (`.tar.gz`) and unpacks it — the delivery hal
 | Bearer / custom headers | ✅ (1.1.0+) | `headers` input (masked) — one curl header per line, e.g. `Authorization: Bearer <token>`. |
 | Bucket AK/SK direct | planned (tool image) | Deferred until the tool-image channel ships. |
 
-`url` is masked. `dest` semantics follow the engine (relative workspace path on shell; absolute target path on ssh). `strip_components` maps to `tar --strip-components`, `max_time` to the curl download timeout. Authenticated example:
+`url` is masked. `dest` semantics follow the engine (relative workspace path on shell; absolute target path on ssh). `strip_components` maps to `tar --strip-components`, `max_time` to the curl download timeout. 
+Authenticated example:
 
 ```yaml
 - name: fetch config (authenticated)

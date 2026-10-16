@@ -1,6 +1,16 @@
 {
   "reviews": [
     {
+      "id": "buz/config-fetch",
+      "version": "1.1.0",
+      "sha256": "6dd1cc1da40102352ad176f7b4767b9675687056511ed634629676b87d839e29",
+      "reviewed_at": "2026-10-16",
+      "review_commit": "3d658b2",
+      "scope": "static-lint + manual",
+      "source": "human",
+      "category": "source"
+    },
+    {
       "id": "buz/archive",
       "version": "1.0.0",
       "sha256": "8885fee963c8944b64f62887366bb5427f66a6f10171fb4080e1663c69824011",
