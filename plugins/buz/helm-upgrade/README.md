@@ -36,4 +36,4 @@ steps:
   least-privileged ServiceAccount kubeconfig.
 - `--wait --timeout 10m` is always applied so the step fails when the
   release does not become ready.
-- Pair with `buz/net-check` when the workload exposes an endpoint.
+- Pair with `buz/http-check` when the workload exposes an endpoint.
