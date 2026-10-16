@@ -66,10 +66,6 @@ aws s3 presign s3://<bucket>/config_tpl/<app>/<tag>/configs.tar.gz --expires-in 
 
 `headers` accepts multiple lines — each non-empty line is passed as a single curl `-H`, and every line is masked in logs.
 
-### 5. Bucket AK/SK direct (OSS) — use [`buz/oss-download`](../oss-download/README.md)
-
-The dedicated OSS plugin takes AK/SK through the digest-pinned oss-tools image (same image as `buz/oss-upload`) and downloads straight into the workspace — no presigning step.
-
 ## Notes
 
 - `url` is masked. `dest` semantics follow the engine (relative workspace path on shell; absolute target path on ssh).
