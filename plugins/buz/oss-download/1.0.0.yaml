@@ -1,0 +1,81 @@
+id: buz/oss-download
+category: source
+name: Download file from Alibaba Cloud OSS
+version: 1.0.0
+description: "Download one object from an Alibaba Cloud OSS bucket into the Buz workspace with ossutil v2 — the download counterpart of buz/oss-upload. AK/SK are delivered as masked inputs to the oss-tools image (digest-pinned)."
+description_zh: "使用 ossutil v2 从阿里云 OSS 存储桶下载单个对象到 Buz 工作区——buz/oss-upload 的下载对称版。AK/SK 以 masked 输入传入 digest 锁定的 oss-tools 镜像。"
+publisher: official
+author: "buz maintainers"
+keywords: [oss, alibaba-cloud, download, artifact, storage, config]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/oss-download/1.0.0.yaml
+engine: docker
+image: docker.io/schiplat/buz-plugins-oss-tools@sha256:b822a353d2803152bb1dc8b8e21d571dce78fb8e29eb5079c8a36201c694aaac
+default_timeout: 10m
+inputs:
+  endpoint:
+    type: string
+    required: true
+    description: HTTPS OSS endpoint URL, for example https://oss-cn-hangzhou.aliyuncs.com.
+  region:
+    type: string
+    required: true
+    description: OSS region, for example cn-hangzhou.
+  bucket:
+    type: string
+    required: true
+    description: Source OSS bucket.
+  object:
+    type: string
+    required: true
+    description: Source object key, for example config_tpl/app/1.0.0/configs.tar.gz.
+  dest:
+    type: string
+    required: true
+    description: Destination file path relative to the Buz workspace (parent directories are created).
+  access_key_id:
+    type: string
+    required: true
+    masking: true
+    description: OSS access key ID. Use a least-privilege RAM user or short-lived credentials.
+  access_key_secret:
+    type: string
+    required: true
+    masking: true
+    description: OSS access key secret.
+  session_token:
+    type: string
+    masking: true
+    description: Optional STS session token.
+run: |
+  set -eu
+  : "${INPUT_ENDPOINT:?endpoint is required}"
+  : "${INPUT_REGION:?region is required}"
+  : "${INPUT_BUCKET:?bucket is required}"
+  : "${INPUT_KEY:?key is required}"
+  : "${INPUT_DEST:?dest is required}"
+  : "${INPUT_ACCESS_KEY_ID:?access_key_id is required}"
+  : "${INPUT_ACCESS_KEY_SECRET:?access_key_secret is required}"
+
+  case "$INPUT_ENDPOINT" in
+    https://?*) ;;
+    *) printf 'endpoint must be an https URL\n' >&2; exit 2 ;;
+  esac
+  case "$INPUT_DEST" in
+    /*|..|../*|*/../*|*/..|*..*)
+      printf 'dest must be a relative path inside the Buz workspace (no ..)\n' >&2
+      exit 2
+      ;;
+  esac
+  DEST="/buz/workspace/$INPUT_DEST"
+  mkdir -p "$(dirname "$DEST")"
+
+  export OSS_ACCESS_KEY_ID="$INPUT_ACCESS_KEY_ID"
+  export OSS_ACCESS_KEY_SECRET="$INPUT_ACCESS_KEY_SECRET"
+  export OSS_ENDPOINT="$INPUT_ENDPOINT"
+  export OSS_REGION="$INPUT_REGION"
+  if [ -n "${INPUT_SESSION_TOKEN:-}" ]; then
+    export OSS_SESSION_TOKEN="$INPUT_SESSION_TOKEN"
+  fi
+
+  exec ossutil cp -f "oss://$INPUT_BUCKET/$INPUT_OBJECT" "$DEST"

@@ -143,5 +143,11 @@
     "endpoint_inputs": [
       "url"
     ]
+  },
+  "buz/oss-download": {
+    "hosts": [],
+    "endpoint_inputs": [
+      "endpoint"
+    ]
   }
 }
