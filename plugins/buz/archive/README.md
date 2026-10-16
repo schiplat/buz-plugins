@@ -5,6 +5,16 @@ Two modes in one template (`engines: [shell, ssh]`):
 - **`mode: pack` (default, `engine: shell`)** — packs workspace-relative files or directories into a `tar.gz` archive and writes a `sha256` checksum next to it. Pair with [`buz/oss-upload`](../oss-upload/README.md) / [`buz/s3-upload`](../s3-upload/README.md) to publish, or [`buz/scp`](../scp/README.md) to deliver to a target host.
 - **`mode: extract` (`engine: ssh`)** — unpacks a tar.gz that is already on the deploy target hosts into an absolute directory. Pair with [`buz/scp`](../scp/README.md) (delivery leg) and a `config.render` block (render-only) for the config flow.
 
+## Inputs
+
+| Input | Mode | Description |
+|---|---|---|
+| `mode` | all | `pack` (default) / `extract` — selects which other inputs apply |
+| `paths` | pack | Space-separated workspace-relative files or directories to pack — **required for pack** |
+| `output` | pack | Archive path to create, workspace-relative (`.sha256` written alongside) — **required for pack** |
+| `archive` | extract | Absolute path of the tar.gz on the target host — **required for extract** |
+| `dest` | extract | Absolute directory to unpack into (created as needed) — **required for extract** |
+
 ## Pack (Runner workspace)
 
 ```yaml
