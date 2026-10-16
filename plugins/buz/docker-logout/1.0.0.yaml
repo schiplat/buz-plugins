@@ -2,8 +2,8 @@ id: buz/docker-logout
 category: build
 name: Docker registry logout
 version: 1.0.0
-description: Best-effort `docker logout` on the Runner host — pair with buz/docker-login when runners are shared. Local job-scoped credentials are removed by the Runner when the job ends regardless; this step keeps the host-global mode (`docker_config_isolation = "shared"`) tidy. For logins on deploy target hosts, pair with buz/docker-logout-remote.
-description_zh: 在 Runner 主机上尽力执行的 docker logout，与 buz/docker-login 配对使用。本机 job 级凭证由 Runner 在 job 结束时自动清理；shared 模式或共享 runner 场景建议显式登出。目标主机上的登录请配对 buz/docker-logout-remote。
+description: Best-effort `docker logout` on the Runner host. Requires the Docker CLI on the Runner host. Pair with buz/docker-login when runners are shared. Local job-scoped credentials are removed by the Runner when the job ends regardless; this step keeps the host-global mode (`docker_config_isolation = "shared"`) tidy. For logins on deploy target hosts, pair with buz/docker-logout-remote.
+description_zh: 在 Runner 主机上尽力执行的 docker logout，与 buz/docker-login 配对使用。需要 Runner 主机装有 Docker CLI。本机 job 级凭证由 Runner 在 job 结束时自动清理；shared 模式或共享 runner 场景建议显式登出。目标主机上的登录请配对 buz/docker-logout-remote。
 publisher: official
 author: "buz maintainers"
 keywords: [docker, logout, registry, cleanup, 登出, 清理]
