@@ -25,7 +25,7 @@ import yaml
 URL_RE = re.compile(r"""https?://[^\s'"<>\\]+""", re.IGNORECASE)
 ENDPOINT_WORDS = {
     "webhook", "url", "uri", "host", "port", "endpoint", "server", "addr",
-    "api", "target", "destination", "origin",
+    "api", "target", "destination", "origin", "registry",
 }
 ENDPOINT_LABEL_PRIORITY = (
     "webhook", "url", "uri", "host", "port", "endpoint", "server", "addr",
