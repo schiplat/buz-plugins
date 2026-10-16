@@ -143,23 +143,5 @@
     "endpoint_inputs": [
       "url"
     ]
-  },
-  "buz/config-fetch-remote": {
-    "hosts": [],
-    "endpoint_inputs": [
-      "url"
-    ]
-  },
-  "buz/docker-login-remote": {
-    "hosts": [],
-    "endpoint_inputs": [
-      "registry"
-    ]
-  },
-  "buz/docker-logout-remote": {
-    "hosts": [],
-    "endpoint_inputs": [
-      "registry"
-    ]
   }
 }

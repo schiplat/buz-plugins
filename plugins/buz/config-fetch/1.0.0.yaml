@@ -2,7 +2,7 @@ id: buz/config-fetch
 category: source
 name: Fetch config bundle into the workspace
 version: 1.0.0
-description: Download a configuration bundle (tar.gz) into the workspace and unpack it — typically a presigned object-storage URL (OSS / S3 / MinIO / R2). Pair with the `config.render` block on later steps (render-only mode) to render env files. Requires curl and tar on the Runner host.
+description: "Download a configuration bundle (tar.gz) and unpack it from a presigned object-storage URL (OSS / S3 / MinIO / R2). Dual engine: shell unpacks into the Runner workspace; engine: ssh (set `host:`) unpacks into an absolute directory on each target host. Pair with the `config.render` block on later steps (render-only mode). Requires curl and tar where it runs."
 description_zh: 下载配置包（tar.gz）到工作区并解包——通常使用对象存储的预签名 URL（OSS / S3 / MinIO / R2 通用）。后续步骤配合 config.render（render-only 模式）渲染 env 文件。需要 Runner 主机装有 curl 和 tar。
 publisher: official
 author: "buz maintainers"
@@ -10,6 +10,7 @@ keywords: [config, fetch, download, presigned, oss, s3, minio, r2, 配置, 下�
 license: Apache-2.0
 source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz-config-fetch.yaml
 engine: shell
+engines: [shell, ssh]
 default_timeout: 10m
 inputs:
   url:
@@ -33,11 +34,22 @@ run: |
   set -eu
   : "${INPUT_URL:?url is required}"
   : "${INPUT_DEST:?dest is required}"
+  # dest context (engine overridable — buz/docker-login style dual engine):
+  #   shell  (Runner host) → relative, inside the job workspace
+  #   ssh    (target host) → absolute path on that host
   case "$INPUT_DEST" in
     /*|*..*)
-      printf 'dest must be a relative path inside the workspace (no leading /, no ..): %s\n' \
-        "$INPUT_DEST" >&2
-      exit 2
+      if [ "$BUZ_STEP_ENGINE" != "ssh" ]; then
+        printf 'dest must be a relative path inside the workspace (no leading /, no ..): %s\n' \
+          "$INPUT_DEST" >&2
+        exit 2
+      fi
+      ;;
+    *)
+      if [ "$BUZ_STEP_ENGINE" = "ssh" ]; then
+        printf 'relative dest resolves inside the Runner workspace — use an absolute dest with engine: ssh\n' >&2
+        exit 2
+      fi
       ;;
   esac
   mkdir -p "$INPUT_DEST"
