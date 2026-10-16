@@ -1,6 +1,16 @@
 {
   "reviews": [
     {
+      "id": "buz/http-check",
+      "version": "1.0.0",
+      "sha256": "ee88c39caa9b74234ee9219d38d2f487c978891788a2a362f5bc555c60d6ac73",
+      "reviewed_at": "2026-10-16",
+      "review_commit": "49bdf0d",
+      "scope": "static-lint + manual",
+      "source": "human",
+      "category": "healthcheck"
+    },
+    {
       "id": "buz/scp",
       "version": "1.0.0",
       "sha256": "ee19e26097c3f989fb2e92ac282a7e627f92a4157b097ca28cb4aca0f96607e3",
@@ -159,16 +169,6 @@
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "deploy"
-    },
-    {
-      "id": "buz/http-check",
-      "version": "1.0.0",
-      "sha256": "5f21d3640399b2cfc4d261fe84b41678b4251ffb7d00495d108502a1a0d8b6e1",
-      "reviewed_at": "2026-10-16",
-      "review_commit": "6620027",
-      "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
-      "source": "ci",
-      "category": "healthcheck"
     },
     {
       "id": "buz/k8s-apply",
