@@ -2,6 +2,16 @@
   "reviews": [
     {
       "id": "buz/archive",
+      "version": "1.1.0",
+      "sha256": "4573024cdc3b37ab66b57c2e2d3d10a957a0bf3801c62f5e69614b23226d116d",
+      "reviewed_at": "2026-10-16",
+      "review_commit": "a603e73",
+      "scope": "static-lint + manual",
+      "source": "human",
+      "category": "artifact"
+    },
+    {
+      "id": "buz/archive",
       "version": "1.0.0",
       "sha256": "8885fee963c8944b64f62887366bb5427f66a6f10171fb4080e1663c69824011",
       "reviewed_at": "2026-10-16",
