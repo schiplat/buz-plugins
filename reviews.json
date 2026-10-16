@@ -5,7 +5,7 @@
       "version": "1.0.0",
       "sha256": "d5bca9bfc1140511fec07149655049614031fc4ca89de794fc70996894262e0d",
       "reviewed_at": "2026-10-16",
-      "review_commit": "2791fb5",
+      "review_commit": "9b83960",
       "scope": "static-lint + manual",
       "source": "human",
       "category": "build"
@@ -15,7 +15,7 @@
       "version": "1.0.0",
       "sha256": "d7ae9472e1d24908360dde481595dfe3a97459b77c1e500d8634e54c9d214c85",
       "reviewed_at": "2026-10-16",
-      "review_commit": "2791fb5",
+      "review_commit": "9b83960",
       "scope": "static-lint + manual",
       "source": "human",
       "category": "build"
@@ -25,7 +25,7 @@
       "version": "1.0.0",
       "sha256": "8bdd030041d257bba2711f5e184c69c4bafcb92a0eb351a3e928724075ccf516",
       "reviewed_at": "2026-10-16",
-      "review_commit": "2791fb5",
+      "review_commit": "9b83960",
       "scope": "static-lint + manual",
       "source": "human",
       "category": "source"
