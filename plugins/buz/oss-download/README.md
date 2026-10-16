@@ -16,7 +16,12 @@ Downloads one object from an Alibaba Cloud OSS bucket into the Buz workspace usi
     session_token: ${secrets.OSS_SESSION_TOKEN} # optional
 ```
 
-All inputs except `session_token` are required. `dest` must be a relative path inside the Buz workspace (parent directories are created); `..` and absolute paths are rejected. Use an HTTPS endpoint and least-privilege or short-lived credentials — both key inputs are masked.
+All inputs except `session_token` are required. Both key inputs are masked; use an HTTPS endpoint and least-privilege or short-lived credentials.
+
+Dual engine (`engines: [docker, ssh]`):
+
+- **`engine: docker` (default)** — `dest` is **relative** to the Buz workspace (downloaded into the Runner workspace).
+- **`engine: ssh`** — the download runs **on the target hosts** (`host:` list); `dest` must be an **absolute** path on each host, so the bundle lands exactly where later ssh steps (render, compose) need it. Prerequisite: the `ossutil` binary installed once on each target host (binary only — credentials arrive per-step as masked env, nothing is stored on the host).
 
 A Docker-enabled Linux `amd64` runner is required. The template runs the same digest-pinned `buz-plugins-oss-tools` image as `buz/oss-upload`; after a successful image build, the release workflow opens a PR to pin the published digest — do not use it in production until that PR is merged. Default timeout: 10 minutes.
 

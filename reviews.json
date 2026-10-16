@@ -3,9 +3,9 @@
     {
       "id": "buz/oss-download",
       "version": "1.0.0",
-      "sha256": "4a8c272e7e45485fddfef4970c176b29afbf3eaa3772aa52b65086ae3a90a8f0",
+      "sha256": "ae05501317a2e61baf92a212d5f42e3dc3b834ea4f52baf9e2501cded70c42cf",
       "reviewed_at": "2026-10-16",
-      "review_commit": "686d06a",
+      "review_commit": "dde0a96",
       "scope": "static-lint + manual",
       "source": "human",
       "category": "source"

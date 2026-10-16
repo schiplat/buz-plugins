@@ -2,7 +2,7 @@ id: buz/oss-download
 category: source
 name: Download file from Alibaba Cloud OSS
 version: 1.0.0
-description: "Download one object from an Alibaba Cloud OSS bucket into the Buz workspace with ossutil v2 — the download counterpart of buz/oss-upload. AK/SK are delivered as masked inputs to the oss-tools image (digest-pinned)."
+description: "Download one object from an Alibaba Cloud OSS bucket with ossutil v2 — the download counterpart of buz/oss-upload. Dual engine: docker unpacks into the Runner workspace; engine: ssh (set `host:`) downloads directly on each target host (ossutil required there). AK/SK are masked inputs (digest-pinned image for the docker context)."
 description_zh: "使用 ossutil v2 从阿里云 OSS 存储桶下载单个对象到 Buz 工作区——buz/oss-upload 的下载对称版。AK/SK 以 masked 输入传入 digest 锁定的 oss-tools 镜像。"
 publisher: official
 author: "buz maintainers"
@@ -10,6 +10,7 @@ keywords: [oss, alibaba-cloud, download, artifact, storage, config]
 license: Apache-2.0
 source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/oss-download/1.0.0.yaml
 engine: docker
+engines: [docker, ssh]
 image: docker.io/schiplat/buz-plugins-oss-tools@sha256:b822a353d2803152bb1dc8b8e21d571dce78fb8e29eb5079c8a36201c694aaac
 default_timeout: 10m
 inputs:
@@ -61,13 +62,25 @@ run: |
     https://?*) ;;
     *) printf 'endpoint must be an https URL\n' >&2; exit 2 ;;
   esac
+  # dest context (engine overridable):
+  #   docker (Runner host) → relative, inside the job workspace
+  #   ssh    (target host) → absolute path on that host
   case "$INPUT_DEST" in
-    /*|..|../*|*/../*|*/..|*..*)
-      printf 'dest must be a relative path inside the Buz workspace (no ..)\n' >&2
-      exit 2
+    /*|*..*)
+      if [ "$BUZ_STEP_ENGINE" != "ssh" ]; then
+        printf 'absolute dest requires engine: ssh (target-host filesystem)\n' >&2
+        exit 2
+      fi
+      DEST="$INPUT_DEST"
+      ;;
+    *)
+      if [ "$BUZ_STEP_ENGINE" = "ssh" ]; then
+        printf 'relative dest resolves inside the Runner workspace — use an absolute dest with engine: ssh\n' >&2
+        exit 2
+      fi
+      DEST="/buz/workspace/$INPUT_DEST"
       ;;
   esac
-  DEST="/buz/workspace/$INPUT_DEST"
   mkdir -p "$(dirname "$DEST")"
 
   export OSS_ACCESS_KEY_ID="$INPUT_ACCESS_KEY_ID"
