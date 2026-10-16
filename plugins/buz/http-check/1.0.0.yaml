@@ -12,35 +12,38 @@ source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz-htt
 engine: shell
 default_timeout: 5m
 inputs:
+  # Each input is tagged with the protocol(s) it applies to:
+  #   [all]  every protocol   [http]  protocol=http only
+  #   [tcp/udp] protocol=tcp or udp
   protocol:
     type: string
     default: http
-    description: "http (default) | tcp | udp"
-  url:
+    description: "[all] Check protocol — http (default) | tcp | udp. Determines which other inputs apply."
+  url:                # [http]
     type: string
-    description: URL to poll — required for protocol http
-  expect_status:
+    description: "[http] URL to poll — required when protocol=http"
+  expect_status:      # [http]
     type: number
     default: "200"
-    description: Expected HTTP status code (protocol http)
-  insecure:
+    description: "[http] Expected HTTP status code"
+  insecure:           # [http]
     type: boolean
     default: "false"
-    description: Skip TLS certificate verification (protocol http)
-  host:
+    description: "[http] Skip TLS certificate verification"
+  host:               # [tcp/udp]
     type: string
-    description: Target host — required for protocol tcp/udp
-  port:
+    description: "[tcp/udp] Target host — required when protocol=tcp or udp"
+  port:               # [tcp/udp]
     type: number
-    description: Target port — required for protocol tcp/udp
-  interval:
+    description: "[tcp/udp] Target port — required when protocol=tcp or udp"
+  interval:           # [all]
     type: string
     default: 5s
-    description: Sleep between attempts (sleep(1) suffix format)
-  attempts:
+    description: "[all] Sleep between attempts (sleep(1) suffix format)"
+  attempts:           # [all]
     type: number
     default: "24"
-    description: Total attempts before failing
+    description: "[all] Total attempts before failing"
 run: |
   set -eu
   PROTO=$(printf '%s' "${INPUT_PROTOCOL:-http}" | tr '[:upper:]' '[:lower:]')

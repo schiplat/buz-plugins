@@ -20,10 +20,18 @@ Polls a service until it is ready — one check template that covers HTTP status
   port: 7000
 ```
 
-- `protocol` — `http` (default) / `tcp` / `udp`.
-- HTTP uses `url` + `expect_status` (+ `insecure` for self-signed TLS).
-- TCP/UDP use `host` + `port`.
-- `interval` (sleep(1) format, default `5s`) and `attempts` (default `24`) apply to all protocols.
+## Inputs
+
+| Input | Protocol | Description |
+|---|---|---|
+| `protocol` | all | `http` (default) / `tcp` / `udp` — selects which other inputs apply |
+| `url` | http | URL to poll — **required for http** |
+| `expect_status` | http | Expected status code (default `200`) |
+| `insecure` | http | Skip TLS verification (default `false`) |
+| `host` | tcp/udp | Target host — **required for tcp/udp** |
+| `port` | tcp/udp | Target port |
+| `interval` | all | Sleep between attempts (sleep(1) format, default `5s`) |
+| `attempts` | all | Total attempts before failing (default `24`) |
 
 **UDP is best-effort by nature**: UDP has no handshake, so the probe reports whether a datagram was sent without an ICMP port-unreachable — most UDP services never reply to empty probes. Prefer an application-level check (or a template input that triggers a response) when confirmation matters.
 
