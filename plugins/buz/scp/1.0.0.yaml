@@ -1,4 +1,4 @@
-id: buz/scp-upload
+id: buz/scp
 category: deploy
 name: Upload file to target host via scp
 version: 1.0.0
@@ -8,7 +8,7 @@ publisher: official
 author: "buz maintainers"
 keywords: [scp, ssh, upload, copy, deploy, target, 上传, 目标机]
 license: Apache-2.0
-source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz-scp-upload.yaml
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz-scp.yaml
 engine: shell
 default_timeout: 10m
 inputs:

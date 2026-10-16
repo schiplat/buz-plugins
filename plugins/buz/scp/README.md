@@ -1,10 +1,10 @@
-# scp upload (to target host)
+# scp (to target host)
 
 Copies one file from the Buz workspace to a target host over SSH/SCP. Runs via `engine: shell` on the Runner — **nothing is installed on the target host**; the only one-time setup is trusting the Runner-side key in the target's `authorized_keys` (a config line, not software).
 
 ```yaml
 - name: deliver bundle
-  uses: buz/scp-upload@1.0.0
+  uses: buz/scp@1.0.0
   with:
     host: 192.168.39.130
     port: 22

@@ -1,11 +1,11 @@
 {
   "reviews": [
     {
-      "id": "buz/scp-upload",
+      "id": "buz/scp",
       "version": "1.0.0",
-      "sha256": "ef759501d9608c3ab407b61657d27da3c75a54d57657284d86079c06f4b4bb48",
+      "sha256": "ee19e26097c3f989fb2e92ac282a7e627f92a4157b097ca28cb4aca0f96607e3",
       "reviewed_at": "2026-10-16",
-      "review_commit": "a149814",
+      "review_commit": "20de8a5",
       "scope": "static-lint + manual",
       "source": "human",
       "category": "deploy"

@@ -150,7 +150,7 @@
       "endpoint"
     ]
   },
-  "buz/scp-upload": {
+  "buz/scp": {
     "hosts": [],
     "endpoint_inputs": [
       "host",
