@@ -1,6 +1,36 @@
 {
   "reviews": [
     {
+      "id": "buz/config-fetch-remote",
+      "version": "1.0.0",
+      "sha256": "41b3868132460828b093c56d8af6e2c33044578f6dc9f788d3767eac846d4b2c",
+      "reviewed_at": "2026-10-16",
+      "review_commit": "ba909f9",
+      "scope": "static-lint + manual",
+      "source": "human",
+      "category": "source"
+    },
+    {
+      "id": "buz/docker-login-remote",
+      "version": "1.0.0",
+      "sha256": "8ca1ec7619541f7a309a5c02fbadf2d7384bb3eb7801fdb0edef2d3fa2eb96e6",
+      "reviewed_at": "2026-10-16",
+      "review_commit": "ba909f9",
+      "scope": "static-lint + manual",
+      "source": "human",
+      "category": "deploy"
+    },
+    {
+      "id": "buz/docker-logout-remote",
+      "version": "1.0.0",
+      "sha256": "cd2e12fec0ab19d2246286b7cf4b6af13016bce0547648a8f35b5ef51a7256eb",
+      "reviewed_at": "2026-10-16",
+      "review_commit": "ba909f9",
+      "scope": "static-lint + manual",
+      "source": "human",
+      "category": "deploy"
+    },
+    {
       "id": "buz/archive",
       "version": "1.0.0",
       "sha256": "8885fee963c8944b64f62887366bb5427f66a6f10171fb4080e1663c69824011",
