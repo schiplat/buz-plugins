@@ -1,0 +1,106 @@
+id: buz/archive
+category: artifact
+name: Archive workspace paths
+version: 1.1.0
+description: "Two modes. pack (default, Runner workspace) — pack workspace paths into a tar.gz archive with a sha256 checksum; pair with buz/oss-upload or buz/scp-upload to publish it. extract (engine: ssh, target hosts) — unpack a tar.gz into an absolute directory on each target host; pair with buz/scp-upload for the delivery leg. Requires tar on the target hosts."
+description_zh: "两种模式。pack(默认，Runner 工作区)——将 workspace 路径打包为 tar.gz 并生成 sha256 校验和;extract(engine: ssh，目标主机)——在目标主机上将 tar.gz 解包到绝对目录。需要目标机装有 tar。"
+publisher: official
+author: "buz maintainers"
+keywords: [archive, tar, extract, unpack, artifact, package, checksum, 打包, 解包]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/archive/1.1.0.yaml
+engine: shell
+engines: [shell, ssh]
+default_timeout: 10m
+inputs:
+  # Each input is tagged with the mode(s) it applies to:
+  #   [pack] mode=pack only   [extract] mode=extract only
+  mode:
+    type: string
+    default: pack
+    description: 'pack (default) — create an archive from workspace paths (shell) | extract — unpack an archive on the target host (engine: ssh). Determines which other inputs apply.'
+  paths:              # [pack]
+    type: string
+    description: '[pack] Space-separated workspace-relative files or directories to pack'
+  output:             # [pack]
+    type: string
+    description: '[pack] Archive path to create, workspace-relative (sha256 checksum written alongside)'
+  archive:            # [extract]
+    type: string
+    description: '[extract] Absolute path of the tar.gz on the target host'
+  dest:               # [extract]
+    type: string
+    description: '[extract] Absolute directory on the target host to unpack into (created as needed)'
+run: |
+  set -eu
+  MODE=$(printf '%s' "${INPUT_MODE:-pack}" | tr '[:upper:]' '[:lower:]')
+  case "$MODE" in
+    pack|extract) ;;
+    *)
+      printf 'mode: unknown value %s — use pack or extract\n' "$MODE" >&2
+      exit 2
+      ;;
+  esac
+
+  # mode ↔ engine contract: pack belongs to the Runner workspace (shell),
+  # extract to the deploy target hosts (engine: ssh).
+  if [ "$MODE" = "pack" ] && [ "${BUZ_STEP_ENGINE:-shell}" = "ssh" ]; then
+    printf 'mode=pack runs on the Runner workspace — use engine: shell\n' >&2
+    exit 2
+  fi
+  if [ "$MODE" = "extract" ] && [ "${BUZ_STEP_ENGINE:-shell}" != "ssh" ]; then
+    printf 'mode=extract runs on deploy target hosts — set engine: ssh on this step\n' >&2
+    exit 2
+  fi
+
+  if [ "$MODE" = "extract" ]; then
+    : "${INPUT_ARCHIVE:?archive is required for mode extract}"
+    : "${INPUT_DEST:?dest is required for mode extract}"
+    case "$INPUT_ARCHIVE" in
+      /*) ;;
+      *) printf 'archive must be an absolute path on the target host\n' >&2; exit 2 ;;
+    esac
+    case "$INPUT_DEST" in
+      /*) ;;
+      *) printf 'dest must be an absolute path on the target host\n' >&2; exit 2 ;;
+    esac
+    mkdir -p "$INPUT_DEST"
+    tar -xzf "$INPUT_ARCHIVE" -C "$INPUT_DEST"
+    ls -l "$INPUT_DEST"
+    printf 'extract ok: %s -> %s\n' "$INPUT_ARCHIVE" "$INPUT_DEST"
+    exit 0
+  fi
+
+  # ── pack (original 1.0.0 behavior, Runner workspace) ──
+  : "${INPUT_PATHS:?paths is required for mode pack}"
+  : "${INPUT_OUTPUT:?output is required for mode pack}"
+
+  case "$INPUT_OUTPUT" in
+    /*|..|../*|*/../*|*/..)
+      printf 'output must be a relative path inside the Buz workspace\n' >&2
+      exit 2
+      ;;
+  esac
+
+  for p in $INPUT_PATHS; do
+    case "$p" in
+      /*|..|../*|*/../*|*/..)
+        printf 'paths must be relative inside the Buz workspace: %s\n' "$p" >&2
+        exit 2
+        ;;
+    esac
+    if [ ! -e "$p" ]; then
+      printf 'path does not exist: %s\n' "$p" >&2
+      exit 2
+    fi
+  done
+
+  output_dir=$(dirname "$INPUT_OUTPUT")
+  mkdir -p "$output_dir"
+
+  # paths: intentional word splitting — space-separated entries
+  # shellcheck disable=SC2086
+  tar -czf "$INPUT_OUTPUT" $INPUT_PATHS
+  sha256sum "$INPUT_OUTPUT" > "$INPUT_OUTPUT.sha256"
+
+  ls -l "$INPUT_OUTPUT" "$INPUT_OUTPUT.sha256"

@@ -1,32 +1,36 @@
-# Archive workspace paths
+# Archive — pack & extract
 
-Packs workspace-relative files or directories into a `tar.gz` archive and
-writes a `sha256` checksum next to it. Pair with
-[`buz/oss-upload`](../oss-upload/README.md) or
-[`buz/s3-upload`](../s3-upload/README.md) to publish the archive.
+Two modes in one template (`engines: [shell, ssh]`):
+
+- **`mode: pack` (default, `engine: shell`)** — packs workspace-relative files or directories into a `tar.gz` archive and writes a `sha256` checksum next to it. Pair with [`buz/oss-upload`](../oss-upload/README.md) / [`buz/s3-upload`](../s3-upload/README.md) to publish, or [`buz/scp`](../scp/README.md) to deliver to a target host.
+- **`mode: extract` (`engine: ssh`)** — unpacks a tar.gz that is already on the deploy target hosts into an absolute directory. Pair with [`buz/scp`](../scp/README.md) (delivery leg) and a `config.render` block (render-only) for the config flow.
+
+## Pack (Runner workspace)
 
 ```yaml
 steps:
   - name: Package
     uses: buz/archive@1.0.0
     with:
-      paths: dist configs/docker-compose.yml
-      output: release/app-1.2.0.tar.gz
+      paths: src dist README.md
+      output: dist/release.tar.gz
 ```
 
-## Inputs
+`paths` is space-separated, workspace-relative; `output` is workspace-relative (a `.sha256` checksum is written alongside). Both required.
 
-| Input | Type | Required | Default | Description |
-|-------|------|----------|---------|-------------|
-| `paths` | string | yes | — | Space-separated workspace-relative files/directories to pack |
-| `output` | string | yes | — | Archive path to create, workspace-relative (parent dirs auto-created) |
+## Extract (target hosts, 1.1.0+)
 
-## Notes
+```yaml
+steps:
+  - name: Unpack config bundle
+    uses: buz/archive@1.1.0
+    engine: ssh
+    host:
+      - web-01
+    with:
+      mode: extract
+      archive: /opt/cella/configs.tar.gz   # absolute, on the target host
+      dest: /opt/cella                     # absolute; created as needed
+```
 
-- Produces `<output>` plus `<output>.sha256` (standard `sha256sum` format —
-  verify with `sha256sum -c`).
-- Paths are validated as workspace-relative; absolute paths and `..` escapes
-  are rejected.
-- Engine: shell (runs on the Runner host, workspace as working directory).
-  Each step is an isolated container-free process — pass archives to later
-  steps through workspace files.
+`archive` and `dest` are **absolute paths on the target host**. Requires `tar` on the target hosts. Typical chain: [`buz/oss-download`](../oss-download/README.md) downloads the bundle to the Runner workspace → [`buz/scp`](../scp/README.md) delivers it → this step unpacks it → `config.render` (render-only) renders the env files.
