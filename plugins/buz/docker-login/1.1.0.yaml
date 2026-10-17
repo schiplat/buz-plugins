@@ -1,0 +1,58 @@
+id: buz/docker-login
+category: build
+name: Docker registry login
+version: 1.1.0
+description: Log the Docker CLI into a registry for later steps (docker build/push, engine docker pulls). Credentials land in the job-scoped DOCKER_CONFIG dir and are removed when the job ends. Optional debug output shows a redacted command and exit status. Requires the Docker CLI on the Runner host.
+description_zh: 登录容器镜像仓库，供后续步骤使用（docker build/push、docker 引擎拉私有镜像）。凭证写入 job 级 DOCKER_CONFIG 目录，job 结束即清除。可选 debug 输出脱敏命令和退出码。需要 Runner 主机装有 Docker CLI。
+publisher: official
+author: "buz maintainers"
+keywords: [docker, login, registry, push, pull, 登录, 镜像仓库]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/docker-login/1.1.0.yaml
+engine: shell
+engines: [shell, ssh]
+default_timeout: 2m
+inputs:
+  registry:
+    type: string
+    required: true
+    description: Registry host (e.g. registry.example.com); multiple registries → one step each
+  username:
+    type: string
+    required: true
+  password:
+    type: string
+    required: true
+    masking: true
+    description: Password or access token — delivered via --password-stdin, never a CLI argument
+  debug:
+    type: boolean
+    default: "false"
+    description: Print the redacted login command, Docker config directory, and exit status; never print credentials
+run: |
+  set -eu
+  : "${INPUT_REGISTRY:?registry is required}"
+  : "${INPUT_USERNAME:?username is required}"
+  : "${INPUT_PASSWORD:?password is required}"
+  case "${INPUT_DEBUG:-false}" in
+    [tT][rR][uU][eE]) debug=true ;;
+    [fF][aA][lL][sS][eE]|'') debug=false ;;
+    *) printf 'debug must be true or false\n' >&2; exit 2 ;;
+  esac
+  if [ "$debug" = true ]; then
+    printf '[debug] command: docker login --username <redacted> --password-stdin %s (password: <redacted>, via stdin)\n' "$INPUT_REGISTRY"
+    printf '[debug] Docker config dir: %s\n' "${DOCKER_CONFIG:-$HOME/.docker}"
+  fi
+  if printf '%s\n' "$INPUT_PASSWORD" | docker login --username "$INPUT_USERNAME" --password-stdin "$INPUT_REGISTRY"; then
+    login_status=0
+  else
+    login_status=$?
+  fi
+  if [ "$debug" = true ]; then
+    printf '[debug] docker login exit code: %s\n' "$login_status"
+  fi
+  if [ "$login_status" -ne 0 ]; then
+    exit "$login_status"
+  fi
+  printf 'docker login ok: %s (config dir: %s)\n' \
+    "$INPUT_REGISTRY" "${DOCKER_CONFIG:-$HOME/.docker}"
