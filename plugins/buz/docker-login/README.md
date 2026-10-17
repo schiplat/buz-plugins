@@ -1,5 +1,32 @@
 # Docker login (Runner host)
 
+## 最新更新：1.1.0
+
+`1.1.0` 新增可选的 `debug` 开关，默认关闭。需要调试登录时，使用 `buz/docker-login@1.1.0` 并在 `with:` 中设置 `debug: "true"`；固定使用 `@1.0.0` 的流水线不会自动获得此功能。
+
+- 开启后输出脱敏登录命令、Docker 配置目录和登录退出码。
+- 用户名和密码在插件调试输出中均显示为 `<redacted>`；密码仍通过 `--password-stdin` 传递，不启用 `set -x`。
+- 登录失败仍返回 Docker 的非零退出码，不会因开启 debug 而忽略失败。
+- 此开关独立于 Manager 的 job 级 debug，不会关闭日志脱敏。
+- `shell` 和 `ssh` 两种执行方式均支持；旧 `1.0.0` 模板保持不变。
+
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+| --- | --- | --- | --- | --- |
+| `registry` | string | 是 | — | 镜像仓库主机地址，不含用户名或密码。 |
+| `username` | string | 是 | — | 仓库用户名，可以引用 `${secrets.REGISTRY_USERNAME}`。 |
+| `password` | string | 是 | — | 密码或访问 Token，必须使用完整的 `${secrets.NAME}` 引用，日志脱敏。 |
+| `debug` | boolean | 否 | `"false"` | 设置为 `"true"` 时打印脱敏诊断信息。 |
+
+开启 debug 后，成功登录的诊断输出示例：
+
+```text
+[debug] command: docker login --username <redacted> --password-stdin registry.example.com (password: <redacted>, via stdin)
+[debug] Docker config dir: <job-scoped directory>
+[debug] docker login exit code: 0
+```
+
+## Usage
+
 Logs the Docker CLI into a container registry so later steps can pull or push private images — `docker build`/`docker push` in shell steps, and `engine: docker` pulls. Requires the Docker CLI on the runner host.
 
 ```yaml
