@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -840,6 +841,123 @@ class PluginReadmeTests(unittest.TestCase):
                 self.check.main([str(root)])
             (root / "buz" / "empty" / "README.md").write_text("# empty\n")
             self.check.main([str(root)])
+
+
+class DockerLoginTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.spec = yaml.safe_load(
+            (ROOT / "plugins/buz/docker-login/1.1.0.yaml").read_text()
+        )
+        cls.registry = "registry.example.test"
+        cls.username = "private-user-'\"$()"
+        cls.password = "private-token-'\"$()`;\\multi\nline"
+
+    def run_login(self, debug=None, exit_code=0, missing=None):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            docker = root / "docker"
+            docker.write_text(
+                "#!/bin/sh\n"
+                "printf '%s\\n' \"$@\" > \"$TEST_ARGS_FILE\"\n"
+                "cat > \"$TEST_STDIN_FILE\"\n"
+                "exit \"$TEST_DOCKER_EXIT\"\n"
+            )
+            docker.chmod(0o755)
+            args_file = root / "args"
+            stdin_file = root / "stdin"
+            env = dict(os.environ)
+            env.pop("INPUT_DEBUG", None)
+            env.pop("ENV", None)
+            env.pop("BASH_ENV", None)
+            env.update({
+                "PATH": f"{root}{os.pathsep}{os.defpath}",
+                "HOME": str(root),
+                "DOCKER_CONFIG": str(root / "docker-config"),
+                "INPUT_REGISTRY": self.registry,
+                "INPUT_USERNAME": self.username,
+                "INPUT_PASSWORD": self.password,
+                "TEST_ARGS_FILE": str(args_file),
+                "TEST_STDIN_FILE": str(stdin_file),
+                "TEST_DOCKER_EXIT": str(exit_code),
+            })
+            if debug is not None:
+                env["INPUT_DEBUG"] = debug
+            if missing is not None:
+                env.pop(missing)
+            result = subprocess.run(
+                ["/bin/sh", "-c", self.spec["run"]],
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            args = args_file.read_text().splitlines() if args_file.exists() else None
+            stdin = stdin_file.read_bytes() if stdin_file.exists() else None
+        self.assertNotIn(self.username, result.stdout + result.stderr)
+        self.assertNotIn(self.password, result.stdout + result.stderr)
+        if args is not None:
+            self.assertEqual(
+                args, ["login", "--username", self.username, "--password-stdin", self.registry]
+            )
+            self.assertEqual(stdin, (self.password + "\n").encode())
+        return result, args
+
+    def test_debug_input_defaults_to_false_and_password_stays_masked(self):
+        debug = self.spec["inputs"]["debug"]
+        self.assertEqual(debug["type"], "boolean")
+        self.assertEqual(debug["default"], "false")
+        self.assertFalse(debug.get("required", False))
+        self.assertTrue(self.spec["inputs"]["password"]["masking"])
+
+    def test_debug_omitted_or_disabled_has_no_debug_output(self):
+        for debug in (None, "false", "FALSE", ""):
+            with self.subTest(debug=debug):
+                result, args = self.run_login(debug)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIsNotNone(args)
+                self.assertIn("docker login ok:", result.stdout)
+                self.assertNotIn("[debug]", result.stdout + result.stderr)
+
+    def test_debug_prints_redacted_command_and_exit_code(self):
+        for debug in ("true", "TRUE", "True"):
+            with self.subTest(debug=debug):
+                result, _ = self.run_login(debug)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn(
+                    "[debug] command: docker login --username <redacted> --password-stdin "
+                    + self.registry,
+                    result.stdout,
+                )
+                self.assertIn("password: <redacted>, via stdin", result.stdout)
+                self.assertIn("[debug] Docker config dir:", result.stdout)
+                self.assertIn("[debug] docker login exit code: 0", result.stdout)
+
+    def test_login_failure_preserves_exit_code_with_and_without_debug(self):
+        for debug in (None, "false", "true"):
+            with self.subTest(debug=debug):
+                result, args = self.run_login(debug, exit_code=17)
+                self.assertEqual(result.returncode, 17)
+                self.assertIsNotNone(args)
+                self.assertNotIn("docker login ok:", result.stdout)
+                if debug == "true":
+                    self.assertIn("[debug] docker login exit code: 17", result.stdout)
+                else:
+                    self.assertNotIn("[debug]", result.stdout + result.stderr)
+
+    def test_invalid_debug_rejected_before_docker_runs(self):
+        result, args = self.run_login("yes")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("debug must be true or false", result.stderr)
+        self.assertIsNone(args)
+
+    def test_missing_credentials_rejected_before_docker_runs(self):
+        for missing in ("INPUT_REGISTRY", "INPUT_USERNAME", "INPUT_PASSWORD"):
+            with self.subTest(missing=missing):
+                result, args = self.run_login("true", missing=missing)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIsNone(args)
+                self.assertIn("is required", result.stderr)
 
 
 if __name__ == "__main__":
