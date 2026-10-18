@@ -13,7 +13,7 @@ engine: docker
 image: docker.io/schiplat/java@sha256:535ba394b8be62a5059b454321aaa21827d53f864cc8bc838d1b8a58581e1240
 default_timeout: 30m
 default_dir: source
-requires_buz: ">=1.8.0"
+requires_buz: ">=1.8.1"
 inputs:
   version:
     type: choice

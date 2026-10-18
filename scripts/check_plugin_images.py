@@ -25,7 +25,7 @@ EXPECTED = {
 }
 # Toolchain families publish a language image; their templates select the
 # interpreter as a harness — the caller's `run:` commands execute after the
-# toolchain setup (Buz >=1.8.0 appends them in the same shell).
+# toolchain setup (Buz >=1.8.1 appends them in the same shell).
 TOOLCHAIN = {
     "rust-tools": (
         "docker.io/schiplat/rust",
@@ -362,8 +362,8 @@ def main() -> None:
                     raise SystemExit("docker-tools: template must declare default_dir: source")
                 if spec.get("capabilities") != ["docker-socket"]:
                     raise SystemExit("docker-tools: template must declare the docker-socket capability")
-                if spec.get("requires_buz") != ">=1.8.0":
-                    raise SystemExit("docker-tools: socket capability requires Buz >=1.8.0")
+                if spec.get("requires_buz") != ">=1.8.1":
+                    raise SystemExit("docker-tools: socket capability requires Buz >=1.8.1")
                 run = spec.get("run", "")
                 for required_guard in (
                     'work_path="$(pwd -P)"',

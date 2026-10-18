@@ -13,7 +13,7 @@ engine: docker
 image: docker.io/schiplat/lua@sha256:8f1a0f1d5a0e542039484d1918fe75b8a8b378bd330ef1888fe5e6bdf6bdf1e3
 default_timeout: 30m
 default_dir: source
-requires_buz: ">=1.8.0"
+requires_buz: ">=1.8.1"
 inputs:
   version:
     type: choice

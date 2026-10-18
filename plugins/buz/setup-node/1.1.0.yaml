@@ -13,7 +13,7 @@ engine: docker
 image: docker.io/schiplat/node@sha256:e433420a6772607282a9699ce9874ee8a10f5d5183e926995da5d5ab698293ac
 default_timeout: 30m
 default_dir: source
-requires_buz: ">=1.8.0"
+requires_buz: ">=1.8.1"
 inputs:
   version:
     type: choice

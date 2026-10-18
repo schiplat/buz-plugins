@@ -13,7 +13,7 @@ engine: docker
 image: docker.io/schiplat/rust@sha256:dbda8a25caaba00c0de8896127c7cd78e87577b5cea6958aed157c28cd7b1256
 default_timeout: 30m
 default_dir: source
-requires_buz: ">=1.8.0"
+requires_buz: ">=1.8.1"
 inputs:
   version:
     type: string

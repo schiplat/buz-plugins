@@ -11,7 +11,7 @@ license: Apache-2.0
 source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/git-clone/1.1.0.yaml
 engine: shell
 default_timeout: 15m
-requires_buz: ">=1.8.0"
+requires_buz: ">=1.8.1"
 inputs:
   repo:
     type: string

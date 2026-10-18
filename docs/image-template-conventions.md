@@ -9,7 +9,7 @@ in [plugin-images.md](plugin-images.md); this page is the authoring contract.
 | Kind | Examples | Shape |
 |------|----------|-------|
 | **Helper** | `buz/oss-upload`, `buz/s3-upload` | The image installs a fixed helper (`entrypoint.sh` → `/usr/local/bin/<helper>`); the spec's `run:` is exactly `exec /usr/local/bin/<helper>` |
-| **Toolchain** | `buz/setup-rust` … `buz/setup-go` (rust, ruby, php, lua, python, node, java, go) | The image ships language toolchains; the spec selects one via `version` and is a harness for the step's `run:` commands (Buz ≥1.8.0 appends them after the template run in the same shell) |
+| **Toolchain** | `buz/setup-rust` … `buz/setup-go` (rust, ruby, php, lua, python, node, java, go) | The image ships language toolchains; the spec selects one via `version` and is a harness for the step's `run:` commands (Buz ≥1.8.1 appends them after the template run in the same shell) |
 
 ## Directory layout and identity
 
@@ -107,7 +107,7 @@ installed entrypoint script instead).
   (Buz appends the caller's `run:` after the template run; a fixed-entrypoint
   template that intentionally replaces the process must be recorded in
   `TERMINAL_RUN_EXCEPTIONS`).
-- Templates used through `uses:` may receive caller commands: Buz (≥1.8.0)
+- Templates used through `uses:` may receive caller commands: Buz (≥1.8.1)
   appends the step's `run:` after the template run in the same shell.
   Harness templates (the `buz/setup-*` 1.1.0 releases) therefore only set up
   the toolchain environment in `run:` and declare `default_dir: source`

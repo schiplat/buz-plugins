@@ -560,7 +560,7 @@ class PluginImageWorkflowTests(unittest.TestCase):
             (ROOT / "plugins/buz/docker/1.1.0.yaml").read_text()
         )
         self.assertEqual(spec["capabilities"], ["docker-socket"])
-        self.assertEqual(spec["requires_buz"], ">=1.8.0")
+        self.assertEqual(spec["requires_buz"], ">=1.8.1")
         self.assertEqual(spec["default_dir"], "source")
         self.assertNotIn("work_dir", spec["inputs"])
         self.assertNotIn("workdir", spec["inputs"])

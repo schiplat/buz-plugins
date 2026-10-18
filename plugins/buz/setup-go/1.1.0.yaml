@@ -13,7 +13,7 @@ engine: docker
 image: docker.io/schiplat/go@sha256:47f83f55e968ab6d6cbe8f79057910383c5ba707d06c3225dc2cd02f4f696259
 default_timeout: 30m
 default_dir: source
-requires_buz: ">=1.8.0"
+requires_buz: ">=1.8.1"
 inputs:
   version:
     type: choice

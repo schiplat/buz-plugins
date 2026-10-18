@@ -29,7 +29,7 @@ PATTERNS = [
     (r"\bchmod\s+\+?x[^&|;]*(&&|\||;)\s*\./", "chmod +x followed by immediate execution"),
 ]
 
-# Buz (>=1.8.0) appends a `uses:` step's caller `run:` after the template run
+# Buz (>=1.8.1) appends a `uses:` step's caller `run:` after the template run
 # in the same shell. A top-level `exit`/`exec` in the template run would
 # silently skip those caller commands. Templates listed here keep a fixed
 # process-replacing contract on purpose — that is the human reason their hit

@@ -13,7 +13,7 @@ engine: docker
 image: docker.io/schiplat/ruby@sha256:0e9af358b8802d0767fb9658729dafd17d02778eb0a667e186b418549a593af4
 default_timeout: 30m
 default_dir: source
-requires_buz: ">=1.8.0"
+requires_buz: ">=1.8.1"
 inputs:
   version:
     type: choice

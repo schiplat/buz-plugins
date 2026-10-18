@@ -13,7 +13,7 @@ engine: docker
 image: docker.io/schiplat/php@sha256:7edc598ff77ae867fb529866c257f1e19682eb57908596879ab60330f55a1d63
 default_timeout: 30m
 default_dir: source
-requires_buz: ">=1.8.0"
+requires_buz: ">=1.8.1"
 inputs:
   version:
     type: choice
