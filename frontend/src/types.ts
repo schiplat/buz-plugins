@@ -24,7 +24,9 @@ export interface StepTemplate {
   engine: string
   keywords?: string[] | null
   default_timeout?: string | null
+  default_dir?: string | null
   requires_buz?: string | null
+  capabilities?: string[] | null
   buz_compatible?: boolean
   content_sha256: string
   inputs: StepInput[]

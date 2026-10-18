@@ -24,56 +24,57 @@ EXPECTED = {
     ),
 }
 # Toolchain families publish a language image; their templates select the
-# interpreter and execute a user `script` input instead of a fixed helper.
+# interpreter as a harness — the caller's `run:` commands execute after the
+# toolchain setup (Buz >=1.8.0 appends them in the same shell).
 TOOLCHAIN = {
     "rust-tools": (
         "docker.io/schiplat/rust",
         "plugins/buz/setup-rust/image",
-        "plugins/buz/setup-rust/1.0.0.yaml",
+        "plugins/buz/setup-rust/1.1.0.yaml",
     ),
     "ruby-tools": (
         "docker.io/schiplat/ruby",
         "plugins/buz/setup-ruby/image",
-        "plugins/buz/setup-ruby/1.0.0.yaml",
+        "plugins/buz/setup-ruby/1.1.0.yaml",
     ),
     "php-tools": (
         "docker.io/schiplat/php",
         "plugins/buz/setup-php/image",
-        "plugins/buz/setup-php/1.0.0.yaml",
+        "plugins/buz/setup-php/1.1.0.yaml",
     ),
     "lua-tools": (
         "docker.io/schiplat/lua",
         "plugins/buz/setup-lua/image",
-        "plugins/buz/setup-lua/1.0.0.yaml",
+        "plugins/buz/setup-lua/1.1.0.yaml",
     ),
     "python-tools": (
         "docker.io/schiplat/python",
         "plugins/buz/setup-python/image",
-        "plugins/buz/setup-python/1.0.0.yaml",
+        "plugins/buz/setup-python/1.1.0.yaml",
     ),
     "node-tools": (
         "docker.io/schiplat/node",
         "plugins/buz/setup-node/image",
-        "plugins/buz/setup-node/1.0.0.yaml",
+        "plugins/buz/setup-node/1.1.0.yaml",
     ),
     "java-tools": (
         "docker.io/schiplat/java",
         "plugins/buz/setup-java/image",
-        "plugins/buz/setup-java/1.0.0.yaml",
+        "plugins/buz/setup-java/1.1.0.yaml",
     ),
     "go-tools": (
         "docker.io/schiplat/go",
         "plugins/buz/setup-go/image",
-        "plugins/buz/setup-go/1.0.0.yaml",
+        "plugins/buz/setup-go/1.1.0.yaml",
     ),
 }
-# Tool families wrap a CLI and drive it through declared inputs — no
-# `script` input, no upload helper.
+# Tool families wrap a CLI and drive it through declared inputs — no caller
+# `run:` harness, no upload helper.
 TOOL = {
     "docker-tools": (
         "docker.io/schiplat/buz-plugins-docker-tools",
         "plugins/buz/docker/image",
-        "plugins/buz/docker/1.0.0.yaml",
+        "plugins/buz/docker/1.1.0.yaml",
     ),
 }
 ALL_FAMILIES = {**EXPECTED, **TOOLCHAIN, **TOOL}
@@ -82,7 +83,9 @@ ALL_FAMILIES = {**EXPECTED, **TOOLCHAIN, **TOOL}
 def image_reference_matches(image: str, reference: object) -> bool:
     if not isinstance(reference, str):
         return False
-    return reference == f"{image}:1.0.0" or re.fullmatch(
+    if reference == f"{image}:1.0.0":
+        return True
+    return re.fullmatch(
         re.escape(image) + r"@sha256:[0-9a-f]{64}", reference
     ) is not None
 
@@ -326,17 +329,54 @@ def main() -> None:
             if spec.get("run", "").strip() != f"exec /usr/local/bin/{helper_name}":
                 raise SystemExit(f"{slug}: template must invoke the image-side upload helper")
         elif slug in TOOLCHAIN:
-            script_input = (spec.get("inputs") or {}).get("script")
-            if not isinstance(script_input, dict) or not script_input.get("required"):
-                raise SystemExit(f"{slug}: template must require a `script` input")
-            if "INPUT_SCRIPT" not in spec.get("run", ""):
-                raise SystemExit(f"{slug}: template run block must execute the script input")
+            inputs = spec.get("inputs") or {}
+            if "script" in inputs or "work_dir" in inputs or "workdir" in inputs:
+                raise SystemExit(
+                    f"{slug}: toolchain template must not take script/work_dir inputs — "
+                    "commands come from the caller's run:"
+                )
+            if spec.get("default_dir") != "source":
+                raise SystemExit(f"{slug}: toolchain template must declare default_dir: source")
+            if "version" not in inputs:
+                raise SystemExit(f"{slug}: toolchain template must declare a version input")
+            run_block = spec.get("run", "")
+            if "INPUT_SCRIPT" in run_block or "mktemp" in run_block:
+                raise SystemExit(
+                    f"{slug}: toolchain run block must be a harness — it must not "
+                    "execute a script input; the caller's run: is appended by Buz"
+                )
         else:
-            tags_input = (spec.get("inputs") or {}).get("tags")
+            inputs = spec.get("inputs") or {}
+            tags_input = inputs.get("tags")
             if not isinstance(tags_input, dict) or not tags_input.get("required"):
                 raise SystemExit(f"{slug}: template must require a `tags` input")
             if "INPUT_TAGS" not in spec.get("run", ""):
                 raise SystemExit(f"{slug}: template run block must use the tags input")
+            if slug == "docker-tools":
+                if "work_dir" in inputs or "workdir" in inputs:
+                    raise SystemExit(
+                        "docker-tools: the directory comes from default_dir/step-level "
+                        "work_dir — the template must not declare a work_dir input"
+                    )
+                if spec.get("default_dir") != "source":
+                    raise SystemExit("docker-tools: template must declare default_dir: source")
+                if spec.get("capabilities") != ["docker-socket"]:
+                    raise SystemExit("docker-tools: template must declare the docker-socket capability")
+                if spec.get("requires_buz") != ">=1.8.0":
+                    raise SystemExit("docker-tools: socket capability requires Buz >=1.8.0")
+                run = spec.get("run", "")
+                for required_guard in (
+                    'work_path="$(pwd -P)"',
+                    'DOCKER_CONFIG="$workspace_root/.docker"',
+                    "for guard_name in .docker .buz; do",
+                    "find -L \"$context_path\" \\( -name .docker -o -name .buz \\) -print",
+                    'context must not include DOCKER_CONFIG credentials',
+                    'docker info >/dev/null 2>&1',
+                ):
+                    if required_guard not in run:
+                        raise SystemExit(f"docker-tools: missing workspace or credential-context protection {required_guard!r}")
+                if "docker-socket" not in spec.get("description", ""):
+                    raise SystemExit("docker-tools: description must disclose the docker-socket capability")
 
     print("plugin image workflow: push-triggered family selection, amd64 build, digest PR, and output verified")
 

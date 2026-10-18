@@ -185,6 +185,12 @@ function usageSnippet(t: StepTemplate): string {
     lines.push('  with:')
     for (const input of required) lines.push(`    ${input.name}: `)
   }
+  if (t.default_dir) {
+    // Harness template: Buz appends the caller's commands after the
+    // template's own setup, starting in the step directory.
+    lines.push('  run: |')
+    lines.push('    # your commands — executed after the template setup')
+  }
   return lines.join('\n')
 }
 
@@ -367,9 +373,16 @@ onMounted(async () => {
                 <Badge variant="secondary" class="font-mono">{{ plugin.latest.engine }}</Badge>
                 <Badge v-if="plugin.latest.default_timeout" variant="secondary" class="font-mono">{{ plugin.latest.default_timeout }}</Badge>
                 <Badge variant="secondary">{{ T.inputsCount(plugin.latest.inputs.length) }}</Badge>
-                <Badge v-if="plugin.latest.buz_compatible === false" variant="warn">
-                  <ShieldAlert class="mr-0.5 h-3 w-3" /> {{ T.incompatible }}
+                  <Badge v-if="plugin.latest.buz_compatible === false" variant="warn">
+                    <ShieldAlert class="mr-0.5 h-3 w-3" /> {{ T.incompatible }}
+                  </Badge>
+                <Badge v-for="capability in plugin.latest.capabilities || []" :key="capability" variant="secondary">
+                  {{ capability }}
                 </Badge>
+                <Badge v-if="plugin.latest.requires_buz" variant="secondary" class="font-mono">
+                  Buz {{ plugin.latest.requires_buz }}
+                </Badge>
+
               </div>
 
               <div class="mt-4 flex items-center justify-between border-t pt-3 text-xs text-muted-foreground">
@@ -466,6 +479,12 @@ onMounted(async () => {
           <Badge v-if="selected.author" variant="secondary">{{ T.by }} {{ selected.author }}</Badge>
           <Badge v-if="selected.buz_compatible === false" variant="warn">
             <ShieldAlert class="mr-0.5 h-3 w-3" /> {{ T.incompatible }}
+          </Badge>
+          <Badge v-for="capability in selected.capabilities || []" :key="capability" variant="secondary">
+            {{ capability }}
+          </Badge>
+          <Badge v-if="selected.requires_buz" variant="secondary" class="font-mono">
+            Buz {{ selected.requires_buz }}
           </Badge>
         </div>
 

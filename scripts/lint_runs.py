@@ -29,6 +29,50 @@ PATTERNS = [
     (r"\bchmod\s+\+?x[^&|;]*(&&|\||;)\s*\./", "chmod +x followed by immediate execution"),
 ]
 
+# Buz (>=1.8.0) appends a `uses:` step's caller `run:` after the template run
+# in the same shell. A top-level `exit`/`exec` in the template run would
+# silently skip those caller commands. Templates listed here keep a fixed
+# process-replacing contract on purpose — that is the human reason their hit
+# is accepted.
+TERMINAL_RUN_EXCEPTIONS = {
+    "buz/oss-download",  # image entrypoint: ossutil replaces the shell
+    "buz/oss-upload",  # image entrypoint: upload helper replaces the shell
+    "buz/s3-upload",  # image entrypoint: upload helper replaces the shell
+    "buz/http-check",  # probe: `exit 1` is how the step reports failure
+    "buz/ssh-wait",  # probe: `exit 1` is how the step reports timeout
+}
+
+
+def spec_id(raw: str) -> str:
+    match = re.search(r"^id:\s*(\S+)", raw, re.MULTILINE)
+    return match.group(1) if match else ""
+
+
+def terminal_run_lines(body: list[str]) -> list[int]:
+    """Return offsets of top-level `exit`/`exec` lines inside a run block.
+
+    "Top-level" means the line sits at the block's base indentation (the
+    indentation of its first content line). Deeper-indented exits inside
+    `case`/`if` branches or `&&`/`||` lists are fine — they don't stop the
+    appended caller run.
+    """
+    base_indent = None
+    for line in body:
+        if line.strip():
+            base_indent = len(line) - len(line.lstrip())
+            break
+    if base_indent is None:
+        return []
+    hits: list[int] = []
+    for offset, line in enumerate(body):
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        indent = len(line) - len(line.lstrip())
+        if indent == base_indent and stripped.split()[0] in ("exit", "exec"):
+            hits.append(offset)
+    return hits
+
 
 def run_blocks(raw: str) -> list[tuple[int, list[str]]]:
     """Yield (start_line, lines) for each `run: |` block's shell content."""
@@ -96,6 +140,7 @@ def main() -> None:
     findings: list[str] = []
     for path in files:
         raw = path.read_text(encoding="utf-8")
+        plugin_id = spec_id(raw)
         for start, body in run_blocks(raw):
             for offset, line in enumerate(body):
                 stripped = line.strip()
@@ -106,6 +151,16 @@ def main() -> None:
                         findings.append(
                             f"{path}:{start + offset + 1}: {reason}\n    {stripped}"
                         )
+            if plugin_id in TERMINAL_RUN_EXCEPTIONS:
+                continue
+            for offset in terminal_run_lines(body):
+                stripped = body[offset].strip()
+                findings.append(
+                    f"{path}:{start + offset + 1}: top-level {stripped.split()[0]} — "
+                    "Buz appends the caller run: after the template run; this line "
+                    "would prevent the caller's commands from executing\n"
+                    f"    {stripped}"
+                )
 
     if findings:
         print(f"lint: {len(findings)} finding(s) — every hit needs a human reason:")

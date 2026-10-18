@@ -502,6 +502,80 @@ class PluginImageWorkflowTests(unittest.TestCase):
             with self.subTest(reference=reference):
                 self.assertFalse(self.checker.image_reference_matches(image, reference))
 
+    def test_toolchain_v1_1_is_a_run_harness_on_default_source_dir(self):
+        plugin_names = (
+            "setup-go",
+            "setup-java",
+            "setup-lua",
+            "setup-node",
+            "setup-php",
+            "setup-python",
+            "setup-ruby",
+            "setup-rust",
+        )
+        ready_lines = {
+            "setup-go": "go version",
+            "setup-java": "java -version",
+            "setup-lua": "lua -v",
+            "setup-node": "node --version",
+            "setup-php": "php --version",
+            "setup-python": "python3 --version",
+            "setup-ruby": "ruby --version",
+            "setup-rust": "rustc --version",
+        }
+        for plugin in plugin_names:
+            with self.subTest(plugin=plugin):
+                spec = yaml.safe_load(
+                    (ROOT / f"plugins/buz/{plugin}/1.1.0.yaml").read_text()
+                )
+                inputs = spec["inputs"]
+                self.assertEqual(spec["default_dir"], "source")
+                self.assertNotIn("script", inputs)
+                self.assertNotIn("work_dir", inputs)
+                self.assertNotIn("workdir", inputs)
+                self.assertIn("version", inputs)
+                run = spec["run"]
+                self.assertNotIn("INPUT_SCRIPT", run)
+                self.assertNotIn("mktemp", run)
+                self.assertIn(ready_lines[plugin], run)
+
+    def test_git_clone_v1_1_clones_into_and_prevents_overwrite(self):
+        spec = yaml.safe_load(
+            (ROOT / "plugins/buz/git-clone/1.1.0.yaml").read_text()
+        )
+        self.assertEqual(spec["inputs"]["into"]["default"], "source")
+        self.assertNotIn("work_dir", spec["inputs"])
+        self.assertNotIn("workdir", spec["inputs"])
+        # git-clone keeps engine-default cwd: no default_dir of its own.
+        self.assertIsNone(spec.get("default_dir"))
+        run = spec["run"]
+        self.assertIn('workspace_root="$(pwd -P)"', run)
+        self.assertIn('into="${INPUT_INTO:-source}"', run)
+        self.assertIn('if [ -e "$target" ] || [ -L "$target" ]; then', run)
+        self.assertIn('git clone "$@" -- "$INPUT_REPO" "$target"', run)
+        self.assertTrue(spec["inputs"]["token"]["masking"])
+
+    def test_docker_v1_1_declares_capability_and_guards_credentials(self):
+        spec = yaml.safe_load(
+            (ROOT / "plugins/buz/docker/1.1.0.yaml").read_text()
+        )
+        self.assertEqual(spec["capabilities"], ["docker-socket"])
+        self.assertEqual(spec["requires_buz"], ">=1.8.0")
+        self.assertEqual(spec["default_dir"], "source")
+        self.assertNotIn("work_dir", spec["inputs"])
+        self.assertNotIn("workdir", spec["inputs"])
+        run = spec["run"]
+        for required in (
+            'work_path="$(pwd -P)"',
+            'DOCKER_CONFIG="$workspace_root/.docker"',
+            "for guard_name in .docker .buz; do",
+            "find -L \"$context_path\" \\( -name .docker -o -name .buz \\) -print",
+            'context must not include DOCKER_CONFIG credentials',
+            'docker info >/dev/null 2>&1',
+        ):
+            with self.subTest(guard=required):
+                self.assertIn(required, run)
+
     def test_current_docker_releases_are_patch_bumped_and_digest_pinned(self):
         for plugin in ("oss-upload", "s3-upload"):
             with self.subTest(plugin=plugin):
@@ -958,6 +1032,243 @@ class DockerLoginTests(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIsNone(args)
                 self.assertIn("is required", result.stderr)
+
+
+class WorkDirReleaseTests(unittest.TestCase):
+    SETUP_PLUGINS = (
+        "setup-rust", "setup-ruby", "setup-php", "setup-lua",
+        "setup-python", "setup-node", "setup-java", "setup-go",
+    )
+
+    @classmethod
+    def setUpClass(cls):
+        cls.docker = yaml.safe_load((ROOT / "plugins/buz/docker/1.1.0.yaml").read_text())
+        cls.clone = yaml.safe_load((ROOT / "plugins/buz/git-clone/1.1.0.yaml").read_text())
+
+    def test_harness_releases_preserve_old_specs(self):
+        for plugin in self.SETUP_PLUGINS:
+            with self.subTest(plugin=plugin):
+                old = yaml.safe_load((ROOT / f"plugins/buz/{plugin}/1.0.0.yaml").read_text())
+                new = yaml.safe_load((ROOT / f"plugins/buz/{plugin}/1.1.0.yaml").read_text())
+                self.assertEqual(old["version"], "1.0.0")
+                self.assertEqual(old["inputs"]["workdir"]["default"], ".")
+                self.assertEqual(new["version"], "1.1.0")
+                self.assertEqual(new["default_dir"], "source")
+                self.assertNotIn("workdir", new["inputs"])
+                self.assertNotIn("script", new["inputs"])
+                self.assertNotIn("work_dir", new["inputs"])
+                self.assertNotIn("INPUT_SCRIPT", new["run"])
+                self.assertNotIn("mktemp", new["run"])
+                # the harness still selects the toolchain from the inputs
+                self.assertIn("INPUT_VERSION", new["run"])
+        old_docker = yaml.safe_load((ROOT / "plugins/buz/docker/1.0.0.yaml").read_text())
+        old_clone = yaml.safe_load((ROOT / "plugins/buz/git-clone/1.0.0.yaml").read_text())
+        self.assertEqual(old_docker["version"], "1.0.0")
+        self.assertEqual(old_clone["inputs"]["dir"]["required"], True)
+
+    def run_docker(self, workspace, step_dir="source", *, context="app", dockerfile="Dockerfile", docker_config=None, caller_run=""):
+        # The engine chdirs into workspace/<step_dir> (step-level work_dir, else
+        # default_dir) before the run block; emulate that with the cwd argument.
+        mock_bin = workspace.parent / (workspace.name + "-bin")
+        mock_bin.mkdir(exist_ok=True)
+        args_log = workspace.parent / (workspace.name + "-docker.log")
+        docker = mock_bin / "docker"
+        docker.write_text(
+            "#!/bin/sh\nprintf 'CALL' >> \"$DOCKER_LOG\"\n"
+            "for arg do printf '\\t%s' \"$arg\" >> \"$DOCKER_LOG\"; done\n"
+            "printf '\\tDOCKER_CONFIG=%s\\n' \"${DOCKER_CONFIG-}\" >> \"$DOCKER_LOG\"\n"
+            "exit 0\n"
+        )
+        docker.chmod(0o755)
+        run = self.docker["run"].replace("/buz/workspace", workspace.as_posix())
+        if caller_run:
+            run += "\n" + caller_run
+        env = dict(os.environ)
+        for key in list(env):
+            if key.startswith("INPUT_"):
+                env.pop(key)
+        env.update({
+            "PATH": f"{mock_bin}{os.pathsep}{os.defpath}", "HOME": str(workspace.parent / "home"),
+            "DOCKER_LOG": str(args_log), "INPUT_TAGS": "registry.example/app:test",
+            "INPUT_CONTEXT": context,
+            "INPUT_DOCKERFILE": dockerfile, "INPUT_PUSH": "true",
+        })
+        if docker_config is not None:
+            env["DOCKER_CONFIG"] = docker_config
+        else:
+            env.pop("DOCKER_CONFIG", None)
+        result = subprocess.run(["/bin/sh", "-c", run], cwd=workspace / step_dir, env=env, capture_output=True, text=True, timeout=10)
+        return result, args_log.read_text() if args_log.exists() else ""
+
+    def test_docker_reuses_job_config_and_respects_explicit_override(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "workspace"
+            app = workspace / "source/app"
+            app.mkdir(parents=True)
+            (app / "Dockerfile").write_text("FROM scratch\\n")
+            (workspace / "source/Dockerfile").write_text("FROM scratch\\n")
+            config = workspace / ".docker"
+            config.mkdir()
+            (config / "config.json").write_text('{"auths":{}}')
+            result, log = self.run_docker(workspace)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(f"DOCKER_CONFIG={config.resolve()}", log)
+            self.assertIn(str(app), log)
+            explicit = str(Path(tmp) / "custom-docker-config")
+            Path(explicit).mkdir()
+            result, log = self.run_docker(workspace, docker_config=explicit)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(f"DOCKER_CONFIG={explicit}", log)
+
+    def test_docker_composed_run_executes_caller_commands_after_build(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "workspace"
+            app = workspace / "source/app"
+            app.mkdir(parents=True)
+            (app / "Dockerfile").write_text("FROM scratch\\n")
+            (workspace / "source/Dockerfile").write_text("FROM scratch\\n")
+            result, log = self.run_docker(
+                workspace, caller_run="printf 'CALLER-RAN\\n' >> \"$DOCKER_LOG\""
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("CALL", log)
+            self.assertLess(log.index("CALL"), log.index("CALLER-RAN"))
+
+    def test_docker_rejects_job_root_and_credentials_contexts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "workspace"
+            app = workspace / "source/app"
+            app.mkdir(parents=True)
+            (app / "Dockerfile").write_text("FROM scratch\\n")
+            config = workspace / ".docker"
+            config.mkdir()
+            (config / "config.json").write_text("secret")
+            (app / "linked-docker").symlink_to(config, target_is_directory=True)
+            result, log = self.run_docker(workspace)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertNotIn("CALL", log)
+
+    def test_docker_rejects_buz_directory_and_workspace_root_contexts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "workspace"
+            app = workspace / "source/app"
+            app.mkdir(parents=True)
+            (app / "Dockerfile").write_text("FROM scratch\\n")
+            (workspace / ".buz").mkdir()
+            (workspace / ".buz/env").write_text("TOKEN=secret\\n")
+            (app / ".buz").symlink_to(workspace / ".buz", target_is_directory=True)
+            result, log = self.run_docker(workspace)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertNotIn("CALL", log)
+            self.assertIn(".buz", result.stderr)
+            result, log = self.run_docker(workspace, context="..")
+            self.assertNotEqual(result.returncode, 0)
+            self.assertNotIn("CALL", log)
+
+    def test_docker_rejects_dockerfile_symlink_escape(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            workspace = base / "workspace"
+            outside = base / "outside"
+            outside.mkdir()
+            (outside / "Dockerfile").write_text("FROM scratch\\n")
+            source = workspace / "source"
+            (source / "app").mkdir(parents=True)
+            (source / "app/Dockerfile").symlink_to(outside / "Dockerfile")
+            result, log = self.run_docker(workspace, dockerfile="app/Dockerfile")
+            self.assertNotEqual(result.returncode, 0)
+            self.assertNotIn("CALL", log)
+
+    def test_git_clone_safe_target_and_no_overwrite(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            workspace = base / "workspace"
+            workspace.mkdir()
+            bin_dir = base / "bin"
+            bin_dir.mkdir()
+            log = base / "git.log"
+            git = bin_dir / "git"
+            git.write_text("#!/bin/sh\nprintf 'CALL' >> \"$GIT_LOG\"\nfor arg do printf '\\t%s' \"$arg\" >> \"$GIT_LOG\"; done\nprintf '\\n' >> \"$GIT_LOG\"\nexit 0\n")
+            git.chmod(0o755)
+            env = dict(os.environ)
+            for key in list(env):
+                if key.startswith("INPUT_"):
+                    env.pop(key)
+            env.update({"PATH": f"{bin_dir}{os.pathsep}{os.defpath}", "GIT_LOG": str(log), "INPUT_REPO": "https://example.test/repo.git", "INPUT_INTO": "nested/source", "INPUT_REF": "main", "INPUT_DEPTH": "1"})
+            run = self.clone["run"]
+            result = subprocess.run(["/bin/sh", "-c", run], cwd=workspace, env=env, capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((workspace / "nested").is_dir())
+            self.assertIn("--depth\t1", log.read_text())
+            self.assertIn("--branch\tmain", log.read_text())
+            (workspace / "nested/source").mkdir()
+            log.unlink()
+            result = subprocess.run(["/bin/sh", "-c", run], cwd=workspace, env=env, capture_output=True, text=True, timeout=10)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertFalse(log.exists())
+
+    def test_git_clone_rejects_symlink_parent_outside_workspace(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            workspace = base / "workspace"
+            workspace.mkdir()
+            outside = base / "outside"
+            outside.mkdir()
+            (workspace / "linked").symlink_to(outside, target_is_directory=True)
+            bin_dir = base / "bin"
+            bin_dir.mkdir()
+            git = bin_dir / "git"
+            git.write_text("#!/bin/sh\nprintf called > \"$GIT_LOG\"\n")
+            git.chmod(0o755)
+            env = dict(os.environ)
+            for key in list(env):
+                if key.startswith("INPUT_"):
+                    env.pop(key)
+            env.update({"PATH": f"{bin_dir}{os.pathsep}{os.defpath}", "GIT_LOG": str(base / "git.log"), "INPUT_REPO": "https://example.test/repo.git", "INPUT_INTO": "linked/source"})
+            result = subprocess.run(["/bin/sh", "-c", self.clone["run"]], cwd=workspace, env=env, capture_output=True, text=True, timeout=10)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertFalse((base / "git.log").exists())
+
+
+class LintRunsTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.lint = load_script("lint_runs")
+
+    def test_top_level_exit_and_exec_are_flagged(self):
+        body = [
+            "set -e",
+            "prepare-toolchain",
+            "exit 0",
+            "  exit 1",
+            "if true; then exit 3; fi",
+            "exec helper",
+        ]
+        offsets = self.lint.terminal_run_lines(body)
+        self.assertEqual(offsets, [2, 5])
+
+    def test_indented_and_empty_blocks_are_not_flagged(self):
+        self.assertEqual(self.lint.terminal_run_lines(["case $v in\n  a) exit 2;;\nesac"]), [])
+        self.assertEqual(self.lint.terminal_run_lines(["", "   "]), [])
+        self.assertEqual(self.lint.terminal_run_lines(["# exit 0"]), [])
+
+    def test_exception_allowlist_skips_fixed_entrypoint_templates(self):
+        raw = "id: buz/oss-upload\nversion: 1.0.2\nrun: |\n  exec /usr/local/bin/buz-oss-upload\n"
+        self.assertEqual(self.lint.spec_id(raw), "buz/oss-upload")
+        self.assertIn("buz/oss-upload", self.lint.TERMINAL_RUN_EXCEPTIONS)
+        self.assertIn("buz/http-check", self.lint.TERMINAL_RUN_EXCEPTIONS)
+
+    def test_all_plugin_run_blocks_respect_the_terminal_run_rule(self):
+        findings = []
+        for path in self.lint.discover_plugin_files(ROOT / "plugins"):
+            raw = path.read_text(encoding="utf-8")
+            plugin_id = self.lint.spec_id(raw)
+            for start, body in self.lint.run_blocks(raw):
+                if plugin_id in self.lint.TERMINAL_RUN_EXCEPTIONS:
+                    continue
+                for offset in self.lint.terminal_run_lines(body):
+                    findings.append(f"{path}:{start + offset + 1}")
+        self.assertEqual(findings, [])
 
 
 if __name__ == "__main__":

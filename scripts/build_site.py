@@ -44,7 +44,9 @@ SUMMARY_FIELDS = [
     "publisher",
     "license",
     "default_timeout",
+    "default_dir",
     "requires_buz",
+    "capabilities",
 ]
 
 GA_SNIPPET = (
@@ -76,6 +78,12 @@ def usage_example(tmpl: dict) -> str:
     if required:
         lines.append("  with:")
         lines.extend(f"    {item['name']}: " for item in required)
+    if tmpl.get("default_dir"):
+        # Harness template: the engine selects the step directory from
+        # default_dir (a step-level work_dir overrides it) and Buz appends
+        # the caller's commands after the template's own setup.
+        lines.append("  run: |")
+        lines.append("    # your commands — executed after the template setup")
     return "\n".join(lines)
 
 
@@ -201,7 +209,9 @@ def template_page_html(tmpl: dict) -> str:
 <h2>Usage</h2>
 <pre class="code">{usage}</pre>
 <h2>Integrity</h2>
-<p class="mono dim small">sha256: {tmpl['content_sha256']}</p>
+    <p class="mono dim small">sha256: {tmpl['content_sha256']}</p>
+    {f"<p>Capabilities: {esc(', '.join(tmpl.get('capabilities') or []))}</p>" if tmpl.get('capabilities') else ""}
+    {f"<p>Requires Buz: {esc(tmpl['requires_buz'])}</p>" if tmpl.get('requires_buz') else ""}
 <p class="dim small">{esc('Officially reviewed at this content hash' if tmpl.get('reviewed') else 'Not yet officially reviewed — the badge on the marketplace reflects the current review status')}.</p>
 <p><a href="https://github.com/schiplat/buz-plugins/issues/new?template=report.yml">Report an issue with this template</a>{f" · <a href='{esc(tmpl['source_repo'])}'>Source repository</a>" if tmpl.get('source_repo') else ""}</p>
 <p><a href="{home_href}">Browse all templates</a></p>
