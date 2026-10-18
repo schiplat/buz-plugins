@@ -1,0 +1,107 @@
+id: buz/git-clone
+category: source
+name: Git clone
+version: 1.1.0
+description: Clone a Git repository into the `into` directory (default source) inside the workspace, without overwriting an existing path.
+description_zh: 将 Git 仓库克隆到 workspace 内的 into 目录（默认 source），禁止覆盖已有路径。
+publisher: official
+author: "buz maintainers"
+keywords: [git, clone, source, checkout, 克隆]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/git-clone/1.1.0.yaml
+engine: shell
+default_timeout: 15m
+requires_buz: ">=1.8.0"
+inputs:
+  repo:
+    type: string
+    required: true
+    description: Repository URL (HTTPS). Embed credentials via the token input, not in the URL.
+  into:
+    type: string
+    default: "source"
+    description: Target directory relative to the workspace root; must not exist. Existing parents must resolve inside the workspace.
+  ref:
+    type: string
+    description: Branch or tag to check out (default the remote HEAD).
+  depth:
+    type: string
+    default: "1"
+    description: Shallow clone depth; "0" performs a full clone.
+  token:
+    type: string
+    masking: true
+    description: Access token for private HTTPS repositories (sent as the HTTP password).
+run: |
+  set -e
+
+  : "${INPUT_REPO:?repo is required}"
+  # git-clone declares no default_dir and callers set no work_dir on it: for
+  # shell steps the process cwd at step start IS the workspace root. Anchor it
+  # once, before anything can chdir, so the target stays workspace-relative.
+  workspace_root="$(pwd -P)"
+  into="${INPUT_INTO:-source}"
+  case "$into" in
+    /*|..|../*|*/../*|*/..|.|*/.)
+      printf 'into must be a non-empty relative clone target inside the Buz workspace\n' >&2
+      exit 2
+      ;;
+  esac
+  target="$workspace_root/$into"
+  if [ -e "$target" ] || [ -L "$target" ]; then
+    printf 'into already exists: %s\n' "$into" >&2
+    exit 2
+  fi
+  # Find the deepest existing parent before creating any missing directories.
+  parent="${target%/*}"
+  while [ ! -d "$parent" ]; do
+    if [ -e "$parent" ] || [ -L "$parent" ]; then
+      printf 'into parent is not a usable directory\n' >&2
+      exit 2
+    fi
+    parent="${parent%/*}"
+  done
+  parent_path="$(CDPATH= cd "$parent" && pwd -P)" || exit 2
+  case "$parent_path" in
+    "$workspace_root"|"$workspace_root"/*) ;;
+    *) printf 'into parent resolves outside the Buz workspace\n' >&2; exit 2 ;;
+  esac
+
+  depth="${INPUT_DEPTH:-1}"
+  case "$depth" in
+    ""|*[!0-9]*)
+      printf 'depth must be a non-negative integer\n' >&2
+      exit 2
+      ;;
+  esac
+  mkdir -p "${target%/*}"
+  parent_path="$(CDPATH= cd "${target%/*}" && pwd -P)" || exit 2
+  case "$parent_path" in
+    "$workspace_root"|"$workspace_root"/*) ;;
+    *) printf 'into parent resolves outside the Buz workspace\n' >&2; exit 2 ;;
+  esac
+  target="$parent_path/${target##*/}"
+  if [ -e "$target" ] || [ -L "$target" ]; then
+    printf 'into already exists: %s\n' "$into" >&2
+    exit 2
+  fi
+
+  set --
+  if [ "$depth" != "0" ]; then
+    set -- "$@" --depth "$depth"
+  fi
+  if [ -n "${INPUT_REF:-}" ]; then
+    set -- "$@" --branch "$INPUT_REF"
+  fi
+  if [ -n "${INPUT_TOKEN:-}" ]; then
+    askpass="$(mktemp "${TMPDIR:-/tmp}/buz-git-askpass.XXXXXX")"
+    trap 'rm -f "$askpass"' EXIT
+    printf '#!/bin/sh\nprintf "%%s\\n" "$INPUT_TOKEN"\n' > "$askpass"
+    chmod 0700 "$askpass"
+    GIT_ASKPASS="$askpass"
+    export GIT_ASKPASS
+    GIT_TERMINAL_PROMPT=0
+    export GIT_TERMINAL_PROMPT
+  fi
+  git clone "$@" -- "$INPUT_REPO" "$target"
+  git -C "$target" log --oneline -1

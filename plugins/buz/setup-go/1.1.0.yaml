@@ -1,0 +1,62 @@
+id: buz/setup-go
+category: build
+name: Go build environment
+version: 1.1.0
+description: "Prepare a pinned Go toolchain (1.26 or 1.25) with an explicit GOROOT for the step's run: commands."
+description_zh: "为步骤的 run: 命令准备固定的 Go 工具链（1.26 或 1.25），显式设置 GOROOT。"
+publisher: official
+author: "buz maintainers"
+keywords: [go, golang, build, toolchain, environment, 构建, 环境]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/setup-go/1.1.0.yaml
+engine: docker
+image: docker.io/schiplat/go@sha256:47f83f55e968ab6d6cbe8f79057910383c5ba707d06c3225dc2cd02f4f696259
+default_timeout: 30m
+default_dir: source
+requires_buz: ">=1.8.0"
+inputs:
+  version:
+    type: choice
+    default: "stable"
+    options: [stable, lts, dev, 1.26, 1.25]
+    description: Go version. stable selects 1.26; lts selects 1.25 (previous release); dev selects the gotip build frozen into the image.
+  cache:
+    type: boolean
+    default: "false"
+    description: Persist the module and build caches in <workspace>/.cache/go across jobs on this Runner.
+run: |
+  set -e
+
+  # Harness template: Buz appends the step's run: after this block in the same
+  # shell, so everything exported here (GOROOT, GOPATH, …) is visible to the
+  # caller's commands. The engine already chdirs into the step directory
+  # (step-level work_dir, else the default_dir above) — never cd away from it.
+  version="${INPUT_VERSION:-stable}"
+  case "$version" in
+    stable|1.26)
+      GOROOT=/usr/local/go
+      ;;
+    lts|1.25)
+      GOROOT=/opt/go/1.25
+      PATH="/opt/go/1.25/bin:$PATH"
+      ;;
+    dev)
+      GOROOT=/opt/go/tip
+      PATH="/opt/go/tip/bin:$PATH"
+      ;;
+    *)
+      printf 'unsupported go version: %s\n' "$version" >&2
+      exit 2
+      ;;
+  esac
+  export GOROOT
+  export PATH
+  go version
+
+  if [ "${INPUT_CACHE:-false}" = "true" ]; then
+    go_cache=/buz/workspace/.cache/go
+    mkdir -p "$go_cache/pkg/mod" "$go_cache/build"
+    export GOPATH="$go_cache"
+    export GOMODCACHE="$go_cache/pkg/mod"
+    export GOCACHE="$go_cache/build"
+  fi

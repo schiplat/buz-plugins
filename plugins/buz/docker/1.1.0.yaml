@@ -1,0 +1,223 @@
+id: buz/docker
+category: build
+name: Docker image build and push
+version: 1.1.0
+description: "Build an OCI image from a build context inside the step directory and push it to a registry; the step's run: can follow up on the built images. Requires the docker-socket capability. Reuses the job Docker config without including credentials or the job .buz directory in the build context."
+description_zh: "从步骤目录内的构建上下文构建 OCI 镜像并推送至镜像仓库；步骤的 run: 可对构建出的镜像做后续处理。需要 docker-socket capability；复用 job Docker 凭据，但禁止将凭据目录或 job .buz 目录包含进构建上下文。"
+publisher: official
+author: "buz maintainers"
+keywords: [docker, image, build, push, registry, 镜像]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/docker/1.1.0.yaml
+engine: docker
+capabilities: [docker-socket]
+requires_buz: ">=1.8.0"
+image: docker.io/schiplat/buz-plugins-docker-tools@sha256:46e6a2146f01bb1c893896c96c125ab66e8ffe059841bf68063d93ba20698ecf
+default_timeout: 30m
+default_dir: source
+inputs:
+  tags:
+    type: string
+    required: true
+    description: Space-separated full image references to tag and push (for example registry.example.com/app:1.2.0 registry.example.com/app:latest).
+  context:
+    type: string
+    default: "."
+    description: Build context relative to the step directory (step-level work_dir, else the template default_dir). It must resolve inside the workspace and must not include the workspace root or the job .docker/.buz directories.
+  dockerfile:
+    type: string
+    default: "Dockerfile"
+    description: Dockerfile path relative to the step directory; symlinks must resolve inside the workspace.
+  build_args:
+    type: string
+    description: Optional space-separated KEY=VALUE build arguments.
+  push:
+    type: boolean
+    default: "true"
+    description: Push the tagged images after building.
+run: |
+  set -e
+
+  : "${INPUT_TAGS:?tags is required}"
+  # The engine chdirs into the step directory (step-level work_dir, else the
+  # default_dir above) before this run block — use it as the base for the
+  # context/dockerfile inputs instead of re-deriving a work_dir here.
+  # Buz appends the step's run: after this block in the same shell, so the
+  # build/push must never exec or exit at the top level.
+  work_path="$(pwd -P)"
+  workspace_root="$(CDPATH= cd /buz/workspace && pwd -P)" || exit 2
+
+  # Return a canonical path even when the final path component does not exist.
+  physical_path() {
+    candidate="$1"
+    case "$candidate" in
+      /*) ;;
+      *) candidate="$work_path/$candidate" ;;
+    esac
+    if [ -e "$candidate" ] || [ -L "$candidate" ]; then
+      hops=0
+      while [ -L "$candidate" ]; do
+        hops=$((hops + 1))
+        [ "$hops" -le 40 ] || return 1
+        link="$(readlink "$candidate")" || return 1
+        parent="$(CDPATH= cd "${candidate%/*}" && pwd -P)" || return 1
+        case "$link" in
+          /*) candidate="$link" ;;
+          *) candidate="$parent/$link" ;;
+        esac
+      done
+      if [ -d "$candidate" ]; then
+        CDPATH= cd "$candidate" && pwd -P
+        return
+      fi
+      basename="${candidate##*/}"
+      parent="$(CDPATH= cd "${candidate%/*}" && pwd -P)" || return 1
+      printf '%s/%s\n' "${parent%/}" "$basename"
+      return
+    fi
+    missing="${candidate##*/}"
+    parent="${candidate%/*}"
+    [ -n "$parent" ] || parent=/
+    while [ ! -d "$parent" ]; do
+      if [ -e "$parent" ] || [ -L "$parent" ]; then
+        return 1
+      fi
+      component="${parent##*/}"
+      missing="$component/$missing"
+      parent="${parent%/*}"
+      [ -n "$parent" ] || parent=/
+    done
+    parent="$(CDPATH= cd "$parent" && pwd -P)" || return 1
+    printf '%s/%s\n' "${parent%/}" "$missing"
+  }
+
+  physical_file() {
+    candidate="$1"
+    case "$candidate" in
+      /*) ;;
+      *) candidate="$work_path/$candidate" ;;
+    esac
+    [ -f "$candidate" ] || return 1
+    candidate="$(physical_path "$candidate")" || return 1
+    [ -f "$candidate" ] || return 1
+    printf '%s\n' "$candidate"
+  }
+
+  context="${INPUT_CONTEXT:-.}"
+  case "$context" in
+    /*|"")
+      printf 'context must be a non-empty workspace-relative path\n' >&2
+      exit 2
+      ;;
+  esac
+  context_path="$(CDPATH= cd "$work_path/$context" && pwd -P)" || {
+    printf 'context does not exist: %s\n' "$context" >&2
+    exit 2
+  }
+  case "$context_path" in
+    "$workspace_root"/*) ;;
+    *) printf 'context resolves outside the Buz workspace\n' >&2; exit 2 ;;
+  esac
+
+  # Never send the job root or any physical ancestor/descendant of the Docker
+  # credentials or the job's .buz runtime directory to the daemon. This is
+  # independent of .dockerignore rules.
+  for guard_name in .docker .buz; do
+    guard_path="$workspace_root/$guard_name"
+    [ -d "$guard_path" ] || continue
+    guard_path="$(CDPATH= cd "$guard_path" && pwd -P)" || exit 2
+    case "$context_path" in
+      "$guard_path"|"$guard_path"/*)
+        printf 'context must not include the job %s directory\n' "$guard_name" >&2
+        exit 2
+        ;;
+    esac
+    case "$guard_path" in
+      "$context_path"/*)
+        printf 'context must not include the job %s directory\n' "$guard_name" >&2
+        exit 2
+        ;;
+    esac
+  done
+  [ "$context_path" != "$workspace_root" ] || {
+    printf 'context must not be the Buz job workspace root\n' >&2
+    exit 2
+  }
+  # Reject nested .docker/.buz directories and symlinks that expose the
+  # physical job directories, even if a .dockerignore would hide them from COPY.
+  nested_guard_dirs="$(find -L "$context_path" \( -name .docker -o -name .buz \) -print)" || exit 2
+  [ -z "$nested_guard_dirs" ] || {
+    printf 'context must not include a .docker or .buz directory\n' >&2
+    exit 2
+  }
+
+  dockerfile="${INPUT_DOCKERFILE:-Dockerfile}"
+  case "$dockerfile" in
+    /*|"")
+      printf 'dockerfile must be a non-empty path relative to the step directory\n' >&2
+      exit 2
+      ;;
+  esac
+  dockerfile_path="$(physical_file "$dockerfile")" || {
+    printf 'dockerfile not found or invalid: %s\n' "$dockerfile" >&2
+    exit 2
+  }
+  case "$dockerfile_path" in
+    "$workspace_root"/*) ;;
+    *) printf 'dockerfile resolves outside the Buz workspace\n' >&2; exit 2 ;;
+  esac
+
+  # An explicit config always wins; otherwise prefer the Runner's per-job
+  # config when present and leave Docker's normal HOME default untouched.
+  if [ -n "${DOCKER_CONFIG:-}" ]; then
+    effective_docker_config="$DOCKER_CONFIG"
+  elif [ -f "$workspace_root/.docker/config.json" ]; then
+    DOCKER_CONFIG="$workspace_root/.docker"
+    export DOCKER_CONFIG
+    effective_docker_config="$DOCKER_CONFIG"
+  else
+    effective_docker_config="${HOME:-/root}/.docker"
+  fi
+  if [ -e "$effective_docker_config" ] && [ ! -d "$effective_docker_config" ]; then
+    printf 'DOCKER_CONFIG must name a directory\n' >&2
+    exit 2
+  fi
+  effective_docker_config_path="$(physical_path "$effective_docker_config")" || {
+    printf 'cannot resolve DOCKER_CONFIG directory\n' >&2
+    exit 2
+  }
+  case "$effective_docker_config_path" in
+    "$context_path"|"$context_path"/*)
+      printf 'context must not include DOCKER_CONFIG credentials\n' >&2
+      exit 2
+      ;;
+  esac
+  case "$context_path" in
+    "$effective_docker_config_path"/*)
+      printf 'context must not include DOCKER_CONFIG credentials\n' >&2
+      exit 2
+      ;;
+  esac
+
+  docker info >/dev/null 2>&1 || {
+    printf 'docker daemon unreachable — grant the docker-socket capability (see the buz/docker README)\n' >&2
+    exit 2
+  }
+
+  set --
+  for arg in ${INPUT_BUILD_ARGS:-}; do
+    set -- "$@" --build-arg "$arg"
+  done
+  for tag in $INPUT_TAGS; do
+    set -- "$@" --tag "$tag"
+  done
+
+  # tags/build_args: intentional word splitting — space-separated entries
+  # shellcheck disable=SC2086
+  docker build -f "$dockerfile" "$@" "$context_path"
+
+  if [ "${INPUT_PUSH:-true}" = "true" ]; then
+    for tag in $INPUT_TAGS; do
+      docker push "$tag"
+    done
+  fi

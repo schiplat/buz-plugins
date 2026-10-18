@@ -1,0 +1,52 @@
+id: buz/setup-python
+category: build
+name: Python build environment (pip)
+version: 1.1.0
+description: "Prepare a pinned Python toolchain (3.14, 3.13, or 3.12) with pip for the step's run: commands."
+description_zh: "为步骤的 run: 命令准备固定的 Python 工具链（3.14、3.13 或 3.12），内置 pip。"
+publisher: official
+author: "buz maintainers"
+keywords: [python, pip, build, toolchain, environment, 构建, 环境]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/setup-python/1.1.0.yaml
+engine: docker
+image: docker.io/schiplat/python@sha256:3527c13c08c963c54d6748b91748efcbc06782221d53e8ae536811acdfb33c15
+default_timeout: 30m
+default_dir: source
+requires_buz: ">=1.8.0"
+inputs:
+  version:
+    type: choice
+    default: "stable"
+    options: [stable, lts, dev, 3.14, 3.13, 3.12]
+    description: Python version. stable/lts/dev all select 3.14 (Python has no LTS or dev channel in this image).
+  cache:
+    type: boolean
+    default: "false"
+    description: Persist the pip cache in <workspace>/.cache/python/pip across jobs on this Runner.
+run: |
+  set -e
+
+  # Harness template: Buz appends the step's run: after this block in the same
+  # shell, so everything exported here (PATH, PIP_CACHE_DIR, …) is visible to
+  # the caller's commands. The engine already chdirs into the step directory
+  # (step-level work_dir, else the default_dir above) — never cd away from it.
+  version="${INPUT_VERSION:-stable}"
+  case "$version" in
+    stable|lts|dev|3.14) ;;
+    3.13|3.12)
+      PATH="/opt/python/$version/bin:$PATH"
+      export PATH
+      ;;
+    *)
+      printf 'unsupported python version: %s\n' "$version" >&2
+      exit 2
+      ;;
+  esac
+  python3 --version
+
+  if [ "${INPUT_CACHE:-false}" = "true" ]; then
+    pip_cache=/buz/workspace/.cache/python/pip
+    mkdir -p "$pip_cache"
+    export PIP_CACHE_DIR="$pip_cache"
+  fi

@@ -1,0 +1,54 @@
+id: buz/setup-ruby
+category: build
+name: Ruby build environment (gem/bundler)
+version: 1.1.0
+description: "Prepare a pinned Ruby toolchain (3.4 or 3.3) for the step's run: commands. 3.3 is EOL upstream and kept for existing applications."
+description_zh: "为步骤的 run: 命令准备固定的 Ruby 工具链（3.4 或 3.3）。3.3 上游已 EOL，仅为存量应用保留。"
+publisher: official
+author: "buz maintainers"
+keywords: [ruby, gem, bundler, build, toolchain, environment, 构建, 环境]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/setup-ruby/1.1.0.yaml
+engine: docker
+image: docker.io/schiplat/ruby@sha256:0e9af358b8802d0767fb9658729dafd17d02778eb0a667e186b418549a593af4
+default_timeout: 30m
+default_dir: source
+requires_buz: ">=1.8.0"
+inputs:
+  version:
+    type: choice
+    default: "stable"
+    options: [stable, lts, dev, 3.4, 3.3]
+    description: Ruby version. stable/lts/dev all select 3.4 (Ruby has no LTS or dev channel in this image); 3.3 is EOL upstream, kept for existing applications.
+  cache:
+    type: boolean
+    default: "false"
+    description: Persist gem/bundler caches in <workspace>/.cache/ruby across jobs on this Runner.
+run: |
+  set -e
+
+  # Harness template: Buz appends the step's run: after this block in the same
+  # shell, so everything exported here (PATH, GEM_HOME, BUNDLE_PATH, …) is
+  # visible to the caller's commands. The engine already chdirs into the step
+  # directory (step-level work_dir, else the default_dir above) — never cd
+  # away from it.
+  version="${INPUT_VERSION:-stable}"
+  case "$version" in
+    stable|lts|dev|3.4) ;;
+    3.3)
+      PATH="/opt/ruby/3.3/bin:$PATH"
+      export PATH
+      ;;
+    *)
+      printf 'unsupported ruby version: %s\n' "$version" >&2
+      exit 2
+      ;;
+  esac
+  ruby --version
+
+  if [ "${INPUT_CACHE:-false}" = "true" ]; then
+    ruby_cache=/buz/workspace/.cache/ruby
+    mkdir -p "$ruby_cache/gems" "$ruby_cache/bundle"
+    export GEM_HOME="$ruby_cache/gems"
+    export BUNDLE_PATH="$ruby_cache/bundle"
+  fi

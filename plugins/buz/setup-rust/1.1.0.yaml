@@ -1,0 +1,63 @@
+id: buz/setup-rust
+category: build
+name: Rust build environment (cargo)
+version: 1.1.0
+description: "Prepare a pinned Rust toolchain (cargo/rustc) for the step's run: commands. The image ships stable (Rust 1.99 at image 1.0.0); other X.Y toolchains and nightly install on demand via rustup."
+description_zh: "为步骤的 run: 命令准备固定的 Rust 工具链（cargo/rustc）。镜像内置 stable（Rust 1.99，image 1.0.0）；其他 X.Y 工具链与 nightly 通过 rustup 按需安装。"
+publisher: official
+author: "buz maintainers"
+keywords: [rust, cargo, build, toolchain, rustup, environment, 构建, 环境]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/setup-rust/1.1.0.yaml
+engine: docker
+image: docker.io/schiplat/rust@sha256:dbda8a25caaba00c0de8896127c7cd78e87577b5cea6958aed157c28cd7b1256
+default_timeout: 30m
+default_dir: source
+requires_buz: ">=1.8.0"
+inputs:
+  version:
+    type: string
+    default: "stable"
+    pattern: "^(stable|lts|dev|nightly|[0-9]+\\.[0-9]+)$"
+    description: Toolchain selector. stable/lts use the image-built stable toolchain (Rust 1.99 at image 1.0.0); dev/nightly install the nightly channel via rustup at run time; X.Y (for example 1.85) installs that release via rustup.
+  cache:
+    type: boolean
+    default: "false"
+    description: Persist the cargo registry and on-demand rustup toolchains in <workspace>/.cache/rust across jobs on this Runner.
+run: |
+  set -e
+
+  # Harness template: Buz appends the step's run: after this block in the same
+  # shell, so everything exported here (CARGO_HOME, PATH, …) is visible to the
+  # caller's commands. The engine already chdirs into the step directory
+  # (step-level work_dir, else the default_dir above) — never cd away from it.
+  cache="${INPUT_CACHE:-false}"
+  if [ "$cache" = "true" ]; then
+    cargo_cache=/buz/workspace/.cache/rust/cargo
+    mkdir -p "$cargo_cache"
+    export CARGO_HOME="$cargo_cache"
+    PATH="/usr/local/cargo/bin:$cargo_cache/bin:$PATH"
+    export PATH
+  fi
+
+  version="${INPUT_VERSION:-stable}"
+  case "$version" in
+    stable|lts) ;;
+    *)
+      # persist on-demand toolchains so later jobs skip the download
+      if [ "$cache" = "true" ]; then
+        rustup_home=/buz/workspace/.cache/rust/rustup
+        mkdir -p "$rustup_home"
+        export RUSTUP_HOME="$rustup_home"
+        PATH="/usr/local/cargo/bin:$PATH"
+        export PATH
+      fi
+      case "$version" in
+        dev|nightly) toolchain=nightly ;;
+        *) toolchain="$version" ;;
+      esac
+      rustup toolchain install "$toolchain" --profile minimal
+      rustup default "$toolchain"
+      ;;
+  esac
+  rustc --version

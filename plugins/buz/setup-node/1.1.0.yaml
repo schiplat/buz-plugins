@@ -1,0 +1,57 @@
+id: buz/setup-node
+category: build
+name: Node.js build environment (npm)
+version: 1.1.0
+description: "Prepare a pinned Node.js toolchain (24 active LTS or 22 maintenance LTS) with npm and corepack for the step's run: commands."
+description_zh: "为步骤的 run: 命令准备固定的 Node.js 工具链（24 活跃 LTS 或 22 维护 LTS），内置 npm 与 corepack。"
+publisher: official
+author: "buz maintainers"
+keywords: [node, nodejs, npm, build, toolchain, environment, 构建, 环境]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/setup-node/1.1.0.yaml
+engine: docker
+image: docker.io/schiplat/node@sha256:e433420a6772607282a9699ce9874ee8a10f5d5183e926995da5d5ab698293ac
+default_timeout: 30m
+default_dir: source
+requires_buz: ">=1.8.0"
+inputs:
+  version:
+    type: choice
+    default: "stable"
+    options: [stable, lts, dev, 24, 25, 22]
+    description: Node.js version. stable/lts select 24 (active LTS); dev selects 25 (current line).
+  cache:
+    type: boolean
+    default: "false"
+    description: Persist the npm cache in <workspace>/.cache/node/npm across jobs on this Runner.
+run: |
+  set -e
+
+  # Harness template: Buz appends the step's run: after this block in the same
+  # shell, so everything exported here (PATH, npm_config_cache, …) is visible
+  # to the caller's commands. The engine already chdirs into the step
+  # directory (step-level work_dir, else the default_dir above) — never cd
+  # away from it.
+  version="${INPUT_VERSION:-stable}"
+  case "$version" in
+    stable|lts|24) ;;
+    25|dev)
+      PATH="/opt/node/25/bin:$PATH"
+      export PATH
+      ;;
+    22)
+      PATH="/opt/node/22/bin:$PATH"
+      export PATH
+      ;;
+    *)
+      printf 'unsupported node version: %s\n' "$version" >&2
+      exit 2
+      ;;
+  esac
+  node --version
+
+  if [ "${INPUT_CACHE:-false}" = "true" ]; then
+    npm_cache=/buz/workspace/.cache/node/npm
+    mkdir -p "$npm_cache"
+    export npm_config_cache="$npm_cache"
+  fi
