@@ -5,7 +5,7 @@
       "version": "1.0.0",
       "sha256": "8885fee963c8944b64f62887366bb5427f66a6f10171fb4080e1663c69824011",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "artifact"
@@ -15,7 +15,7 @@
       "version": "1.1.0",
       "sha256": "4573024cdc3b37ab66b57c2e2d3d10a957a0bf3801c62f5e69614b23226d116d",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "artifact"
@@ -25,7 +25,7 @@
       "version": "1.0.0",
       "sha256": "2bcf9eb2edd5ed6dffbaff35f96ba7a9f981a0d078fe799e5596f482b71feb98",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "source"
@@ -35,7 +35,7 @@
       "version": "1.1.0",
       "sha256": "988e26ad6b146cbe3974922b344e8361b41461e3043ab9602a15532df4630743",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "source"
@@ -45,7 +45,7 @@
       "version": "1.0.0",
       "sha256": "00c8c29fadf4649b63ba9c095e3ce6707c06254ad36bbb4975a209cf86ad6222",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "notifications"
@@ -55,7 +55,7 @@
       "version": "1.0.0",
       "sha256": "43dde7ad70e6a7b3b859e45f0da31b8e40a6776bb54d41cd46da8b51cf2d1abc",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "build"
@@ -63,9 +63,9 @@
     {
       "id": "buz/docker",
       "version": "1.1.0",
-      "sha256": "8f5e764e089af8bcc27611f1875ea0f75e516cb217104c18eaba738f805de775",
+      "sha256": "59f898a5ad23720f4a30091761b17ada1d65423beba5a63137ffde0d7551295d",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "build"
@@ -75,7 +75,7 @@
       "version": "1.0.0",
       "sha256": "c5325efb7262cf227f481b0b0cbd9c92659744a99dd7ad4d83058b2b42478a2e",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "deploy"
@@ -85,7 +85,7 @@
       "version": "1.0.0",
       "sha256": "33b8cf056dc6a0c604f5999e7df1c057754125ffb618068539f09b0b68323f09",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "build"
@@ -95,7 +95,7 @@
       "version": "1.1.0",
       "sha256": "d88d7850420f70a249b3fcd9f38c86495c5153a2d03dd1dcc51393ce3f756a48",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "build"
@@ -105,7 +105,7 @@
       "version": "1.0.0",
       "sha256": "a5ac733aacc1954c0cc9d2b2a0a55a39fee42c1671fcf88d60697de7ee8f3e5d",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "build"
@@ -115,7 +115,7 @@
       "version": "1.0.0",
       "sha256": "34a92cbca0730b3e48d834508e20465e5c408ccebbce813d1fce1cd8060d1cee",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "notifications"
@@ -125,7 +125,7 @@
       "version": "1.0.0",
       "sha256": "880175443061048f3042c14f6ce799f866b21abf1ba577b17b18de8f1c0420b4",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "source"
@@ -133,9 +133,9 @@
     {
       "id": "buz/git-clone",
       "version": "1.1.0",
-      "sha256": "6b5ac7298e9a87553f4aed12a67bacf09ee8ef4e353df039d6e61e585f2a10f1",
+      "sha256": "317779cf746890fb01b805fbe2e2eaf93feb1c35365ce2feba0c428e4f0d8f25",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "source"
@@ -145,7 +145,7 @@
       "version": "1.0.0",
       "sha256": "5edc18374ea856518afa9a08c7b931a6093643db32e45739dbb0f9769fc23517",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "deploy"
@@ -155,7 +155,7 @@
       "version": "1.0.0",
       "sha256": "a5bc4b56240f20705d7308f3c271dabb401e79b29d53043c79264f3b5839592a",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "healthcheck"
@@ -165,7 +165,7 @@
       "version": "1.1.0",
       "sha256": "452a92cac86946e1368db3560b0bfa095f4ed84564e9881bc65017772a9fd278",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "healthcheck"
@@ -175,7 +175,7 @@
       "version": "1.0.0",
       "sha256": "e94dcf5f9cdd898aed69fb7e0904df3b6da5472d49c628781c5c128d09878810",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "deploy"
@@ -185,7 +185,7 @@
       "version": "1.0.0",
       "sha256": "ae05501317a2e61baf92a212d5f42e3dc3b834ea4f52baf9e2501cded70c42cf",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "source"
@@ -195,7 +195,7 @@
       "version": "1.0.1",
       "sha256": "eef94c74534344a2c8c65a45a8d7d1c29b81d6748142d7cc580b298c4c1572b1",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "upload"
@@ -205,7 +205,7 @@
       "version": "1.0.2",
       "sha256": "4bb2520277112b31988eea9a3664f05625596d36a496759eee2091fc61b29b42",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "upload"
@@ -215,7 +215,7 @@
       "version": "1.0.1",
       "sha256": "3828f53e735535b20bc5dabf9fddb385a7863a8a741d2e7d15555eda748b6151",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "upload"
@@ -225,7 +225,7 @@
       "version": "1.0.2",
       "sha256": "c38e6b0c048f803542a3031c0b9ac07c11efe69c07f26c7c261923bf4384078b",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "upload"
@@ -235,7 +235,7 @@
       "version": "1.0.0",
       "sha256": "bf9ef0b9b4092c1a8e30973f354106d9db823c72830604c8333917925bd6e22b",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "deploy"
@@ -245,7 +245,7 @@
       "version": "1.0.0",
       "sha256": "35be6bd8c295d8f17152b532fa40cd662f722a97fdd893c296a512b4b1462b97",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "build"
@@ -253,9 +253,9 @@
     {
       "id": "buz/setup-go",
       "version": "1.1.0",
-      "sha256": "9e204df4ed423630bacf1886f4d46cb4971919645e19e6c27680d608a4678785",
+      "sha256": "6806cb459b352bdb24936641732a018c0d901bd0e137b9bbca9f62c8bac3ed49",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "build"
@@ -265,7 +265,7 @@
       "version": "1.0.0",
       "sha256": "2d73f5c65360285ea1fccec7cb1f3bcdf2a1ffb96b4b921edba4a6220f8688b4",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "build"
@@ -273,9 +273,9 @@
     {
       "id": "buz/setup-java",
       "version": "1.1.0",
-      "sha256": "a6cb0640ad62d302196c4113eef847401ef8f4ecb1a2275fd9b3636497b2cf3b",
+      "sha256": "5ee4b0eaf106617ec8a0401a53b6a48a062234a3981363b2e1ba718ea5bcdb05",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "build"
@@ -285,7 +285,7 @@
       "version": "1.0.0",
       "sha256": "460ef0eb12f3471b3c6f0be94fdbcd8b6e9e37777cb506669ccdab70d45e1735",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "build"
@@ -293,9 +293,9 @@
     {
       "id": "buz/setup-lua",
       "version": "1.1.0",
-      "sha256": "6167a1a3bfac2f0e26e704004a5db3ce0fbf96c6658d69180829ce07272dd017",
+      "sha256": "16bcbfd697b886457f61829114e09d7bffd472b923ad3d25abd8874dc8279cb4",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "build"
@@ -305,7 +305,7 @@
       "version": "1.0.0",
       "sha256": "9c524b593bb08605e55ee4bebc1c27f7c2f3e5b06ce1aac62c40bff14644a669",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "build"
@@ -313,9 +313,9 @@
     {
       "id": "buz/setup-node",
       "version": "1.1.0",
-      "sha256": "5a2cdd232770b11d0290e665f807a301eec5ed8e35447ec4505e6f59db77d932",
+      "sha256": "8d03a2a1e143957f004ace2449f6c12fd8f233d9f6f5883bef519c91412dd615",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "build"
@@ -325,7 +325,7 @@
       "version": "1.0.0",
       "sha256": "a9b2e1aac4eca9e748c661321ce91354b8ac6562af82a6366451dca8623e874d",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "build"
@@ -333,9 +333,9 @@
     {
       "id": "buz/setup-php",
       "version": "1.1.0",
-      "sha256": "371f6692ca8b01d824ee4a9f6badfbe2414d57a03c4ff92a7970585a07177af8",
+      "sha256": "98d81e796fb4bd1f0e1258837c45f4431a20d50ca1e6b2e888ba511260f90847",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "build"
@@ -345,7 +345,7 @@
       "version": "1.0.0",
       "sha256": "5bb3b2ffcbd5b1223597517f806efddae90ef6145231ab51d5e98ff579df216b",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "build"
@@ -353,9 +353,9 @@
     {
       "id": "buz/setup-python",
       "version": "1.1.0",
-      "sha256": "636ef7dfdbe74506d4f70bf832813ff3a900bc69f7d0d5dc17766b91489387d2",
+      "sha256": "2647858a70af58a7be29496be73bd7c765fe3bf437231eb82b5896e328b65a5f",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "build"
@@ -365,7 +365,7 @@
       "version": "1.0.0",
       "sha256": "1a43a92799284c52ad887d2c2a31523d81c8d97d2b6b91349cb25c142e745b64",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "build"
@@ -373,9 +373,9 @@
     {
       "id": "buz/setup-ruby",
       "version": "1.1.0",
-      "sha256": "97a857936c2431012119271280cc234dd86e3f8ec7d113e99db99ae9c526b32c",
+      "sha256": "36afa11b31430ae7edcc965964bdbe2149d5eae3e9a6eed2e595b5f7449c69f4",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "build"
@@ -385,7 +385,7 @@
       "version": "1.0.0",
       "sha256": "12ab39ca7fb61cf059fd42b56bf84442f834a1179bb35ffe961449fdf7d9493a",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "build"
@@ -393,9 +393,9 @@
     {
       "id": "buz/setup-rust",
       "version": "1.1.0",
-      "sha256": "77ad6d4364471b6561ddb8a368aa770f5a3fb7a1a498fdeba46c25427dc3af6f",
+      "sha256": "c4aafbd5b38e3b2dc2afb5b9df2f146d002492fa034ad45062377a37180741b4",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "build"
@@ -405,7 +405,7 @@
       "version": "1.0.0",
       "sha256": "1ed4a1a7acd214c5334ba64c11ee11eeb07b60dae3bde6bea68eb2c16dac177c",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "notifications"
@@ -415,7 +415,7 @@
       "version": "1.0.0",
       "sha256": "d6fa685bdf230bc440beb6d16ba6fb25b4fd062e865d8c397777eb9487de83d0",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "deployment"
@@ -425,7 +425,7 @@
       "version": "1.0.0",
       "sha256": "5aa03ada210f08b592267106e3cf194eac478e28f75242ef817b00a6303676fe",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "notifications"
@@ -435,7 +435,7 @@
       "version": "1.0.0",
       "sha256": "8e6fcf31a4c07c5a79ff8942cd0a658e32d45dde6593878e7727899a3cfdd715",
       "reviewed_at": "2026-10-18",
-      "review_commit": "8a065b1",
+      "review_commit": "4579de8",
       "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
       "source": "ci",
       "category": "notifications"
