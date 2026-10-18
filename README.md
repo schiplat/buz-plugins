@@ -28,11 +28,11 @@ steps:
 | `buz/archive` | shell | Pack workspace paths into a tar.gz with sha256 checksum |
 | `buz/docker-compose` | ssh | Deploy a Docker Compose project on the target host (Buz 1.7.5+) |
 | `buz/scp` | shell | Copy a workspace file to a target host over scp — key auth, nothing installed on the target |
-| `buz/docker` | docker | Build and push an OCI image from a workspace context (requires the host Docker socket) |
+| `buz/docker` | docker | Build and push an OCI image from a workspace context (requires Buz 1.8.0+ and `docker-socket` capability) |
 | `buz/docker-login` | shell/ssh | Registry login — Runner host by default, or target hosts via `engine: ssh` (pair with `buz/docker-logout`) |
 | `buz/docker-logout` | shell | Best-effort registry logout on the Runner host |
 | `buz/config-fetch` | shell/ssh | Download + unpack a config bundle (presigned OSS/S3/MinIO/R2 URL, optional Basic/header auth) — Runner workspace or target hosts via `engine: ssh` |
-| `buz/git-clone` | shell | Clone a Git repository into the workspace (shallow, token auth) |
+| `buz/git-clone` | shell | Clone a Git repository into `into` (default `source`; shallow, token auth) |
 | `buz/webhook-notify` | shell | Generic JSON webhook notifications with job metadata |
 | `buz/k8s-apply` | shell | Apply workspace manifests to Kubernetes with kubectl |
 | `buz/helm-upgrade` | shell | Helm upgrade --install from a workspace chart |
@@ -45,7 +45,7 @@ steps:
 | `buz/setup-java` | docker | Java build environment (Temurin JDK 21/25/17) with Gradle cache support |
 | `buz/setup-go` | docker | Go build environment (1.26/1.25) with module/build caching |
 
-Each `buz/setup-*` step executes its `script` input in the selected toolchain from a `workdir` inside the workspace; every step is an isolated container, so state travels between steps via workspace files, not the environment. With `cache: true` the package-manager cache lives under `<workspace>/.cache/` and is reused by later jobs on the same Runner. Builds download dependencies from the language ecosystems (crates.io, rubygems.org, packagist.org, PyPI, the npm registry, Maven Central, the Go module proxy, …); make sure Runner egress policy allows the endpoints your build needs. Template authoring conventions for image-backed plugins: [docs/image-template-conventions.md](docs/image-template-conventions.md).
+Each `buz/setup-*` template (1.1.0) is a harness: it prepares the selected toolchain, then the step's own `run:` commands execute in the same shell (Buz 1.8.0+ appends them), starting in the step directory — `default_dir: source`, overridable per step with `work_dir`; the directory must resolve physically within the workspace. Version 1.0.0 templates remain available with their historical `script` and `workdir` inputs. Every step is an isolated container, so state travels between steps via workspace files, not the environment. With `cache: true` the package-manager cache lives under `<workspace>/.cache/` and is reused by later jobs on the same Runner. Builds download dependencies from the language ecosystems (crates.io, rubygems.org, packagist.org, PyPI, the npm registry, Maven Central, the Go module proxy, …); make sure Runner egress policy allows the endpoints your build needs. Template authoring conventions for image-backed plugins: [docs/image-template-conventions.md](docs/image-template-conventions.md).
 
 Docker templates require a Docker-enabled Runner and Linux `amd64` tool images that have been published and digest-pinned. Changes to an image's build context or its own YAML template automatically publish only that image from `master`; after a successful build, the workflow opens or updates a family-specific PR to pin its template to the published digest. See [image build, publishing, and runtime requirements](docs/plugin-images.md) for the optional `BUZ_PLUGIN_GITHUB_PR_TOKEN` needed to trigger CI on generated PRs. The upload templates are currently `1.0.2`; use their digest-pinned references for production.
 
@@ -111,7 +111,7 @@ Full spec: marketplace ADR §5 (`docs/design/step-marketplace.md` in the buz rep
 
   | Variable | Value |
   |----------|-------|
-  | `BUZ_VERSION` | Release tag to validate against (e.g. `v1.7.0`). Empty → latest release. |
+  | `BUZ_VERSION` | Pin to the `v1.8.0` release (required by `buz/docker@1.1.0`) or newer. Empty → latest release; do not merge/publish Docker 1.1.0 until Buz 1.8.0 is released. |
 - **site**: builds the static browse site in an unprivileged read-only job and uploads it as an artifact. A separate publish job only runs on trusted pushes to `master`, then deploys to Cloudflare Pages if credentials are configured and persists the refreshed official review manifest.
 
   One-time deploy setup (repo Settings → Secrets and variables → Actions):

@@ -9,7 +9,7 @@ in [plugin-images.md](plugin-images.md); this page is the authoring contract.
 | Kind | Examples | Shape |
 |------|----------|-------|
 | **Helper** | `buz/oss-upload`, `buz/s3-upload` | The image installs a fixed helper (`entrypoint.sh` → `/usr/local/bin/<helper>`); the spec's `run:` is exactly `exec /usr/local/bin/<helper>` |
-| **Toolchain** | `buz/setup-rust` … `buz/setup-go` (rust, ruby, php, lua, python, node, java, go) | The image ships language toolchains; the spec selects one via `version` and executes a required `script` input |
+| **Toolchain** | `buz/setup-rust` … `buz/setup-go` (rust, ruby, php, lua, python, node, java, go) | The image ships language toolchains; the spec selects one via `version` and is a harness for the step's `run:` commands (Buz ≥1.8.0 appends them after the template run in the same shell) |
 
 ## Directory layout and identity
 
@@ -18,6 +18,7 @@ plugins/<namespace>/<name>/
 ├── README.md           # required — repo rule, enforced by check_plugin_readmes.py in CI
 ├── 1.0.0.yaml          # one file per template version, X.Y.Z == `version:` field
 ├── 1.0.1.yaml          # later versions are added, never rewritten (see lifecycle)
+├── 1.1.0.yaml          # new input contracts get a new immutable template version
 └── image/
     ├── Dockerfile      # linux/amd64 only — no TARGETARCH/arm64/aarch64 anywhere
     └── entrypoint.sh   # helper kind only
@@ -35,8 +36,9 @@ plugins/<namespace>/<name>/
   `pattern`, `masking`, `description` — there is no `description_zh` on
   inputs. Input `type` is one of `string`, `number`, `boolean`, `choice`
   (with `options`), `list`.
-- The Manager validates specs with `buz-manager step-validate`; anything
-  outside the schema above fails CI.
+- Manager spec fields accept `capabilities` and image templates may use it to
+  declare runtime requirements such as `docker-socket`; CI validates those
+  fields with the configured Buz release.
 
 ## Image reference lifecycle
 
@@ -101,13 +103,40 @@ installed entrypoint script instead).
 - `scripts/lint_runs.py` rejects, among others: `eval`, piping into
   `sh`/`bash`/`python`, `curl … | sh`, `base64 -d`, `/dev/tcp/`, `nc … -e`,
   plaintext `http://` downloads, `history -c`, `chmod +x` immediately
-  followed by execution. Execute dynamic input by writing it to a temp file
-  and running `sh -e <file>` (see the `buz/setup-*` templates).
-- Validate any path-like input against workspace escapes before use:
-  reject `/*`, `..`, `../*`, `*/../*`, `*/..`, then `cd /buz/workspace` and
-  resolve/verify (pattern used by `oss-upload` and the setup templates).
-- Toolchain templates must declare a required `script` input and reference
-  `INPUT_SCRIPT` in `run:` (enforced by `check_plugin_images.py`).
+  followed by execution — and top-level `exit`/`exec` in a `run:` block
+  (Buz appends the caller's `run:` after the template run; a fixed-entrypoint
+  template that intentionally replaces the process must be recorded in
+  `TERMINAL_RUN_EXCEPTIONS`).
+- Templates used through `uses:` may receive caller commands: Buz (≥1.8.0)
+  appends the step's `run:` after the template run in the same shell.
+  Harness templates (the `buz/setup-*` 1.1.0 releases) therefore only set up
+  the toolchain environment in `run:` and declare `default_dir: source`
+  instead of a `script`/`work_dir` input — the engine chdirs into the step
+  directory (step-level `work_dir`, else `default_dir`) before the run block
+  executes, and everything the template exports is visible to the caller's
+  commands.
+- Validate any path-like input against workspace escapes before use. The
+  `1.1.0` releases moved directory selection into `default_dir: source`
+  (setup-*/docker) or the `into` input (git-clone); `context`/`dockerfile`
+  are resolved relative to the engine-set step directory and must
+  physically stay inside the workspace. Older published versions remain
+  immutable and keep their historical inputs (`workdir`, `dir`, `work_dir`).
+- Docker templates that need the Runner Docker daemon declare
+  `capabilities: [docker-socket]` and an appropriate `requires_buz` gate. The
+  runtime/schema contract for capabilities belongs to Buz; plugin CI must use
+  a released validator that supports the field rather than skipping validation.
+  Build-context checks must use physical paths and reject the job workspace
+  root, the Docker credential directory, and the job's `.buz` runtime
+  directory (both ancestors of the context and nested/symlinked copies);
+  `.dockerignore` is not a secrecy guard.
+- Docker `dockerfile` paths are resolved relative to the step directory and
+  must physically remain inside the workspace. For job credential reuse, an
+  explicit `DOCKER_CONFIG` wins; otherwise use `/buz/workspace/.docker` only
+  when its `config.json` exists.
+- Toolchain templates are harnesses: they declare `default_dir: source`, keep
+  only real parameters as inputs (version/cache/…), and their `run:` block
+  ends ready-for-use — no `script` input, no `INPUT_SCRIPT`, no top-level
+  `exit`/`exec` (enforced by `check_plugin_images.py` and `lint_runs.py`).
 - Network-touching inputs (`url`, `webhook`, `endpoint`, …) must be declared
   in `egress-allowlist.json` under `endpoint_inputs` for the template ID; the
   check is an exact match, and literal hosts in `run:` may only be a subset
