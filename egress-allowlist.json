@@ -3,7 +3,7 @@
     "Reviewed egress baseline for official (buz/*) templates.",
     "enforced by: python3 scripts/egress.py --expect egress-allowlist.json",
     "hosts: upper bound on literal hosts in the run block (subset check).",
-    "endpoint_inputs: exact match — a new network-touching input must go",
+    "endpoint_inputs: exact match \u2014 a new network-touching input must go",
     "through human review before this file is updated."
   ],
   "buz/oss-upload": {
@@ -94,6 +94,10 @@
     "endpoint_inputs": []
   },
   "buz/git-clone": {
+    "hosts": [],
+    "endpoint_inputs": []
+  },
+  "buz/checkout": {
     "hosts": [],
     "endpoint_inputs": []
   },

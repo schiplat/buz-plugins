@@ -32,7 +32,8 @@ steps:
 | `buz/docker-login` | shell/ssh | Registry login — Runner host by default, or target hosts via `engine: ssh` (pair with `buz/docker-logout`) |
 | `buz/docker-logout` | shell | Best-effort registry logout on the Runner host |
 | `buz/config-fetch` | shell/ssh | Download + unpack a config bundle (presigned OSS/S3/MinIO/R2 URL, optional Basic/header auth) — Runner workspace or target hosts via `engine: ssh` |
-| `buz/git-clone` | shell | Clone a Git repository into `into` (default `source`; shallow, token auth) |
+| `buz/checkout` | shell | Check out a repo like actions/checkout: webhook commits via `BUZ_GIT_SHA`, branch/tag/SHA refs, shallow, submodules, token auth |
+| `buz/git-clone` | shell | Legacy clone template (superseded by `buz/checkout`; kept for existing pipelines) |
 | `buz/webhook-notify` | shell | Generic JSON webhook notifications with job metadata |
 | `buz/k8s-apply` | shell | Apply workspace manifests to Kubernetes with kubectl |
 | `buz/helm-upgrade` | shell | Helm upgrade --install from a workspace chart |

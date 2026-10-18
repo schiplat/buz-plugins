@@ -1271,5 +1271,194 @@ class LintRunsTests(unittest.TestCase):
         self.assertEqual(findings, [])
 
 
+class CheckoutTests(unittest.TestCase):
+    """buz/checkout@1.2.0 — the actions/checkout equivalent."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.spec = yaml.safe_load((ROOT / "plugins/buz/checkout/1.2.0.yaml").read_text())
+        cls.run_block = cls.spec["run"]
+
+    def git(self, *args, cwd):
+        return subprocess.run(
+            ["git", *args], cwd=cwd, capture_output=True, text=True, timeout=30,
+            env={**os.environ, "GIT_CONFIG_GLOBAL": self.git_config.as_posix()},
+        )
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        base = Path(self._tmp.name)
+        self.git_config = base / "gitconfig"
+        # Local submodule/file remotes mirror GitHub's fetch-by-SHA allowance.
+        self.git_config.write_text(
+            "[init]\n\tdefaultBranch = main\n"
+            "[protocol \"file\"]\n\tallow = always\n"
+            "[uploadpack]\n\tallowAnySHA1InWant = true\n"
+        )
+        self.base = base
+        self.workspace = base / "workspace"
+        self.workspace.mkdir()
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def make_origin(self):
+        origin = self.base / "origin"
+        origin.mkdir()
+        self.git("init", "-q", cwd=origin)
+
+        (origin / "a.txt").write_text("one\n")
+        self.git("add", ".", cwd=origin)
+        self.git("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "one", cwd=origin)
+        first = self.git("rev-parse", "HEAD", cwd=origin).stdout.strip()
+        (origin / "b.txt").write_text("two\n")
+        self.git("add", ".", cwd=origin)
+        self.git("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "two", cwd=origin)
+        head = self.git("rev-parse", "HEAD", cwd=origin).stdout.strip()
+        self.git("tag", "v1", cwd=origin)
+        self.git("checkout", "-qb", "side", cwd=origin)
+        (origin / "c.txt").write_text("side\n")
+        self.git("add", ".", cwd=origin)
+        self.git("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "side", cwd=origin)
+        self.git("checkout", "-q", "main", cwd=origin)
+        # Server-side knob: mirrors GitHub's fetch-by-SHA allowance (must live
+        # in the served repo, not the client's global config).
+        self.git("config", "uploadpack.allowAnySHA1InWant", "true", cwd=origin)
+        return origin, first, head
+
+    def run_checkout(self, *, ref=None, depth=None, submodules=None, into=None,
+                     buz_git_sha=None, cwd=None):
+        env = {k: v for k, v in os.environ.items() if not k.startswith("INPUT_")}
+        env.update({
+            # file:// honors --depth; plain local paths silently ignore it.
+            "INPUT_REPO": (self.base / "origin").as_uri(),
+            "HOME": self.base.as_posix(),
+            "GIT_CONFIG_GLOBAL": self.git_config.as_posix(),
+        })
+        if ref is not None:
+            env["INPUT_REF"] = ref
+        if depth is not None:
+            env["INPUT_DEPTH"] = depth
+        if submodules is not None:
+            env["INPUT_SUBMODULES"] = submodules
+        if into is not None:
+            env["INPUT_INTO"] = into
+        if buz_git_sha is not None:
+            env["BUZ_GIT_SHA"] = buz_git_sha
+        return subprocess.run(
+            ["/bin/sh", "-c", self.run_block], cwd=cwd or self.workspace,
+            env=env, capture_output=True, text=True, timeout=60,
+        )
+
+    def head_info(self, target="source"):
+        repo = self.workspace / target
+        head = self.git("rev-parse", "HEAD", cwd=repo).stdout.strip()
+        branch = self.git("rev-parse", "--abbrev-ref", "HEAD", cwd=repo).stdout.strip()
+        count = self.git("rev-list", "--count", "HEAD", cwd=repo).stdout.strip()
+        return head, branch, int(count)
+
+    def test_shape_matches_the_release_contract(self):
+        self.assertEqual(self.spec["id"], "buz/checkout")
+        self.assertEqual(self.spec["version"], "1.2.0")
+        self.assertEqual(self.spec["engine"], "shell")
+        self.assertEqual(self.spec["requires_buz"], ">=1.8.1")
+        self.assertIsNone(self.spec.get("default_dir"), "cwd is the workspace root")
+        self.assertTrue(self.spec["inputs"]["repo"]["required"])
+        self.assertTrue(self.spec["inputs"]["token"]["masking"])
+        self.assertEqual(self.spec["inputs"]["into"]["default"], "source")
+        self.assertEqual(self.spec["inputs"]["submodules"]["default"], "false")
+        run = self.run_block
+        for required in (
+            'ref="${INPUT_REF:-${BUZ_GIT_SHA:-}}"',
+            "checkout --detach FETCH_HEAD",
+            "submodule update --init --recursive",
+            "into already exists",
+            "into parent resolves outside the Buz workspace",
+        ):
+            with self.subTest(fragment=required):
+                self.assertIn(required, run)
+
+    def test_default_clone_is_shallow_head(self):
+        origin, first, head = self.make_origin()
+        result = self.run_checkout()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        got, branch, count = self.head_info()
+        self.assertEqual(got, head)
+        self.assertEqual(branch, "main")
+        self.assertEqual(count, 1)
+
+    def test_depth_zero_fetches_full_history(self):
+        self.make_origin()
+        result = self.run_checkout(depth="0")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        _, _, count = self.head_info()
+        self.assertEqual(count, 2)
+
+    def test_branch_tag_and_sha_refs(self):
+        origin, first, head = self.make_origin()
+        result = self.run_checkout(ref="side", into="by-branch")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        got, branch, _ = self.head_info("by-branch")
+        self.assertEqual(branch, "side")
+
+        result = self.run_checkout(ref="v1", into="by-tag")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        got, _, _ = self.head_info("by-tag")
+        tagged = self.git("rev-parse", "v1^{commit}", cwd=origin).stdout.strip()
+        self.assertEqual(got, tagged)
+
+        result = self.run_checkout(ref=head, into="by-sha")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        got, branch, _ = self.head_info("by-sha")
+        self.assertEqual(got, head)
+        self.assertEqual(branch, "HEAD", "SHA checkout must detach")
+
+        # Short hex abbreviations depend on server-side prefix support
+        # (GitHub resolves them; plain git servers do not) — not asserted here.
+
+    def test_buz_git_sha_is_the_default_ref(self):
+        origin, first, head = self.make_origin()
+        result = self.run_checkout(buz_git_sha=first, into="triggered")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        got, _, _ = self.head_info("triggered")
+        self.assertEqual(got, first, "webhook triggers must land on the triggering commit")
+        # Explicit ref wins over the trigger context.
+        result = self.run_checkout(ref="v1", buz_git_sha=first, into="explicit")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        got, _, _ = self.head_info("explicit")
+        tagged = self.git("rev-parse", "v1^{commit}", cwd=origin).stdout.strip()
+        self.assertEqual(got, tagged)
+
+    def test_submodules_recursive_populates_nested_repo(self):
+        origin, _, _ = self.make_origin()
+        lib = self.base / "lib"
+        lib.mkdir()
+        self.git("init", "-q", cwd=lib)
+        (lib / "lib.txt").write_text("lib\n")
+        self.git("add", ".", cwd=lib)
+        self.git("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "lib", cwd=lib)
+        self.git("-c", "protocol.file.allow=always", "submodule", "add", "-q", lib.as_posix(), "vendor/lib", cwd=origin)
+        self.git("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "add submodule", cwd=origin)
+
+        result = self.run_checkout(submodules="recursive", depth="0")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((self.workspace / "source/vendor/lib/lib.txt").exists())
+
+    def test_into_guards_still_apply(self):
+        self.make_origin()
+        (self.workspace / "source").mkdir()
+        result = self.run_checkout()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("into already exists", result.stderr)
+
+        result = self.run_checkout(into="../outside")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("into must be a non-empty relative checkout target", result.stderr)
+
+        result = self.run_checkout(ref="abc", into="sha-check")
+        self.assertNotEqual(result.returncode, 0, "3-hex ref is neither branch nor valid SHA length")
+        self.assertIn("7-40 hex", result.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()

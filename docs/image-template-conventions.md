@@ -117,7 +117,7 @@ installed entrypoint script instead).
   commands.
 - Validate any path-like input against workspace escapes before use. The
   `1.1.0` releases moved directory selection into `default_dir: source`
-  (setup-*/docker) or the `into` input (git-clone); `context`/`dockerfile`
+  (setup-*/docker) or the `into` input (checkout/git-clone); `context`/`dockerfile`
   are resolved relative to the engine-set step directory and must
   physically stay inside the workspace. Older published versions remain
   immutable and keep their historical inputs (`workdir`, `dir`, `work_dir`).

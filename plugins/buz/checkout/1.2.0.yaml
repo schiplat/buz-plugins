@@ -1,0 +1,151 @@
+id: buz/checkout
+category: source
+name: Git checkout
+version: 1.2.0
+description: "Check out a Git repository into the workspace — the buz equivalent of actions/checkout. Checks out the triggering commit (BUZ_GIT_SHA) by default on webhook triggers; ref accepts branches, tags, and commit SHAs (detached); optional submodules."
+description_zh: "将 Git 仓库检出到 workspace——对标 actions/checkout。webhook 触发时默认检出触发提交（BUZ_GIT_SHA）；ref 支持分支、标签和 commit SHA（detached）；可选拉取 submodules。"
+publisher: official
+author: "buz maintainers"
+keywords: [git, checkout, clone, source, scm, submodule, 检出, 克隆]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/checkout/1.2.0.yaml
+engine: shell
+default_timeout: 15m
+requires_buz: ">=1.8.1"
+inputs:
+  repo:
+    type: string
+    required: true
+    description: Repository URL (HTTPS). Embed credentials via the token input, not in the URL.
+  ref:
+    type: string
+    description: Branch, tag, or commit SHA (detached checkout; use the full 40-char SHA — abbreviated SHAs depend on server-side prefix support). Default BUZ_GIT_SHA when the job was started by a webhook trigger, otherwise the remote HEAD.
+  into:
+    type: string
+    default: "source"
+    description: Target directory relative to the workspace root (GHA `path` equivalent); must not exist. Existing parents must resolve inside the workspace.
+  depth:
+    type: string
+    default: "1"
+    description: Shallow fetch depth; "0" fetches full history (needed for tags/logs beyond the tip).
+  submodules:
+    type: string
+    default: "false"
+    description: "false | true | recursive — update submodules after checkout. HTTPS submodules reuse the token input."
+  token:
+    type: string
+    masking: true
+    description: Access token for private HTTPS repositories (sent as the HTTP password; also covers HTTPS submodules).
+run: |
+  set -e
+
+  : "${INPUT_REPO:?repo is required}"
+  # checkout declares no default_dir and callers set no work_dir on it: for
+  # shell steps the process cwd at step start IS the workspace root. Anchor it
+  # once, before anything can chdir, so the target stays workspace-relative.
+  workspace_root="$(pwd -P)"
+  into="${INPUT_INTO:-source}"
+  case "$into" in
+    /*|..|../*|*/../*|*/..|.|*.)
+      printf 'into must be a non-empty relative checkout target inside the Buz workspace\n' >&2
+      exit 2
+      ;;
+  esac
+  target="$workspace_root/$into"
+  if [ -e "$target" ] || [ -L "$target" ]; then
+    printf 'into already exists: %s\n' "$into" >&2
+    exit 2
+  fi
+  # Find the deepest existing parent before creating any missing directories.
+  parent="${target%/*}"
+  while [ ! -d "$parent" ]; do
+    if [ -e "$parent" ] || [ -L "$parent" ]; then
+      printf 'into parent is not a usable directory\n' >&2
+      exit 2
+    fi
+    parent="${parent%/*}"
+  done
+  parent_path="$(CDPATH= cd "$parent" && pwd -P)" || exit 2
+  case "$parent_path" in
+    "$workspace_root"|"$workspace_root"/*) ;;
+    *) printf 'into parent resolves outside the Buz workspace\n' >&2; exit 2 ;;
+  esac
+
+  depth="${INPUT_DEPTH:-1}"
+  case "$depth" in
+    ""|*[!0-9]*)
+      printf 'depth must be a non-negative integer\n' >&2
+      exit 2
+      ;;
+  esac
+  submodules="${INPUT_SUBMODULES:-false}"
+  case "$submodules" in
+    false|true|recursive) ;;
+    *)
+      printf 'submodules must be one of: false, true, recursive\n' >&2
+      exit 2
+      ;;
+  esac
+  mkdir -p "${target%/*}"
+  parent_path="$(CDPATH= cd "${target%/*}" && pwd -P)" || exit 2
+  case "$parent_path" in
+    "$workspace_root"|"$workspace_root"/*) ;;
+    *) printf 'into parent resolves outside the Buz workspace\n' >&2; exit 2 ;;
+  esac
+  target="$parent_path/${target##*/}"
+  if [ -e "$target" ] || [ -L "$target" ]; then
+    printf 'into already exists: %s\n' "$into" >&2
+    exit 2
+  fi
+
+  # Triggering-commit default: webhook triggers export BUZ_GIT_SHA; an
+  # explicit ref input always wins.
+  ref="${INPUT_REF:-${BUZ_GIT_SHA:-}}"
+
+  if [ -n "${INPUT_TOKEN:-}" ]; then
+    askpass="$(mktemp "${TMPDIR:-/tmp}/buz-git-askpass.XXXXXX")"
+    trap 'rm -f "$askpass"' EXIT
+    printf '#!/bin/sh\nprintf "%%s\\n" "$INPUT_TOKEN"\n' > "$askpass"
+    chmod 0700 "$askpass"
+    GIT_ASKPASS="$askpass"
+    export GIT_ASKPASS
+    GIT_TERMINAL_PROMPT=0
+    export GIT_TERMINAL_PROMPT
+  fi
+
+  # A bare SHA cannot go through `clone --branch`; use the actions/checkout
+  # approach: init + fetch <sha> + detach on FETCH_HEAD. Servers must allow
+  # fetch-by-SHA (GitHub/GitLab do by default).
+  case "$ref" in
+    "")
+      if [ "$depth" != "0" ]; then set -- --depth "$depth"; else set --; fi
+      git clone "$@" -- "$INPUT_REPO" "$target"
+      ;;
+    *[!0-9a-fA-F]*|*.*)
+      # Not a bare hex string → branch or tag.
+      if [ "$depth" != "0" ]; then set -- --depth "$depth"; else set --; fi
+      git clone "$@" --branch "$ref" -- "$INPUT_REPO" "$target"
+      ;;
+    *)
+      case "${#ref}" in
+        7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31|32|33|34|35|36|37|38|39|40) ;;
+        *)
+          printf 'ref %q is neither a branch/tag nor a 7-40 hex commit SHA\n' "$ref" >&2
+          exit 2
+          ;;
+      esac
+      git init -q "$target"
+      git -C "$target" remote add origin "$INPUT_REPO"
+      if [ "$depth" != "0" ]; then
+        git -C "$target" fetch --depth "$depth" origin "$ref"
+      else
+        git -C "$target" fetch origin "$ref"
+      fi
+      git -C "$target" checkout --detach FETCH_HEAD
+      ;;
+  esac
+  case "$submodules" in
+    true) git -C "$target" submodule update --init ;;
+    recursive) git -C "$target" submodule update --init --recursive ;;
+  esac
+  git -C "$target" log --oneline -1
