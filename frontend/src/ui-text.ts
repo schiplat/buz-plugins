@@ -7,6 +7,7 @@ export const T = {
   search: 'Search by name, id, keyword, author…',
   details: 'Details',
   report: 'Report a template',
+  request: 'Request a plugin',
   securityNote: 'Security concerns: report privately',
   inputs: 'Inputs',
   usage: 'Usage',

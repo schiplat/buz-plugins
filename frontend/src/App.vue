@@ -27,7 +27,7 @@ import { copyText } from '@/lib/clipboard'
 import { T } from '@/ui-text'
 import type { StepLibrary, StepTemplate } from '@/types'
 import { groupPlugins, pluginHeading, selectPluginVersion, detailPageUrl, type StepPlugin } from '@/lib/plugins'
-import { NEW_TEMPLATE_URL, REPO_URL } from '@/types'
+import { NEW_TEMPLATE_URL, REPO_URL, REQUEST_PLUGIN_URL } from '@/types'
 
 const library = ref<StepLibrary>({ templates: [], unparseable: [] })
 const loading = ref(true)
@@ -219,6 +219,9 @@ onMounted(async () => {
           <span class="text-lg font-semibold tracking-tight">Buz Plugins Marketplace</span>
         </a>
         <div class="flex items-center gap-2">
+          <a :href="REQUEST_PLUGIN_URL" target="_blank" rel="noopener" class="text-xs font-medium text-primary hover:underline">
+            {{ T.request }}
+          </a>
           <a :href="`${REPO_URL}/issues/new?template=report.yml`" target="_blank" rel="noopener" class="hidden text-xs text-muted-foreground hover:text-foreground sm:inline">
             {{ T.report }}
           </a>

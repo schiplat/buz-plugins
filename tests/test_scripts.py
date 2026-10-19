@@ -1462,3 +1462,37 @@ class CheckoutTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PluginRequestWishlistTests(unittest.TestCase):
+    """The plugin-request wishlist: issue template + marketplace wiring."""
+
+    def test_issue_template_shape(self):
+        spec = yaml.safe_load(
+            (ROOT / ".github/ISSUE_TEMPLATE/plugin_request.yml").read_text()
+        )
+        self.assertEqual(spec["name"], "Plugin request / 插件需求征集")
+        self.assertEqual(spec["labels"], ["wishlist"])
+        fields = {entry.get("id"): entry for entry in spec["body"] if "id" in entry}
+        self.assertIn("name", fields)
+        self.assertIn("what", fields)
+        self.assertEqual(fields["what"]["validations"]["required"], True)
+        contribute = fields["contribute"]
+        self.assertEqual(contribute["validations"]["required"], True)
+        options = contribute["attributes"]["options"]
+        self.assertTrue(any("official buz/ namespace" in o for o in options))
+        self.assertTrue(any("own namespace" in o for o in options))
+        # A pointer to the namespace policy so requesters know the bar.
+        body_text = "\n".join(
+            entry.get("attributes", {}).get("value", "") for entry in spec["body"]
+        )
+        self.assertIn("Namespace policy", body_text)
+
+    def test_marketplace_front_end_links_the_wishlist(self):
+        types = (ROOT / "frontend/src/types.ts").read_text()
+        self.assertIn("template=plugin_request.yml", types)
+        app = (ROOT / "frontend/src/App.vue").read_text()
+        self.assertIn("REQUEST_PLUGIN_URL", app)
+        self.assertIn("T.request", app)
+        ui = (ROOT / "frontend/src/ui-text.ts").read_text()
+        self.assertIn("Request a plugin", ui)

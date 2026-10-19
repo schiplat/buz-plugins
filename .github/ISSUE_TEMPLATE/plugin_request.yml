@@ -1,0 +1,43 @@
+name: Plugin request / 插件需求征集
+description: Ask the maintainers and community for a step template that does not exist yet / 请求一个尚不存在的步骤模板
+title: "[wishlist] <plugin-name>"
+labels: ["wishlist"]
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Plugin name / 插件名
+      description: Short slug for the step template, e.g. terraform-plan, mysql-backup
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What should it do? / 它要解决什么问题？
+      description: The job the template automates, the inputs it would take, and what "done" looks like
+    validations:
+      required: true
+  - type: input
+    id: gha_equivalent
+    attributes:
+      label: GitHub Actions equivalent (if any) / 对标的 GHA action（如有）
+      description: e.g. actions/checkout, hashicorp/setup-terraform — helps us match the UX you already know
+  - type: dropdown
+    id: contribute
+    attributes:
+      label: Would you like to contribute it? / 你愿意贡献这个插件吗？
+      options:
+        - "No — just requesting / 仅提需求"
+        - "Yes — guide me through the official buz/ namespace / 愿意，希望按官方模板流程贡献"
+        - "Yes — I will publish under my own namespace / 愿意，以社区命名空间自行发布"
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: |
+        **Namespace policy / 命名空间说明**：`buz/` 是官方维护的命名空间，进入前需要经过评审
+        （review + egress/完整性检查）；社区作者可以直接用自己的命名空间发布模板并被市场收录。
+        标注"愿意贡献"的请求会被优先跟进。
+        The `buz/` namespace is officially maintained and reviewed; community authors can publish
+        under their own namespace and be listed in the marketplace. Requests marked as
+        "willing to contribute" get priority attention.
