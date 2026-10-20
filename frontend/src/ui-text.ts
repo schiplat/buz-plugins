@@ -31,6 +31,8 @@ export const T = {
   incompatible: 'needs a newer Buz',
   requiresBuz: 'Requires Buz',
   requiresBuzTip: 'Version gate — Buz Managers older than this release reject this version when resolving steps',
+  buzReq: 'Buz requirement',
+  buzReqNone: 'No requirement',
   sourceRepo: 'Source repository',
   reportHint: 'Report issue',
   timeout: 'timeout',

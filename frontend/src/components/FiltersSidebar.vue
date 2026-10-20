@@ -12,11 +12,13 @@ const props = defineProps<{
   engine: string
   category: string
   review: string
+  buzReq: string
   selectedKeywords: string[]
   publisherFacets: FilterFacet[]
   engineFacets: FilterFacet[]
   categoryFacets: FilterFacet[]
   reviewFacets: FilterFacet[]
+  buzReqFacets: FilterFacet[]
   keywordFacets: FilterFacet[]
   hasActiveFilters: boolean
 }>()
@@ -26,6 +28,7 @@ const emit = defineEmits<{
   (e: 'update:engine', value: string): void
   (e: 'update:category', value: string): void
   (e: 'update:review', value: string): void
+  (e: 'update:buzReq', value: string): void
   (e: 'update:selectedKeywords', value: string[]): void
   (e: 'clear'): void
 }>()
@@ -103,6 +106,20 @@ function toggleKeyword(keyword: string) {
         @click="emit('update:review', facet.value)"
       >
         <span :class="review === facet.value ? 'text-foreground' : ''">{{ facet.label }}</span>
+        <span class="text-xs text-muted-foreground">{{ facet.count }}</span>
+      </button>
+    </div>
+
+    <div v-if="buzReqFacets.length > 2">
+      <h3 class="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{{ T.buzReq }}</h3>
+      <button
+        v-for="facet in buzReqFacets"
+        :key="facet.value"
+        class="flex w-full items-center justify-between rounded-md px-2 py-1 text-left text-sm hover:bg-muted"
+        :class="buzReq === facet.value ? 'font-medium' : 'text-muted-foreground'"
+        @click="emit('update:buzReq', facet.value)"
+      >
+        <span :class="buzReq === facet.value ? 'text-foreground' : ''" class="font-mono">{{ facet.label }}</span>
         <span class="text-xs text-muted-foreground">{{ facet.count }}</span>
       </button>
     </div>

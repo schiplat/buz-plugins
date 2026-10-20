@@ -26,7 +26,7 @@ import FiltersSidebar from '@/components/FiltersSidebar.vue'
 import { copyText } from '@/lib/clipboard'
 import { T } from '@/ui-text'
 import type { StepLibrary, StepTemplate } from '@/types'
-import { groupPlugins, pluginHeading, selectPluginVersion, detailPageUrl, formatBuzRequirement, type StepPlugin } from '@/lib/plugins'
+import { groupPlugins, pluginHeading, selectPluginVersion, detailPageUrl, formatBuzRequirement, compareVersions, type StepPlugin } from '@/lib/plugins'
 import { NEW_TEMPLATE_URL, REPO_URL, REQUEST_PLUGIN_URL } from '@/types'
 
 const library = ref<StepLibrary>({ templates: [], unparseable: [] })
@@ -37,6 +37,7 @@ const publisher = ref('all')
 const engine = ref('all')
 const category = ref('all')
 const review = ref('all')
+const buzReq = ref('all')
 const selectedKeywords = ref<string[]>([])
 const page = ref(1)
 const PAGE_SIZE = 15
@@ -98,6 +99,27 @@ const reviewFacets = computed(() => {
   ]
 })
 
+// One row per distinct display requirement ("≥ 1.8.1"), ascending by version,
+// plus All / no-gate buckets. Hidden entirely when nothing declares a gate.
+const buzReqFacets = computed(() => {
+  const counts = new Map<string, number>()
+  let gated = 0
+  for (const t of allTemplates.value) {
+    if (!t.requires_buz) continue
+    gated += 1
+    const label = formatBuzRequirement(t.requires_buz)
+    counts.set(label, (counts.get(label) || 0) + 1)
+  }
+  const rows = [...counts.entries()]
+    .sort((a, b) => compareVersions(a[0].slice(2), b[0].slice(2)) || a[0].localeCompare(b[0]))
+    .map(([label, count]) => ({ value: label, label, count }))
+  return [
+    { value: 'all', label: T.all, count: allTemplates.value.length },
+    { value: 'none', label: T.buzReqNone, count: allTemplates.value.length - gated },
+    ...rows,
+  ]
+})
+
 function countBy(items: StepTemplate[], key: (t: StepTemplate) => string) {
   const counts = new Map<string, number>()
   for (const item of items) {
@@ -115,6 +137,7 @@ const hasActiveFilters = computed(
     engine.value !== 'all' ||
     category.value !== 'all' ||
     review.value !== 'all' ||
+    buzReq.value !== 'all' ||
     selectedKeywords.value.length > 0 ||
     search.value.trim() !== '',
 )
@@ -124,6 +147,7 @@ function clearFilters() {
   engine.value = 'all'
   category.value = 'all'
   review.value = 'all'
+  buzReq.value = 'all'
   selectedKeywords.value = []
   search.value = ''
 }
@@ -137,6 +161,13 @@ const filtered = computed(() => {
     list = list.filter((plugin) => (plugin.latest.category || 'uncategorized') === category.value)
   if (review.value !== 'all')
     list = list.filter((plugin) => (review.value === 'reviewed' ? plugin.latest.reviewed : !plugin.latest.reviewed))
+  if (buzReq.value !== 'all') {
+    if (buzReq.value === 'none') list = list.filter((plugin) => !plugin.latest.requires_buz)
+    else
+      list = list.filter(
+        (plugin) => plugin.latest.requires_buz && formatBuzRequirement(plugin.latest.requires_buz) === buzReq.value,
+      )
+  }
   if (selectedKeywords.value.length)
     list = list.filter((plugin) =>
       selectedKeywords.value.some((keyword) => (plugin.latest.keywords || []).includes(keyword)),
@@ -146,7 +177,8 @@ const filtered = computed(() => {
     list = list.filter((plugin) => {
       const t = plugin.latest
       const haystack = [
-        t.id, t.name, t.category, t.description, t.description_zh, t.author, t.engine, ...(t.keywords || []),
+        t.id, t.name, t.category, t.description, t.description_zh, t.author, t.engine,
+        t.version, t.requires_buz, ...(t.keywords || []),
       ].filter(Boolean).join(' ').toLowerCase()
       return haystack.includes(q)
     })
@@ -159,7 +191,7 @@ const paged = computed(() => {
   return filtered.value.slice(start, start + PAGE_SIZE)
 })
 
-watch([search, publisher, engine, category, review, selectedKeywords], () => (page.value = 1))
+watch([search, publisher, engine, category, review, buzReq, selectedKeywords], () => (page.value = 1))
 watch(page, () => window.scrollTo({ top: 0 }))
 
 function openPlugin(plugin: StepPlugin) {
@@ -241,17 +273,20 @@ onMounted(async () => {
             :engine="engine"
             :category="category"
             :review="review"
+            :buz-req="buzReq"
             :selected-keywords="selectedKeywords"
             :publisher-facets="publisherFacets"
             :engine-facets="engineFacets"
             :category-facets="categoryFacets"
             :review-facets="reviewFacets"
+            :buz-req-facets="buzReqFacets"
             :keyword-facets="keywordFacets"
             :has-active-filters="hasActiveFilters"
             @update:publisher="publisher = $event"
             @update:engine="engine = $event"
             @update:category="category = $event"
             @update:review="review = $event"
+            @update:buz-req="buzReq = $event"
             @update:selected-keywords="selectedKeywords = $event"
             @clear="clearFilters()"
           />
@@ -291,17 +326,20 @@ onMounted(async () => {
             :engine="engine"
             :category="category"
             :review="review"
+            :buz-req="buzReq"
             :selected-keywords="selectedKeywords"
             :publisher-facets="publisherFacets"
             :engine-facets="engineFacets"
             :category-facets="categoryFacets"
             :review-facets="reviewFacets"
+            :buz-req-facets="buzReqFacets"
             :keyword-facets="keywordFacets"
             :has-active-filters="hasActiveFilters"
             @update:publisher="publisher = $event"
             @update:engine="engine = $event"
             @update:category="category = $event"
             @update:review="review = $event"
+            @update:buz-req="buzReq = $event"
             @update:selected-keywords="selectedKeywords = $event"
             @clear="clearFilters(); showMobileFilters = false"
           />
