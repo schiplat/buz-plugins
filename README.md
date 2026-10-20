@@ -125,7 +125,7 @@ Full spec: marketplace ADR §5 (`docs/design/step-marketplace.md` in the buz rep
   | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account id |
 
   The first deploy creates the Pages project `buz-plugins`; then bind the custom domain **plugins.buz.schiplat.com** in CF Pages → project → Custom domains.
-- **index**: on tags `v*`, generates `index.json` (id / version / sha256 per template) and attaches it to the GitHub release.
+- **index**: on catalog snapshot tags (e.g. `2026.10.20`), regenerates `index.json` (id / version / sha256 per template) and attaches it to the GitHub release.
 
 ## Review badges
 
