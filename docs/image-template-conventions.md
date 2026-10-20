@@ -174,7 +174,7 @@ the egress baseline's scope, and the ssh engine policy are specified in
 
 CI validates specs with a real `buz-manager` release: the `BUZ_VERSION`
 repository variable selects one, and when it is unset (the default) CI
-tracks the **latest** schiplat/buz release. A Buz release that changes
+tracks the **latest** schiplatv2/buz release. A Buz release that changes
 the spec schema or the Plugin Contract therefore surfaces as a failing
 plugins build instead of a runtime break. Pin `BUZ_VERSION` only when you
 want to roll Buz upgrades forward deliberately.

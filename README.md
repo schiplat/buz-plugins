@@ -108,7 +108,7 @@ Full spec: marketplace ADR §5 (`docs/design/step-marketplace.md` in the buz rep
 
 ## CI
 
-- **validate**: downloads the `buz-manager` binary from the public [schiplat/buz](https://github.com/schiplat/buz) releases (no Rust toolchain, no source build) and runs `step-validate` on the recursively discovered YAML file list on every push/PR — including fork PRs, which use the workflow's own token; no PAT is required. Also runs `shellcheck` over `scripts/*.sh` (vacuous until shell scripts exist).
+- **validate**: downloads the `buz-manager` binary from the private buz release (no Rust toolchain, no source build) and runs `step-validate` on the recursively discovered YAML file list on every push/PR; also runs `shellcheck` over `scripts/*.sh`. `BUZ_REPO_PAT_V2` must be configured with read access to `schiplatv2/buz`; if absent, validation fails explicitly. GitHub does not expose repository secrets to fork PRs, so fork contributors need a maintainer-run validation or a branch within the repository before merge; required checks must not be treated as passing when validation is skipped.
 
   Optional version pin — repo Settings → Secrets and variables → Actions → **Variables** tab:
 

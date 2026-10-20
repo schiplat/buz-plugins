@@ -14,6 +14,8 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    # Fork PRs have no repository secrets and may explicitly skip this step.
+    # Trusted pushes and same-repository PRs must have the PAT or fail closed.
     env:
       BUZ_VERSION: ${{ vars.BUZ_VERSION }}
     steps:
@@ -42,12 +44,28 @@ jobs:
       - name: Check plugin READMEs
         run: python3 scripts/check_plugin_readmes.py plugins
 
-      - name: Install buz-manager (release binary)
+      - name: Check private validator availability
+        id: validator-token
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.BUZ_REPO_PAT_V2 }}
+        run: |
+          if [ -n "$GH_TOKEN" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "Fork PR: private buz-manager validation is skipped; public checks and tests remain required." >&2
+          else
+            echo "BUZ_REPO_PAT_V2 is required for private buz-manager validation on trusted pushes and internal PRs." >&2
+            exit 1
+          fi
+
+      - name: Install buz-manager (release binary)
+        if: steps.validator-token.outputs.available == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.BUZ_REPO_PAT_V2 }}
           BUZ_VERSION: ${{ vars.BUZ_VERSION }}
         run: |
-          API="https://api.github.com/repos/schiplat/buz/releases"
+          API="https://api.github.com/repos/schiplatv2/buz/releases"
           if [ -n "$BUZ_VERSION" ]; then
             RELEASE=$(curl -sfL -H "Authorization: Bearer $GH_TOKEN" "$API/tags/$BUZ_VERSION")
           else
@@ -60,6 +78,7 @@ jobs:
           buz-manager --version
 
       - name: Validate step specs
+        if: steps.validator-token.outputs.available == 'true'
         run: |
           mapfile -d '' specs < <(find plugins -type d -name '.*' -prune -o -type f \
             \( -name '*.yaml' -o -name '*.yml' \) ! -path '*/.*' -print0 | sort -z)
@@ -77,6 +96,10 @@ jobs:
 
       - name: Generate index (dry run)
         run: python3 scripts/gen_index.py --output /tmp/index.json && head /tmp/index.json
+
+      - name: Public fork PR validation notice
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true
+        run: echo "Private buz-manager validation is skipped for fork PRs because their jobs receive no repository PAT."
 
   build-site:
     runs-on: ubuntu-latest
