@@ -2,7 +2,7 @@
 
 Official step-template marketplace for [Buz](https://github.com/schiplat/buz) — reusable pipeline steps (notifications, deploy helpers, health checks) referenced from pipelines via `uses:`.
 
-Browse the published catalog at **[plugins.buz.schiplat.com](https://plugins.buz.schiplat.com)** (once deployed).
+Browse the published catalog at **[plugins.buz.schiplat.com](https://plugins.buz.schiplat.com)**.
 
 ```yaml
 steps:
@@ -25,12 +25,12 @@ steps:
 | `buz/ssh-wait` | shell | Wait for SSH on a target host (after reboot/rebuild) |
 | `buz/oss-upload` | docker | Upload a workspace file to Alibaba Cloud OSS with ossutil v2 |
 | `buz/s3-upload` | docker | Upload a workspace file to S3 with AWS CLI v2 |
-| `buz/archive` | shell | Pack workspace paths into a tar.gz with sha256 checksum |
+| `buz/archive` | shell/ssh | Pack workspace paths into a tar.gz with sha256 checksum |
 | `buz/docker-compose` | ssh | Deploy a Docker Compose project on the target host (Buz 1.7.5+) |
 | `buz/scp` | shell | Copy a workspace file to a target host over scp — key auth, nothing installed on the target |
 | `buz/docker` | docker | Build and push an OCI image from a workspace context (requires Buz 1.8.1+ and `docker-socket` capability) |
 | `buz/docker-login` | shell/ssh | Registry login — Runner host by default, or target hosts via `engine: ssh` (pair with `buz/docker-logout`) |
-| `buz/docker-logout` | shell | Best-effort registry logout on the Runner host |
+| `buz/docker-logout` | shell/ssh | Best-effort registry logout on the Runner host or target hosts via `engine: ssh` |
 | `buz/config-fetch` | shell/ssh | Download + unpack a config bundle (presigned OSS/S3/MinIO/R2 URL, optional Basic/header auth) — Runner workspace or target hosts via `engine: ssh` |
 | `buz/checkout` | shell | Check out a repo like actions/checkout: webhook commits via `BUZ_GIT_SHA`, branch/tag/SHA refs, shallow, submodules, token auth |
 | `buz/git-clone` | shell | Legacy clone template (superseded by `buz/checkout`; kept for existing pipelines) |
@@ -108,7 +108,7 @@ Full spec: marketplace ADR §5 (`docs/design/step-marketplace.md` in the buz rep
 
 ## CI
 
-- **validate**: downloads the `buz-manager` binary from the private buz release (no Rust toolchain, no source build) and runs `step-validate` on the recursively discovered YAML file list on every push/PR; also runs `shellcheck` over `scripts/*.sh`. `BUZ_REPO_PAT_V2` must be configured with read access to `schiplatv2/buz`; if absent, validation fails explicitly. GitHub does not expose repository secrets to fork PRs, so fork contributors need a maintainer-run validation or a branch within the repository before merge; required checks must not be treated as passing when validation is skipped.
+- **validate**: downloads the `buz-manager` binary from the public [schiplat/buz](https://github.com/schiplat/buz) releases (no Rust toolchain, no source build) and runs `step-validate` on the recursively discovered YAML file list on every push/PR — including fork PRs, which use the workflow's own token; no PAT is required. Also runs `shellcheck` over `scripts/*.sh` (vacuous until shell scripts exist).
 
   Optional version pin — repo Settings → Secrets and variables → Actions → **Variables** tab:
 
@@ -131,7 +131,7 @@ Full spec: marketplace ADR §5 (`docs/design/step-marketplace.md` in the buz rep
 
 Every entry in `reviews.json` binds a review to a **content sha256** — any content change invalidates the badge automatically, so a reviewed v1.0 never launders trust for an unreviewed v1.1. The two namespaces carry different trust models:
 
-- **Official (`buz/*`) — human first review, CI tracking after.** A brand-new official template is never auto-blessed: once a maintainer reviews the exact file contents, the id is recorded with the same manual command community templates use (`scripts/gen_reviews.py --date <d> --commit <sha> buz/<name>`). From then on CI keeps every version of that id fresh on green master — `step-validate` + `lint_runs` + the egress allowlist must pass for the exact content hash, and the allowlist itself is part of review, not a build fix. CI regenerates ci-source entries on every push to `master` (`scripts/gen_reviews.py --auto`) and commits the refreshed manifest.
+- **Official (`buz/*`) — human first review, CI tracking after.** A brand-new official template is never auto-blessed: once a maintainer reviews the exact file contents, the id is recorded with the same manual command community templates use (`scripts/gen_reviews.py --date <d> --commit <sha> buz/<name>`; both scripts read `index.json`, so run `scripts/gen_index.py` first whenever the local copy is missing or stale — it is a gitignored build product). From then on CI keeps every version of that id fresh on green master — `step-validate` + `lint_runs` + the egress allowlist must pass for the exact content hash, and the allowlist itself is part of review, not a build fix. CI regenerates ci-source entries on every push to `master` (`scripts/gen_reviews.py --auto`) and commits the refreshed manifest.
 - **Community (`<author>/…`) — human-issued.** CI green is a prerequisite, never a substitute: a maintainer reviews the PR on GitHub, then records the entry using the canonical full ID from the YAML/index, e.g. `scripts/gen_reviews.py --date <d> --commit <sha> buz/telegram`. Manual invocation upserts the selected current content review and preserves unrelated review records.
 
 Managers can enforce it:

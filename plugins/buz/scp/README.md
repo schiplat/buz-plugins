@@ -6,12 +6,12 @@ Copies one file from the Buz workspace to a target host over SSH/SCP. Runs via `
 - name: deliver bundle
   uses: buz/scp@1.0.0
   with:
-    host: 192.168.39.130
+    host: 192.0.2.10
     port: 22
     user: deploy
     ssh_private_key: ${secrets.TARGET_DEPLOY_KEY}
     source: config/configs.tar.gz
-    dest: /opt/cella/configs.tar.gz
+    dest: /opt/app/configs.tar.gz
 ```
 
 - `ssh_private_key` (masked) — OpenSSH private key; written to a per-step temp file (`0600`, removed on exit), never a CLI argument. Its public key must be in the target user's `authorized_keys`.

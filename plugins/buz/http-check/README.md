@@ -7,7 +7,7 @@ Polls a service until it is ready — one check template that covers HTTP status
 - name: wait for http
   uses: buz/http-check@1.0.0
   with:
-    url: http://192.168.39.130:8081/health
+    url: http://192.0.2.10:8081/health
     expect_status: 200
     interval: 5s
     attempts: 24
