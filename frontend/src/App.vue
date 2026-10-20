@@ -416,17 +416,6 @@ onMounted(async () => {
                    Hover reveals the full text; the dialog is the full view. -->
               <p class="mt-3 line-clamp-3 flex-1 text-sm text-muted-foreground" :title="localized(plugin.latest)">{{ truncateDescription(localized(plugin.latest)) }}</p>
 
-              <!-- Compatibility gate: fixed slot above the footer, quiet amber —
-                   a constraint, not another metadata chip. -->
-              <div
-                v-if="plugin.latest.requires_buz"
-                class="mt-2 flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-500"
-                :title="T.requiresBuzTip"
-              >
-                <TriangleAlert class="h-3.5 w-3.5 shrink-0" />
-                <span>{{ T.requiresBuz }} {{ formatBuzRequirement(plugin.latest.requires_buz) }}</span>
-              </div>
-
               <div class="mt-3 flex flex-wrap gap-1.5">
                 <Badge variant="secondary" class="font-mono">{{ plugin.latest.engine }}</Badge>
                 <Badge v-if="plugin.latest.default_timeout" variant="secondary" class="font-mono">{{ plugin.latest.default_timeout }}</Badge>
