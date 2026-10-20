@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { compareVersions, detailPageUrl, formatBuzRequirement, groupPlugins, pluginHeading, selectPluginVersion } from './src/lib/plugin-utils.ts'
+import { compareVersions, detailPageUrl, formatBuzRequirement, groupPlugins, pluginHeading, selectPluginVersion, truncateDescription } from './src/lib/plugin-utils.ts'
 
 const template = (id, version, extra = {}) => ({
   id,
@@ -54,4 +54,14 @@ test('formats buz requirements for display', () => {
   assert.equal(formatBuzRequirement('1.2.0'), '= 1.2.0')
   assert.equal(formatBuzRequirement('<2.0.0'), '<2.0.0')
   assert.equal(formatBuzRequirement('1.2'), '1.2')
+})
+
+test('hard-caps card descriptions with an ellipsis', () => {
+  const long = 'a'.repeat(200)
+  const capped = truncateDescription(long)
+  assert.equal(capped.length, 121)
+  assert.ok(capped.endsWith('…'))
+  assert.equal(truncateDescription('short'), 'short')
+  assert.equal(truncateDescription('  padded  '), 'padded')
+  assert.equal(truncateDescription(`${'b'.repeat(119)} tail`), `${'b'.repeat(119)}…`)
 })

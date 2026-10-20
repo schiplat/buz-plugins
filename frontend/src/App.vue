@@ -26,7 +26,7 @@ import FiltersSidebar from '@/components/FiltersSidebar.vue'
 import { copyText } from '@/lib/clipboard'
 import { T } from '@/ui-text'
 import type { StepLibrary, StepTemplate } from '@/types'
-import { groupPlugins, pluginHeading, selectPluginVersion, detailPageUrl, formatBuzRequirement, compareVersions, type StepPlugin } from '@/lib/plugins'
+import { groupPlugins, pluginHeading, selectPluginVersion, detailPageUrl, formatBuzRequirement, truncateDescription, compareVersions, type StepPlugin } from '@/lib/plugins'
 import { NEW_TEMPLATE_URL, REPO_URL, REQUEST_PLUGIN_URL } from '@/types'
 
 const library = ref<StepLibrary>({ templates: [], unparseable: [] })
@@ -273,20 +273,17 @@ onMounted(async () => {
             :engine="engine"
             :category="category"
             :review="review"
-            :buz-req="buzReq"
             :selected-keywords="selectedKeywords"
             :publisher-facets="publisherFacets"
             :engine-facets="engineFacets"
             :category-facets="categoryFacets"
             :review-facets="reviewFacets"
-            :buz-req-facets="buzReqFacets"
             :keyword-facets="keywordFacets"
             :has-active-filters="hasActiveFilters"
             @update:publisher="publisher = $event"
             @update:engine="engine = $event"
             @update:category="category = $event"
             @update:review="review = $event"
-            @update:buz-req="buzReq = $event"
             @update:selected-keywords="selectedKeywords = $event"
             @clear="clearFilters()"
           />
@@ -316,6 +313,16 @@ onMounted(async () => {
             <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input v-model="search" :placeholder="T.search" class="pl-9" />
           </div>
+          <Select
+            :model-value="buzReq"
+            :aria-label="T.buzReq"
+            class="w-44"
+            @update:model-value="buzReq = $event"
+          >
+            <option v-for="facet in buzReqFacets" :key="facet.value" :value="facet.value">
+              {{ facet.value === 'all' ? `${T.buzReq}: ${facet.label}` : facet.label }} ({{ facet.count }})
+            </option>
+          </Select>
           <span class="ml-auto text-xs text-muted-foreground">{{ T.templatesCount(filtered.length) }}</span>
         </div>
 
@@ -326,20 +333,17 @@ onMounted(async () => {
             :engine="engine"
             :category="category"
             :review="review"
-            :buz-req="buzReq"
             :selected-keywords="selectedKeywords"
             :publisher-facets="publisherFacets"
             :engine-facets="engineFacets"
             :category-facets="categoryFacets"
             :review-facets="reviewFacets"
-            :buz-req-facets="buzReqFacets"
             :keyword-facets="keywordFacets"
             :has-active-filters="hasActiveFilters"
             @update:publisher="publisher = $event"
             @update:engine="engine = $event"
             @update:category="category = $event"
             @update:review="review = $event"
-            @update:buz-req="buzReq = $event"
             @update:selected-keywords="selectedKeywords = $event"
             @clear="clearFilters(); showMobileFilters = false"
           />
@@ -408,7 +412,9 @@ onMounted(async () => {
                 </div>
               </div>
 
-              <p class="mt-3 line-clamp-3 flex-1 text-sm text-muted-foreground" :title="localized(plugin.latest)">{{ localized(plugin.latest) }}</p>
+              <!-- Hard length cap: anything past the limit is simply not shown.
+                   Hover reveals the full text; the dialog is the full view. -->
+              <p class="mt-3 line-clamp-3 flex-1 text-sm text-muted-foreground" :title="localized(plugin.latest)">{{ truncateDescription(localized(plugin.latest)) }}</p>
 
               <!-- Compatibility gate: fixed slot above the footer, quiet amber —
                    a constraint, not another metadata chip. -->

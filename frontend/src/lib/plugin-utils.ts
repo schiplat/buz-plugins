@@ -61,3 +61,9 @@ export function formatBuzRequirement(raw: string): string {
   if (exact) return `= ${exact[1]}`
   return raw
 }
+
+/** Hard cap for card descriptions — the excess is simply not shown. */
+export function truncateDescription(text: string, max = 120): string {
+  const clean = text.trim()
+  return clean.length > max ? `${clean.slice(0, max).trimEnd()}…` : clean
+}
