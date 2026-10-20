@@ -3,7 +3,9 @@ name: ci
 on:
   push:
     branches: [master]
-    tags: ["v*"]
+    # "**" so date-based catalog snapshot tags (2026.10.20) trigger too;
+    # v-prefixed tags match as well.
+    tags: ["**"]
   pull_request:
 
 permissions:
