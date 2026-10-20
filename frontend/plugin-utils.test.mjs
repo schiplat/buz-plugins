@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { compareVersions, detailPageUrl, groupPlugins, pluginHeading, selectPluginVersion } from './src/lib/plugin-utils.ts'
+import { compareVersions, detailPageUrl, formatBuzRequirement, groupPlugins, pluginHeading, selectPluginVersion } from './src/lib/plugin-utils.ts'
 
 const template = (id, version, extra = {}) => ({
   id,
@@ -47,4 +47,11 @@ test('selects the full requested version record and maps its static detail URL',
 
   const singleVersion = groupPlugins([template('buz/one-version', '2.3.4')])[0]
   assert.equal(pluginHeading(singleVersion.latest, singleVersion), 'buz/one-version@2.3.4')
+})
+
+test('formats buz requirements for display', () => {
+  assert.equal(formatBuzRequirement('>=1.9.0'), '≥ 1.9.0')
+  assert.equal(formatBuzRequirement('1.2.0'), '= 1.2.0')
+  assert.equal(formatBuzRequirement('<2.0.0'), '<2.0.0')
+  assert.equal(formatBuzRequirement('1.2'), '1.2')
 })

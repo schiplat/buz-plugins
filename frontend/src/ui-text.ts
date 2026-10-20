@@ -30,7 +30,7 @@ export const T = {
   loadFail: 'Failed to load the marketplace',
   incompatible: 'needs a newer Buz',
   requiresBuz: 'Requires Buz',
-  requiresBuzTip: 'Version gate — Managers running an older Buz release refuse to execute this version of the plugin',
+  requiresBuzTip: 'Version gate — Buz Managers older than this release reject this version when resolving steps',
   sourceRepo: 'Source repository',
   reportHint: 'Report issue',
   timeout: 'timeout',

@@ -678,12 +678,15 @@ class SitePathTests(unittest.TestCase):
             "inputs": [],
         }
         gated = self.build_site.template_page_html({**base, "requires_buz": ">=1.8.1"})
+        exact = self.build_site.template_page_html({**base, "requires_buz": "1.8.1"})
         ungated = self.build_site.template_page_html(base)
 
         # The gate is a prominent callout right under the description, not a
-        # buried metadata line.
+        # buried metadata line. Raw spec syntax is normalized for display.
         self.assertIn("callout-warn", gated)
-        self.assertIn("Requires Buz &gt;=1.8.1", gated)
+        self.assertIn("Requires Buz ≥ 1.8.1", gated)
+        self.assertIn("reject this version when resolving steps", gated)
+        self.assertIn("Requires Buz = 1.8.1", exact)
         self.assertLess(
             gated.index("<p>Compose deployment helper.</p>"),
             gated.index("callout-warn"),
@@ -693,8 +696,15 @@ class SitePathTests(unittest.TestCase):
         self.assertNotIn("callout-warn", ungated)
 
         # Structured data carries the requirement for crawlers.
-        self.assertIn('"softwareRequirements": "Buz >=1.8.1"', gated)
+        self.assertIn('"softwareRequirements": "Buz ≥ 1.8.1"', gated)
         self.assertNotIn("softwareRequirements", ungated)
+
+    def test_buz_requirement_formatting_normalizes_spec_syntax(self):
+        fmt = self.build_site.format_buz_requirement
+        self.assertEqual(fmt(">=1.9.0"), "≥ 1.9.0")
+        self.assertEqual(fmt("1.2.0"), "= 1.2.0")
+        self.assertEqual(fmt("<2.0.0"), "<2.0.0")  # unsupported forms pass through
+        self.assertEqual(fmt("1.2"), "1.2")
 
     def test_source_checks_use_full_nested_page_path(self):
         self.assertEqual(

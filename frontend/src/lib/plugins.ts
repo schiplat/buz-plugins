@@ -1,6 +1,7 @@
 export {
   compareVersions,
   detailPageUrl,
+  formatBuzRequirement,
   groupPlugins,
   pluginHeading,
   selectPluginVersion,

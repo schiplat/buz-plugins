@@ -23,6 +23,7 @@ import hashlib
 import json
 import os
 import posixpath
+import re
 import shutil
 import sys
 from datetime import datetime, timezone
@@ -67,6 +68,18 @@ def esc(s):
 def description_for(tmpl: dict, lang: str) -> str:
     primary = f"description_{lang}"
     return tmpl.get(primary) or tmpl.get("description") or ""
+
+
+_VERSION_RE = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
+
+
+def format_buz_requirement(raw: str) -> str:
+    '''">=1.9.0" → "≥ 1.9.0", exact "1.2.0" → "= 1.2.0"; other forms pass through.'''
+    if raw.startswith(">=") and _VERSION_RE.fullmatch(raw[2:]):
+        return f"≥ {raw[2:]}"
+    if _VERSION_RE.fullmatch(raw):
+        return f"= {raw}"
+    return raw
 
 
 def usage_example(tmpl: dict) -> str:
@@ -150,7 +163,7 @@ def jsonld_software(tmpl: dict) -> str:
         "url": f"{SITE_URL}/templates/{template_path}",
     }
     if tmpl.get("requires_buz"):
-        payload["softwareRequirements"] = f"Buz {tmpl['requires_buz']}"
+        payload["softwareRequirements"] = f"Buz {format_buz_requirement(tmpl['requires_buz'])}"
     return json.dumps(payload, ensure_ascii=False, indent=2)
 
 
@@ -180,8 +193,9 @@ def template_page_html(tmpl: dict) -> str:
     usage = esc(usage_example(tmpl))
     jsonld = jsonld_software(tmpl)
     version_gate = (
-        f"<div class='callout-warn'><strong>Requires Buz {esc(tmpl['requires_buz'])}</strong> — "
-        "Managers running an older Buz release refuse to execute this version of the template.</div>"
+        f"<div class='callout-warn'><strong>Requires Buz "
+        f"{esc(format_buz_requirement(tmpl['requires_buz']))}</strong> — Buz Managers "
+        "older than this release reject this version when resolving steps.</div>"
         if tmpl.get("requires_buz")
         else ""
     )

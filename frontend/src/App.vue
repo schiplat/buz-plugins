@@ -26,7 +26,7 @@ import FiltersSidebar from '@/components/FiltersSidebar.vue'
 import { copyText } from '@/lib/clipboard'
 import { T } from '@/ui-text'
 import type { StepLibrary, StepTemplate } from '@/types'
-import { groupPlugins, pluginHeading, selectPluginVersion, detailPageUrl, type StepPlugin } from '@/lib/plugins'
+import { groupPlugins, pluginHeading, selectPluginVersion, detailPageUrl, formatBuzRequirement, type StepPlugin } from '@/lib/plugins'
 import { NEW_TEMPLATE_URL, REPO_URL, REQUEST_PLUGIN_URL } from '@/types'
 
 const library = ref<StepLibrary>({ templates: [], unparseable: [] })
@@ -372,6 +372,17 @@ onMounted(async () => {
 
               <p class="mt-3 line-clamp-3 flex-1 text-sm text-muted-foreground">{{ localized(plugin.latest) }}</p>
 
+              <!-- Compatibility gate: fixed slot above the footer, quiet amber —
+                   a constraint, not another metadata chip. -->
+              <div
+                v-if="plugin.latest.requires_buz"
+                class="mt-2 flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-500"
+                :title="T.requiresBuzTip"
+              >
+                <TriangleAlert class="h-3.5 w-3.5 shrink-0" />
+                <span>{{ T.requiresBuz }} {{ formatBuzRequirement(plugin.latest.requires_buz) }}</span>
+              </div>
+
               <div class="mt-3 flex flex-wrap gap-1.5">
                 <Badge variant="secondary" class="font-mono">{{ plugin.latest.engine }}</Badge>
                 <Badge v-if="plugin.latest.default_timeout" variant="secondary" class="font-mono">{{ plugin.latest.default_timeout }}</Badge>
@@ -382,10 +393,6 @@ onMounted(async () => {
                 <Badge v-for="capability in plugin.latest.capabilities || []" :key="capability" variant="secondary">
                   {{ capability }}
                 </Badge>
-                <Badge v-if="plugin.latest.requires_buz" variant="warn" :title="T.requiresBuzTip">
-                  <TriangleAlert class="mr-0.5 h-3 w-3" /> {{ T.requiresBuz }} {{ plugin.latest.requires_buz }}
-                </Badge>
-
               </div>
 
               <div class="mt-4 flex items-center justify-between border-t pt-3 text-xs text-muted-foreground">
@@ -473,6 +480,16 @@ onMounted(async () => {
         <!-- Description -->
         <p class="mt-4 text-sm leading-relaxed">{{ localized(selected) }}</p>
 
+        <!-- Compatibility gate (mirrors the static detail page) -->
+        <div
+          v-if="selected.requires_buz"
+          class="mt-2 flex items-center gap-1.5 text-sm font-medium text-amber-700 dark:text-amber-500"
+          :title="T.requiresBuzTip"
+        >
+          <TriangleAlert class="h-4 w-4 shrink-0" />
+          <span>{{ T.requiresBuz }} {{ formatBuzRequirement(selected.requires_buz) }}</span>
+        </div>
+
         <!-- Meta chips -->
         <div class="mt-4 flex flex-wrap gap-1.5">
           <Badge v-if="selected.category" variant="secondary">{{ selected.category }}</Badge>
@@ -485,9 +502,6 @@ onMounted(async () => {
           </Badge>
           <Badge v-for="capability in selected.capabilities || []" :key="capability" variant="secondary">
             {{ capability }}
-          </Badge>
-          <Badge v-if="selected.requires_buz" variant="warn" :title="T.requiresBuzTip">
-            <TriangleAlert class="mr-0.5 h-3 w-3" /> {{ T.requiresBuz }} {{ selected.requires_buz }}
           </Badge>
         </div>
 

@@ -52,3 +52,12 @@ export function detailPageUrl(file: string): string {
   const path = file.replaceAll('\\', '/').replace(/^plugins\//, '')
   return `templates/${path.replace(/\.(yaml|yml)$/i, '.html')}`
 }
+
+/** ">=1.9.0" → "≥ 1.9.0", exact "1.2.0" → "= 1.2.0"; other forms pass through. */
+export function formatBuzRequirement(raw: string): string {
+  const min = /^>=(\d+\.\d+\.\d+)$/.exec(raw)
+  if (min) return `≥ ${min[1]}`
+  const exact = /^(\d+\.\d+\.\d+)$/.exec(raw)
+  if (exact) return `= ${exact[1]}`
+  return raw
+}
