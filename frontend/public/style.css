@@ -14,6 +14,9 @@
   --template-background: #f8fafc;
   --template-primary: #2563eb;
   --template-code: #f1f5f9;
+  --callout-warn-border: #d9770666;
+  --callout-warn-bg: #fef3c7;
+  --callout-warn-text: #92400e;
 }
 
 body.template-page {
@@ -110,6 +113,20 @@ body.template-page {
 
 .template-page .small {
   font-size: 0.8125rem;
+}
+
+.template-page .callout-warn {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--callout-warn-border);
+  border-radius: 0.5rem;
+  background: var(--callout-warn-bg);
+  color: var(--callout-warn-text);
+  font-size: 0.875rem;
+}
+
+.template-page .callout-warn strong {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 }
 
 .template-page .inputs {

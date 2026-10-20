@@ -667,6 +667,34 @@ class SitePathTests(unittest.TestCase):
         self.assertNotIn("internal implementation command", html)
         self.assertNotIn("中文插件说明", html)
         self.assertNotIn("lang='zh'", html)
+        self.assertNotIn("callout-warn", html)
+
+    def test_explicit_buz_requirement_is_called_out_prominently(self):
+        base = {
+            "id": "buz/docker-compose", "version": "1.0.0",
+            "file": "plugins/buz/docker-compose/1.0.0.yaml",
+            "engine": "shell", "content_sha256": "abc", "source_repo": None,
+            "description": "Compose deployment helper.",
+            "inputs": [],
+        }
+        gated = self.build_site.template_page_html({**base, "requires_buz": ">=1.8.1"})
+        ungated = self.build_site.template_page_html(base)
+
+        # The gate is a prominent callout right under the description, not a
+        # buried metadata line.
+        self.assertIn("callout-warn", gated)
+        self.assertIn("Requires Buz &gt;=1.8.1", gated)
+        self.assertLess(
+            gated.index("<p>Compose deployment helper.</p>"),
+            gated.index("callout-warn"),
+        )
+        self.assertLess(gated.index("callout-warn"), gated.index("<h2>Inputs</h2>"))
+        self.assertNotIn("Requires Buz", ungated)
+        self.assertNotIn("callout-warn", ungated)
+
+        # Structured data carries the requirement for crawlers.
+        self.assertIn('"softwareRequirements": "Buz >=1.8.1"', gated)
+        self.assertNotIn("softwareRequirements", ungated)
 
     def test_source_checks_use_full_nested_page_path(self):
         self.assertEqual(

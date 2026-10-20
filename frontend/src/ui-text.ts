@@ -29,6 +29,8 @@ export const T = {
   empty: 'No templates installed yet — clone github.com/schiplat/buz-plugins into the Manager step directory to install them.',
   loadFail: 'Failed to load the marketplace',
   incompatible: 'needs a newer Buz',
+  requiresBuz: 'Requires Buz',
+  requiresBuzTip: 'Version gate — Managers running an older Buz release refuse to execute this version of the plugin',
   sourceRepo: 'Source repository',
   reportHint: 'Report issue',
   timeout: 'timeout',

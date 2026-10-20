@@ -149,6 +149,8 @@ def jsonld_software(tmpl: dict) -> str:
         "license": tmpl.get("license") or "Apache-2.0",
         "url": f"{SITE_URL}/templates/{template_path}",
     }
+    if tmpl.get("requires_buz"):
+        payload["softwareRequirements"] = f"Buz {tmpl['requires_buz']}"
     return json.dumps(payload, ensure_ascii=False, indent=2)
 
 
@@ -177,6 +179,12 @@ def template_page_html(tmpl: dict) -> str:
 
     usage = esc(usage_example(tmpl))
     jsonld = jsonld_software(tmpl)
+    version_gate = (
+        f"<div class='callout-warn'><strong>Requires Buz {esc(tmpl['requires_buz'])}</strong> — "
+        "Managers running an older Buz release refuse to execute this version of the template.</div>"
+        if tmpl.get("requires_buz")
+        else ""
+    )
 
     return f"""<!doctype html>
 <html lang="en">
@@ -204,6 +212,7 @@ def template_page_html(tmpl: dict) -> str:
 <h1>{esc(name)}</h1>
 <p class="mono dim">{esc(template_id)} · v{esc(tmpl['version'])} · {esc(tmpl['engine'])}</p>
 <p>{esc(desc_en)}</p>
+{version_gate}
 <h2>Inputs</h2>
 {inputs_html}
 <h2>Usage</h2>
@@ -211,7 +220,6 @@ def template_page_html(tmpl: dict) -> str:
 <h2>Integrity</h2>
     <p class="mono dim small">sha256: {tmpl['content_sha256']}</p>
     {f"<p>Capabilities: {esc(', '.join(tmpl.get('capabilities') or []))}</p>" if tmpl.get('capabilities') else ""}
-    {f"<p>Requires Buz: {esc(tmpl['requires_buz'])}</p>" if tmpl.get('requires_buz') else ""}
 <p class="dim small">{esc('Officially reviewed at this content hash' if tmpl.get('reviewed') else 'Not yet officially reviewed — the badge on the marketplace reflects the current review status')}.</p>
 <p><a href="https://github.com/schiplat/buz-plugins/issues/new?template=report.yml">Report an issue with this template</a>{f" · <a href='{esc(tmpl['source_repo'])}'>Source repository</a>" if tmpl.get('source_repo') else ""}</p>
 <p><a href="{home_href}">Browse all templates</a></p>

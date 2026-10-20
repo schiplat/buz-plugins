@@ -382,8 +382,8 @@ onMounted(async () => {
                 <Badge v-for="capability in plugin.latest.capabilities || []" :key="capability" variant="secondary">
                   {{ capability }}
                 </Badge>
-                <Badge v-if="plugin.latest.requires_buz" variant="secondary" class="font-mono">
-                  Buz {{ plugin.latest.requires_buz }}
+                <Badge v-if="plugin.latest.requires_buz" variant="warn" :title="T.requiresBuzTip">
+                  <TriangleAlert class="mr-0.5 h-3 w-3" /> {{ T.requiresBuz }} {{ plugin.latest.requires_buz }}
                 </Badge>
 
               </div>
@@ -486,8 +486,8 @@ onMounted(async () => {
           <Badge v-for="capability in selected.capabilities || []" :key="capability" variant="secondary">
             {{ capability }}
           </Badge>
-          <Badge v-if="selected.requires_buz" variant="secondary" class="font-mono">
-            Buz {{ selected.requires_buz }}
+          <Badge v-if="selected.requires_buz" variant="warn" :title="T.requiresBuzTip">
+            <TriangleAlert class="mr-0.5 h-3 w-3" /> {{ T.requiresBuz }} {{ selected.requires_buz }}
           </Badge>
         </div>
 
