@@ -167,7 +167,14 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=buz-plugins --branch=master --commit-dirty=true
 
+      # The bot push back to master is best-effort: the master ruleset
+      # (deletion / non-fast-forward / required checks) blocks GITHUB_TOKEN
+      # pushes and Integration bypass is unsupported on personal accounts.
+      # The deployed CF Pages dist already carries the refreshed file, so a
+      # blocked repo write-back only delays the git-side sync until the next
+      # human PR.
       - name: Commit refreshed reviews.json
+        continue-on-error: true
         run: |
           cp dist/reviews.json reviews.json
           if git diff --quiet reviews.json; then
