@@ -1,0 +1,10 @@
+{
+  "id": "buz/feishu",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "file": "plugins/buz/feishu/1.0.0.yaml",
+      "sha256": "34a92cbca0730b3e48d834508e20465e5c408ccebbce813d1fce1cd8060d1cee"
+    }
+  ]
+}

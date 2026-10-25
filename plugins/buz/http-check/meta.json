@@ -1,0 +1,15 @@
+{
+  "id": "buz/http-check",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "file": "plugins/buz/http-check/1.0.0.yaml",
+      "sha256": "a5bc4b56240f20705d7308f3c271dabb401e79b29d53043c79264f3b5839592a"
+    },
+    {
+      "version": "1.1.0",
+      "file": "plugins/buz/http-check/1.1.0.yaml",
+      "sha256": "452a92cac86946e1368db3560b0bfa095f4ed84564e9881bc65017772a9fd278"
+    }
+  ]
+}

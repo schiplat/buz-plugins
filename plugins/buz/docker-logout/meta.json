@@ -1,0 +1,10 @@
+{
+  "id": "buz/docker-logout",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "file": "plugins/buz/docker-logout/1.0.0.yaml",
+      "sha256": "a5ac733aacc1954c0cc9d2b2a0a55a39fee42c1671fcf88d60697de7ee8f3e5d"
+    }
+  ]
+}

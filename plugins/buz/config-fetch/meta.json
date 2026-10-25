@@ -1,0 +1,15 @@
+{
+  "id": "buz/config-fetch",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "file": "plugins/buz/config-fetch/1.0.0.yaml",
+      "sha256": "2bcf9eb2edd5ed6dffbaff35f96ba7a9f981a0d078fe799e5596f482b71feb98"
+    },
+    {
+      "version": "1.1.0",
+      "file": "plugins/buz/config-fetch/1.1.0.yaml",
+      "sha256": "988e26ad6b146cbe3974922b344e8361b41461e3043ab9602a15532df4630743"
+    }
+  ]
+}

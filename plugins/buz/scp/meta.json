@@ -1,0 +1,10 @@
+{
+  "id": "buz/scp",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "file": "plugins/buz/scp/1.0.0.yaml",
+      "sha256": "bf9ef0b9b4092c1a8e30973f354106d9db823c72830604c8333917925bd6e22b"
+    }
+  ]
+}

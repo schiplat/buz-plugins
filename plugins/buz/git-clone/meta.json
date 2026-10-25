@@ -1,0 +1,15 @@
+{
+  "id": "buz/git-clone",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "file": "plugins/buz/git-clone/1.0.0.yaml",
+      "sha256": "880175443061048f3042c14f6ce799f866b21abf1ba577b17b18de8f1c0420b4"
+    },
+    {
+      "version": "1.1.0",
+      "file": "plugins/buz/git-clone/1.1.0.yaml",
+      "sha256": "317779cf746890fb01b805fbe2e2eaf93feb1c35365ce2feba0c428e4f0d8f25"
+    }
+  ]
+}

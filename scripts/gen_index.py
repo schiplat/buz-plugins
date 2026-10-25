@@ -110,6 +110,11 @@ def main() -> None:
 
     parser.add_argument("--plugins-dir", default="plugins")
     parser.add_argument("--output", default="index.json")
+    parser.add_argument(
+        "--no-meta",
+        action="store_true",
+        help="skip per-plugin meta.json output (CI dry runs)",
+    )
     args = parser.parse_args()
 
     plugin_dir = resolve(args.plugins_dir)
@@ -154,6 +159,40 @@ def main() -> None:
         json.dumps(index, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
     print(f"index.json: {len(steps)} step(s) written to {output}")
+
+    # Per-plugin meta files (<plugin dir>/meta.json, repo-relative): the
+    # manager's single-plugin refresh fetches one small file instead of the
+    # whole index — cheap on intermittent networks. Same entry schema as the
+    # index; file paths remain repo-relative.
+    if args.no_meta:
+        print("meta.json: skipped (--no-meta)")
+    else:
+        metas: dict[str, list[dict]] = {}
+        for entry in steps:
+            plugin_dir = (root / entry["file"]).parent
+            metas.setdefault(str(plugin_dir), []).append(entry)
+        for plugin_dir_str, entries in sorted(metas.items()):
+            meta_path = Path(plugin_dir_str) / "meta.json"
+            meta_path.write_text(
+                json.dumps(
+                    {
+                        "id": entries[0]["id"],
+                        "versions": [
+                            {
+                                "version": e["version"],
+                                "file": e["file"],
+                                "sha256": e["sha256"],
+                            }
+                            for e in entries
+                        ],
+                    },
+                    indent=2,
+                    ensure_ascii=False,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+        print(f"meta.json: {len(metas)} plugin(s) written")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,15 @@
+{
+  "id": "buz/setup-java",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "file": "plugins/buz/setup-java/1.0.0.yaml",
+      "sha256": "2d73f5c65360285ea1fccec7cb1f3bcdf2a1ffb96b4b921edba4a6220f8688b4"
+    },
+    {
+      "version": "1.1.0",
+      "file": "plugins/buz/setup-java/1.1.0.yaml",
+      "sha256": "5ee4b0eaf106617ec8a0401a53b6a48a062234a3981363b2e1ba718ea5bcdb05"
+    }
+  ]
+}

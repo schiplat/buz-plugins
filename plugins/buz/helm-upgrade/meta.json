@@ -1,0 +1,10 @@
+{
+  "id": "buz/helm-upgrade",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "file": "plugins/buz/helm-upgrade/1.0.0.yaml",
+      "sha256": "5edc18374ea856518afa9a08c7b931a6093643db32e45739dbb0f9769fc23517"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "id": "buz/oss-download",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "file": "plugins/buz/oss-download/1.0.0.yaml",
+      "sha256": "ae05501317a2e61baf92a212d5f42e3dc3b834ea4f52baf9e2501cded70c42cf"
+    }
+  ]
+}

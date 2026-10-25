@@ -1,0 +1,15 @@
+{
+  "id": "buz/setup-rust",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "file": "plugins/buz/setup-rust/1.0.0.yaml",
+      "sha256": "12ab39ca7fb61cf059fd42b56bf84442f834a1179bb35ffe961449fdf7d9493a"
+    },
+    {
+      "version": "1.1.0",
+      "file": "plugins/buz/setup-rust/1.1.0.yaml",
+      "sha256": "c4aafbd5b38e3b2dc2afb5b9df2f146d002492fa034ad45062377a37180741b4"
+    }
+  ]
+}

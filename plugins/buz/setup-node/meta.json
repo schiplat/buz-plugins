@@ -1,0 +1,15 @@
+{
+  "id": "buz/setup-node",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "file": "plugins/buz/setup-node/1.0.0.yaml",
+      "sha256": "9c524b593bb08605e55ee4bebc1c27f7c2f3e5b06ce1aac62c40bff14644a669"
+    },
+    {
+      "version": "1.1.0",
+      "file": "plugins/buz/setup-node/1.1.0.yaml",
+      "sha256": "8d03a2a1e143957f004ace2449f6c12fd8f233d9f6f5883bef519c91412dd615"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "id": "buz/s3-upload",
+  "versions": [
+    {
+      "version": "1.0.1",
+      "file": "plugins/buz/s3-upload/1.0.1.yaml",
+      "sha256": "3828f53e735535b20bc5dabf9fddb385a7863a8a741d2e7d15555eda748b6151"
+    },
+    {
+      "version": "1.0.2",
+      "file": "plugins/buz/s3-upload/1.0.2.yaml",
+      "sha256": "c38e6b0c048f803542a3031c0b9ac07c11efe69c07f26c7c261923bf4384078b"
+    }
+  ]
+}

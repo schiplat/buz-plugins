@@ -1,0 +1,15 @@
+{
+  "id": "buz/oss-upload",
+  "versions": [
+    {
+      "version": "1.0.1",
+      "file": "plugins/buz/oss-upload/1.0.1.yaml",
+      "sha256": "eef94c74534344a2c8c65a45a8d7d1c29b81d6748142d7cc580b298c4c1572b1"
+    },
+    {
+      "version": "1.0.2",
+      "file": "plugins/buz/oss-upload/1.0.2.yaml",
+      "sha256": "4bb2520277112b31988eea9a3664f05625596d36a496759eee2091fc61b29b42"
+    }
+  ]
+}

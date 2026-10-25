@@ -1,0 +1,15 @@
+{
+  "id": "buz/setup-php",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "file": "plugins/buz/setup-php/1.0.0.yaml",
+      "sha256": "a9b2e1aac4eca9e748c661321ce91354b8ac6562af82a6366451dca8623e874d"
+    },
+    {
+      "version": "1.1.0",
+      "file": "plugins/buz/setup-php/1.1.0.yaml",
+      "sha256": "98d81e796fb4bd1f0e1258837c45f4431a20d50ca1e6b2e888ba511260f90847"
+    }
+  ]
+}

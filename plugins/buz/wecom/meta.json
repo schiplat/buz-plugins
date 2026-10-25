@@ -1,0 +1,10 @@
+{
+  "id": "buz/wecom",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "file": "plugins/buz/wecom/1.0.0.yaml",
+      "sha256": "8e6fcf31a4c07c5a79ff8942cd0a658e32d45dde6593878e7727899a3cfdd715"
+    }
+  ]
+}

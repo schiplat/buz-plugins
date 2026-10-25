@@ -1,0 +1,10 @@
+{
+  "id": "buz/ssh-wait",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "file": "plugins/buz/ssh-wait/1.0.0.yaml",
+      "sha256": "d6fa685bdf230bc440beb6d16ba6fb25b4fd062e865d8c397777eb9487de83d0"
+    }
+  ]
+}
