@@ -379,6 +379,26 @@ def main() -> None:
     if reviews_path.exists():
         shutil.copy(reviews_path, out_dir / "reviews.json")
 
+    # Per-plugin meta.json files (Phase §6.8 single-plugin refresh): stage
+    # alongside the templates so the manager can fetch them from the same
+    # origin. Missing meta files are fine — the manager falls back to the
+    # full index for sources that predate per-plugin meta.
+    staged_metas = 0
+    for path_ in files:
+        meta_src = path_.parent / "meta.json"
+        if not meta_src.exists():
+            continue
+        try:
+            meta_relative = meta_src.resolve().relative_to(root.resolve())
+        except ValueError:
+            continue
+        meta_out = out_dir / Path(meta_relative)
+        meta_out.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(meta_src, meta_out)
+        staged_metas += 1
+    if staged_metas:
+        print(f"site: staged {staged_metas} meta.json file(s)")
+
     print(
         f"site: {len(templates)} template(s) → {out_dir}/ "
         f"(+{len(templates)} template pages, robots.txt, sitemap.xml)"

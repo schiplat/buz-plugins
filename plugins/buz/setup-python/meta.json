@@ -1,0 +1,15 @@
+{
+  "id": "buz/setup-python",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "file": "plugins/buz/setup-python/1.0.0.yaml",
+      "sha256": "5bb3b2ffcbd5b1223597517f806efddae90ef6145231ab51d5e98ff579df216b"
+    },
+    {
+      "version": "1.1.0",
+      "file": "plugins/buz/setup-python/1.1.0.yaml",
+      "sha256": "2647858a70af58a7be29496be73bd7c765fe3bf437231eb82b5896e328b65a5f"
+    }
+  ]
+}

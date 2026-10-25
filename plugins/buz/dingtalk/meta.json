@@ -1,0 +1,10 @@
+{
+  "id": "buz/dingtalk",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "file": "plugins/buz/dingtalk/1.0.0.yaml",
+      "sha256": "00c8c29fadf4649b63ba9c095e3ce6707c06254ad36bbb4975a209cf86ad6222"
+    }
+  ]
+}

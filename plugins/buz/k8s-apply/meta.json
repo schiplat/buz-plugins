@@ -1,0 +1,10 @@
+{
+  "id": "buz/k8s-apply",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "file": "plugins/buz/k8s-apply/1.0.0.yaml",
+      "sha256": "e94dcf5f9cdd898aed69fb7e0904df3b6da5472d49c628781c5c128d09878810"
+    }
+  ]
+}

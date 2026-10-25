@@ -1,0 +1,15 @@
+{
+  "id": "buz/setup-go",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "file": "plugins/buz/setup-go/1.0.0.yaml",
+      "sha256": "35be6bd8c295d8f17152b532fa40cd662f722a97fdd893c296a512b4b1462b97"
+    },
+    {
+      "version": "1.1.0",
+      "file": "plugins/buz/setup-go/1.1.0.yaml",
+      "sha256": "6806cb459b352bdb24936641732a018c0d901bd0e137b9bbca9f62c8bac3ed49"
+    }
+  ]
+}

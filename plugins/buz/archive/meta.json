@@ -1,0 +1,15 @@
+{
+  "id": "buz/archive",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "file": "plugins/buz/archive/1.0.0.yaml",
+      "sha256": "8885fee963c8944b64f62887366bb5427f66a6f10171fb4080e1663c69824011"
+    },
+    {
+      "version": "1.1.0",
+      "file": "plugins/buz/archive/1.1.0.yaml",
+      "sha256": "4573024cdc3b37ab66b57c2e2d3d10a957a0bf3801c62f5e69614b23226d116d"
+    }
+  ]
+}

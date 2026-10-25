@@ -1,0 +1,10 @@
+{
+  "id": "buz/docker-compose",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "file": "plugins/buz/docker-compose/1.0.0.yaml",
+      "sha256": "c5325efb7262cf227f481b0b0cbd9c92659744a99dd7ad4d83058b2b42478a2e"
+    }
+  ]
+}

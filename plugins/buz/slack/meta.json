@@ -1,0 +1,10 @@
+{
+  "id": "buz/slack",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "file": "plugins/buz/slack/1.0.0.yaml",
+      "sha256": "1ed4a1a7acd214c5334ba64c11ee11eeb07b60dae3bde6bea68eb2c16dac177c"
+    }
+  ]
+}

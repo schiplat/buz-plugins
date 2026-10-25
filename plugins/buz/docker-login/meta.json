@@ -1,0 +1,15 @@
+{
+  "id": "buz/docker-login",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "file": "plugins/buz/docker-login/1.0.0.yaml",
+      "sha256": "33b8cf056dc6a0c604f5999e7df1c057754125ffb618068539f09b0b68323f09"
+    },
+    {
+      "version": "1.1.0",
+      "file": "plugins/buz/docker-login/1.1.0.yaml",
+      "sha256": "d88d7850420f70a249b3fcd9f38c86495c5153a2d03dd1dcc51393ce3f756a48"
+    }
+  ]
+}

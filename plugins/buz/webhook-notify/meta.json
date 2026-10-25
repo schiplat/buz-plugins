@@ -1,0 +1,10 @@
+{
+  "id": "buz/webhook-notify",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "file": "plugins/buz/webhook-notify/1.0.0.yaml",
+      "sha256": "5aa03ada210f08b592267106e3cf194eac478e28f75242ef817b00a6303676fe"
+    }
+  ]
+}

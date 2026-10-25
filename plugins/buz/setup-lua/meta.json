@@ -1,0 +1,15 @@
+{
+  "id": "buz/setup-lua",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "file": "plugins/buz/setup-lua/1.0.0.yaml",
+      "sha256": "460ef0eb12f3471b3c6f0be94fdbcd8b6e9e37777cb506669ccdab70d45e1735"
+    },
+    {
+      "version": "1.1.0",
+      "file": "plugins/buz/setup-lua/1.1.0.yaml",
+      "sha256": "16bcbfd697b886457f61829114e09d7bffd472b923ad3d25abd8874dc8279cb4"
+    }
+  ]
+}

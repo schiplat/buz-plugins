@@ -1,0 +1,15 @@
+{
+  "id": "buz/docker",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "file": "plugins/buz/docker/1.0.0.yaml",
+      "sha256": "43dde7ad70e6a7b3b859e45f0da31b8e40a6776bb54d41cd46da8b51cf2d1abc"
+    },
+    {
+      "version": "1.1.0",
+      "file": "plugins/buz/docker/1.1.0.yaml",
+      "sha256": "59f898a5ad23720f4a30091761b17ada1d65423beba5a63137ffde0d7551295d"
+    }
+  ]
+}
