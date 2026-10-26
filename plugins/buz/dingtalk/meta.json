@@ -4,7 +4,18 @@
     {
       "version": "1.0.0",
       "file": "plugins/buz/dingtalk/1.0.0.yaml",
-      "sha256": "00c8c29fadf4649b63ba9c095e3ce6707c06254ad36bbb4975a209cf86ad6222"
+      "sha256": "76c88bb744c72a5356cd2ca91f30f81ac4b1d62d31cdd987b4f5ba1febd521cb",
+      "category": "notifications",
+      "name": "DingTalk group notification",
+      "description": "Send a text message to a DingTalk custom-bot group, with optional HMAC signing and @all.",
+      "description_zh": "向钉钉群自定义机器人发送文本消息，支持加签（HmacSHA256）与 @全员。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/dingtalk/1.0.0.yaml",
+      "engine": "shell",
+      "default_timeout": "30s",
+      "requires_buz": ">=1.8.1"
     }
   ]
 }

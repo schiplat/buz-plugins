@@ -4,7 +4,18 @@
     {
       "version": "1.0.0",
       "file": "plugins/buz/wecom/1.0.0.yaml",
-      "sha256": "8e6fcf31a4c07c5a79ff8942cd0a658e32d45dde6593878e7727899a3cfdd715"
+      "sha256": "d37f9ca6003bdd9d1f94616aae59c5a111effac329c3169a8392e4f10e287978",
+      "category": "notifications",
+      "name": "WeCom group notification",
+      "description": "Send a text message to a WeCom (WeChat Work) group bot; auto-appends the Buz job link.",
+      "description_zh": "向企业微信群机器人发送文本消息，自动附带 Buz 任务链接，支持 @全员。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/wecom/1.0.0.yaml",
+      "engine": "shell",
+      "default_timeout": "30s",
+      "requires_buz": ">=1.8.1"
     }
   ]
 }

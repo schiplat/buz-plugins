@@ -4,12 +4,33 @@
     {
       "version": "1.0.0",
       "file": "plugins/buz/setup-php/1.0.0.yaml",
-      "sha256": "a9b2e1aac4eca9e748c661321ce91354b8ac6562af82a6366451dca8623e874d"
+      "sha256": "512de66eb5456575d6fdea950e5defbb48b0c8c2c35cfe1819fe4ea085215348",
+      "category": "build",
+      "name": "PHP build environment (composer)",
+      "description": "Run commands inside a pinned PHP toolchain (8.4 or 8.3) with Composer.",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/setup-php/1.0.0.yaml",
+      "engine": "docker",
+      "default_timeout": "30m",
+      "requires_buz": ">=1.8.1"
     },
     {
       "version": "1.1.0",
       "file": "plugins/buz/setup-php/1.1.0.yaml",
-      "sha256": "98d81e796fb4bd1f0e1258837c45f4431a20d50ca1e6b2e888ba511260f90847"
+      "sha256": "98d81e796fb4bd1f0e1258837c45f4431a20d50ca1e6b2e888ba511260f90847",
+      "category": "build",
+      "name": "PHP build environment (composer)",
+      "description": "Prepare a pinned PHP toolchain (8.4 or 8.3) with Composer for the step's run: commands.",
+      "description_zh": "为步骤的 run: 命令准备固定的 PHP 工具链（8.4 或 8.3），内置 Composer。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/setup-php/1.1.0.yaml",
+      "engine": "docker",
+      "default_timeout": "30m",
+      "requires_buz": ">=1.8.1"
     }
   ]
 }

@@ -4,7 +4,18 @@
     {
       "version": "1.0.0",
       "file": "plugins/buz/slack/1.0.0.yaml",
-      "sha256": "1ed4a1a7acd214c5334ba64c11ee11eeb07b60dae3bde6bea68eb2c16dac177c"
+      "sha256": "d9c69fcd3931dd75947f08b179a4a9a205728b9db107d8ac1acb29a9c73efbcd",
+      "category": "notifications",
+      "name": "Slack incoming-webhook notification",
+      "description": "Post a message to a Slack channel via an incoming webhook; auto-appends the Buz job link.",
+      "description_zh": "通过 Slack incoming webhook 发送消息，自动附带 Buz 任务链接。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/slack/1.0.0.yaml",
+      "engine": "shell",
+      "default_timeout": "30s",
+      "requires_buz": ">=1.8.1"
     }
   ]
 }

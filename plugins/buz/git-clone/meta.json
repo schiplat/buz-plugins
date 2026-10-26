@@ -4,12 +4,34 @@
     {
       "version": "1.0.0",
       "file": "plugins/buz/git-clone/1.0.0.yaml",
-      "sha256": "880175443061048f3042c14f6ce799f866b21abf1ba577b17b18de8f1c0420b4"
+      "sha256": "f45f45b7d4ba7aa379913093582cc33d2ba82d6029fa777ab8a170cf6c136433",
+      "category": "source",
+      "name": "Git clone",
+      "description": "Clone a Git repository into a workspace subdirectory (branch or tag, optional shallow, optional token for private HTTPS repos).",
+      "description_zh": "将 Git 仓库克隆到 workspace 子目录（支持分支/标签、浅克隆，可选 token 访问私有 HTTPS 仓库）。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/git-clone/1.0.0.yaml",
+      "engine": "shell",
+      "default_timeout": "15m",
+      "requires_buz": ">=1.8.1"
     },
     {
       "version": "1.1.0",
       "file": "plugins/buz/git-clone/1.1.0.yaml",
-      "sha256": "317779cf746890fb01b805fbe2e2eaf93feb1c35365ce2feba0c428e4f0d8f25"
+      "sha256": "317779cf746890fb01b805fbe2e2eaf93feb1c35365ce2feba0c428e4f0d8f25",
+      "category": "source",
+      "name": "Git clone",
+      "description": "Clone a Git repository into the `into` directory (default source) inside the workspace, without overwriting an existing path.",
+      "description_zh": "将 Git 仓库克隆到 workspace 内的 into 目录（默认 source），禁止覆盖已有路径。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/git-clone/1.1.0.yaml",
+      "engine": "shell",
+      "default_timeout": "15m",
+      "requires_buz": ">=1.8.1"
     }
   ]
 }

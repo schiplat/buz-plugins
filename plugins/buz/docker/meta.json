@@ -4,12 +4,34 @@
     {
       "version": "1.0.0",
       "file": "plugins/buz/docker/1.0.0.yaml",
-      "sha256": "43dde7ad70e6a7b3b859e45f0da31b8e40a6776bb54d41cd46da8b51cf2d1abc"
+      "sha256": "7400edb2f661fcc4bc5832af716867cbb4fe91b98522a4fcb8da68802f1c5156",
+      "category": "build",
+      "name": "Docker image build and push",
+      "description": "Build an OCI image from a workspace context and push it to a registry. The pipeline step must mount the host Docker socket (docker-out-of-docker).",
+      "description_zh": "从 workspace 构建上下文构建 OCI 镜像并推送至镜像仓库。Pipeline step 需挂载宿主 Docker socket（docker-out-of-docker）。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/docker/1.0.0.yaml",
+      "engine": "docker",
+      "default_timeout": "30m",
+      "requires_buz": ">=1.8.1"
     },
     {
       "version": "1.1.0",
       "file": "plugins/buz/docker/1.1.0.yaml",
-      "sha256": "59f898a5ad23720f4a30091761b17ada1d65423beba5a63137ffde0d7551295d"
+      "sha256": "59f898a5ad23720f4a30091761b17ada1d65423beba5a63137ffde0d7551295d",
+      "category": "build",
+      "name": "Docker image build and push",
+      "description": "Build an OCI image from a build context inside the step directory and push it to a registry; the step's run: can follow up on the built images. Requires the docker-socket capability. Reuses the job Docker config without including credentials or the job .buz directory in the build context.",
+      "description_zh": "从步骤目录内的构建上下文构建 OCI 镜像并推送至镜像仓库；步骤的 run: 可对构建出的镜像做后续处理。需要 docker-socket capability；复用 job Docker 凭据，但禁止将凭据目录或 job .buz 目录包含进构建上下文。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/docker/1.1.0.yaml",
+      "engine": "docker",
+      "default_timeout": "30m",
+      "requires_buz": ">=1.8.1"
     }
   ]
 }

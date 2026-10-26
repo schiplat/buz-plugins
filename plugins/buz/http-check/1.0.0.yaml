@@ -11,6 +11,7 @@ license: Apache-2.0
 source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/http-check/1.0.0.yaml
 engine: shell
 default_timeout: 5m
+requires_buz: ">=1.8.1"
 inputs:
   # Each input is tagged with the protocol(s) it applies to:
   #   [all]  every protocol   [http]  protocol=http only

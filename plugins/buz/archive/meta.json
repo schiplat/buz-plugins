@@ -4,12 +4,34 @@
     {
       "version": "1.0.0",
       "file": "plugins/buz/archive/1.0.0.yaml",
-      "sha256": "8885fee963c8944b64f62887366bb5427f66a6f10171fb4080e1663c69824011"
+      "sha256": "680275ea94125f3946c720721ce0b0b108ac323c3fbfc0760f6fc0539994cafd",
+      "category": "artifact",
+      "name": "Archive workspace paths",
+      "description": "Pack workspace paths into a tar.gz archive with a sha256 checksum — pair with buz/oss-upload or buz/s3-upload to publish it.",
+      "description_zh": "将 workspace 中的路径打包为 tar.gz 归档并生成 sha256 校验和——配合 buz/oss-upload 或 buz/s3-upload 发布。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/archive/1.0.0.yaml",
+      "engine": "shell",
+      "default_timeout": "10m",
+      "requires_buz": ">=1.8.1"
     },
     {
       "version": "1.1.0",
       "file": "plugins/buz/archive/1.1.0.yaml",
-      "sha256": "4573024cdc3b37ab66b57c2e2d3d10a957a0bf3801c62f5e69614b23226d116d"
+      "sha256": "3f8ffbed675f0fdd72083a730ebd344a694f4f8b4b8df237764d647e9895f391",
+      "category": "artifact",
+      "name": "Archive workspace paths",
+      "description": "Two modes. pack (default, Runner workspace) — pack workspace paths into a tar.gz archive with a sha256 checksum; pair with buz/oss-upload or buz/scp-upload to publish it. extract (engine: ssh, target hosts) — unpack a tar.gz into an absolute directory on each target host; pair with buz/scp-upload for the delivery leg. Requires tar on the target hosts.",
+      "description_zh": "两种模式。pack(默认，Runner 工作区)——将 workspace 路径打包为 tar.gz 并生成 sha256 校验和;extract(engine: ssh，目标主机)——在目标主机上将 tar.gz 解包到绝对目录。需要目标机装有 tar。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/archive/1.1.0.yaml",
+      "engine": "shell",
+      "default_timeout": "10m",
+      "requires_buz": ">=1.8.1"
     }
   ]
 }

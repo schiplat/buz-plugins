@@ -4,7 +4,18 @@
     {
       "version": "1.0.0",
       "file": "plugins/buz/helm-upgrade/1.0.0.yaml",
-      "sha256": "5edc18374ea856518afa9a08c7b931a6093643db32e45739dbb0f9769fc23517"
+      "sha256": "7de3f4c7947fe5d9e53730452465a73a5034069058714d44a8de927b69b5a6fc",
+      "category": "deploy",
+      "name": "Helm upgrade",
+      "description": "Run `helm upgrade --install` on the Runner host against a Kubernetes cluster — chart from the workspace, cluster credential passed as a masked secret.",
+      "description_zh": "在 Runner 宿主机上对 Kubernetes 集群执行 `helm upgrade --install`——chart 来自 workspace，集群凭证以掩码 secret 传入。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/helm-upgrade/1.0.0.yaml",
+      "engine": "shell",
+      "default_timeout": "15m",
+      "requires_buz": ">=1.8.1"
     }
   ]
 }

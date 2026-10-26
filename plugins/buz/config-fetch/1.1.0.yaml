@@ -10,6 +10,7 @@ keywords: [config, fetch, download, presigned, oss, s3, minio, r2, 配置, 下�
 license: Apache-2.0
 source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/config-fetch/1.1.0.yaml
 engine: shell
+requires_buz: ">=1.8.1"
 engines: [shell, ssh]
 default_timeout: 10m
 inputs:

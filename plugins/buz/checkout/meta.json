@@ -4,7 +4,18 @@
     {
       "version": "1.2.0",
       "file": "plugins/buz/checkout/1.2.0.yaml",
-      "sha256": "e743c965050df9df114fce297dbdad55a577cd3aee7a25411bbe4b8ab38edd33"
+      "sha256": "e743c965050df9df114fce297dbdad55a577cd3aee7a25411bbe4b8ab38edd33",
+      "category": "source",
+      "name": "Git checkout",
+      "description": "Check out a Git repository into the workspace — the buz equivalent of actions/checkout. Checks out the triggering commit (BUZ_GIT_SHA) by default on webhook triggers; ref accepts branches, tags, and commit SHAs (detached); optional submodules.",
+      "description_zh": "将 Git 仓库检出到 workspace——对标 actions/checkout。webhook 触发时默认检出触发提交（BUZ_GIT_SHA）；ref 支持分支、标签和 commit SHA（detached）；可选拉取 submodules。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/checkout/1.2.0.yaml",
+      "engine": "shell",
+      "default_timeout": "15m",
+      "requires_buz": ">=1.8.1"
     }
   ]
 }

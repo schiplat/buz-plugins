@@ -9,6 +9,7 @@ keywords: [ruby, gem, bundler, build, toolchain, 构建]
 license: Apache-2.0
 source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/setup-ruby/1.0.0.yaml
 engine: docker
+requires_buz: ">=1.8.1"
 image: docker.io/schiplat/ruby@sha256:0e9af358b8802d0767fb9658729dafd17d02778eb0a667e186b418549a593af4
 default_timeout: 30m
 inputs:

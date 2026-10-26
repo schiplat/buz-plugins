@@ -4,12 +4,33 @@
     {
       "version": "1.0.0",
       "file": "plugins/buz/setup-rust/1.0.0.yaml",
-      "sha256": "12ab39ca7fb61cf059fd42b56bf84442f834a1179bb35ffe961449fdf7d9493a"
+      "sha256": "c6ac39137b93903c23f3ed7e0f27997ec9d6bd42e929f56e79ef0a91d857cd76",
+      "category": "build",
+      "name": "Rust build environment (cargo)",
+      "description": "Run commands inside a pinned Rust toolchain. The image ships stable (Rust 1.99 at image 1.0.0); other X.Y toolchains and nightly install on demand via rustup.",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/setup-rust/1.0.0.yaml",
+      "engine": "docker",
+      "default_timeout": "30m",
+      "requires_buz": ">=1.8.1"
     },
     {
       "version": "1.1.0",
       "file": "plugins/buz/setup-rust/1.1.0.yaml",
-      "sha256": "c4aafbd5b38e3b2dc2afb5b9df2f146d002492fa034ad45062377a37180741b4"
+      "sha256": "c4aafbd5b38e3b2dc2afb5b9df2f146d002492fa034ad45062377a37180741b4",
+      "category": "build",
+      "name": "Rust build environment (cargo)",
+      "description": "Prepare a pinned Rust toolchain (cargo/rustc) for the step's run: commands. The image ships stable (Rust 1.99 at image 1.0.0); other X.Y toolchains and nightly install on demand via rustup.",
+      "description_zh": "为步骤的 run: 命令准备固定的 Rust 工具链（cargo/rustc）。镜像内置 stable（Rust 1.99，image 1.0.0）；其他 X.Y 工具链与 nightly 通过 rustup 按需安装。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/setup-rust/1.1.0.yaml",
+      "engine": "docker",
+      "default_timeout": "30m",
+      "requires_buz": ">=1.8.1"
     }
   ]
 }

@@ -4,12 +4,34 @@
     {
       "version": "1.0.1",
       "file": "plugins/buz/oss-upload/1.0.1.yaml",
-      "sha256": "eef94c74534344a2c8c65a45a8d7d1c29b81d6748142d7cc580b298c4c1572b1"
+      "sha256": "52dda348dca18496c9816977f3e70ca35335351d1c2ed1e443988c3ca38e3ac8",
+      "category": "upload",
+      "name": "Upload file to Alibaba Cloud OSS",
+      "description": "Upload one file from the Buz workspace to Alibaba Cloud OSS with ossutil v2.",
+      "description_zh": "使用 ossutil v2 将 Buz 工作区中的单个文件上传到阿里云 OSS。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/oss-upload/1.0.1.yaml",
+      "engine": "docker",
+      "default_timeout": "10m",
+      "requires_buz": ">=1.8.1"
     },
     {
       "version": "1.0.2",
       "file": "plugins/buz/oss-upload/1.0.2.yaml",
-      "sha256": "4bb2520277112b31988eea9a3664f05625596d36a496759eee2091fc61b29b42"
+      "sha256": "3d5222b497f4bb111d9406b3593661ba3a29bb91612db3a1e0aa9bec9f725bef",
+      "category": "upload",
+      "name": "Upload file to Alibaba Cloud OSS",
+      "description": "Upload one file from the Buz workspace to Alibaba Cloud OSS with ossutil v2.",
+      "description_zh": "使用 ossutil v2 将 Buz 工作区中的单个文件上传到阿里云 OSS。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/oss-upload/1.0.2.yaml",
+      "engine": "docker",
+      "default_timeout": "10m",
+      "requires_buz": ">=1.8.1"
     }
   ]
 }

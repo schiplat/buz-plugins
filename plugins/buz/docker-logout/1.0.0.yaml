@@ -10,6 +10,7 @@ keywords: [docker, logout, registry, cleanup, 登出, 清理]
 license: Apache-2.0
 source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/docker-logout/1.0.0.yaml
 engine: shell
+requires_buz: ">=1.8.1"
 engines: [shell, ssh]
 default_timeout: 2m
 inputs:

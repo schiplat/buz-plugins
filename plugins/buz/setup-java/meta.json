@@ -4,12 +4,33 @@
     {
       "version": "1.0.0",
       "file": "plugins/buz/setup-java/1.0.0.yaml",
-      "sha256": "2d73f5c65360285ea1fccec7cb1f3bcdf2a1ffb96b4b921edba4a6220f8688b4"
+      "sha256": "3610a3a75e3dedcbf462d6d2addbc4ae89195605e38a61f169f945f4f8f378f1",
+      "category": "build",
+      "name": "Java build environment (Temurin JDK)",
+      "description": "Run commands inside a pinned Temurin JDK (21, 25, or 17) with JAVA_HOME exported. Maven users can add -Dmaven.repo.local to share the local repository via the cache.",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/setup-java/1.0.0.yaml",
+      "engine": "docker",
+      "default_timeout": "30m",
+      "requires_buz": ">=1.8.1"
     },
     {
       "version": "1.1.0",
       "file": "plugins/buz/setup-java/1.1.0.yaml",
-      "sha256": "5ee4b0eaf106617ec8a0401a53b6a48a062234a3981363b2e1ba718ea5bcdb05"
+      "sha256": "5ee4b0eaf106617ec8a0401a53b6a48a062234a3981363b2e1ba718ea5bcdb05",
+      "category": "build",
+      "name": "Java build environment (Temurin JDK)",
+      "description": "Prepare a pinned Temurin JDK (21, 25, or 17) with JAVA_HOME exported for the step's run: commands. Maven users can add -Dmaven.repo.local to share the local repository via the cache.",
+      "description_zh": "为步骤的 run: 命令准备固定的 Temurin JDK（21、25 或 17），导出 JAVA_HOME。Maven 用户可通过 cache 共享本地仓库（-Dmaven.repo.local）。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/setup-java/1.1.0.yaml",
+      "engine": "docker",
+      "default_timeout": "30m",
+      "requires_buz": ">=1.8.1"
     }
   ]
 }

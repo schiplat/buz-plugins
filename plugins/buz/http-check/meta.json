@@ -4,12 +4,34 @@
     {
       "version": "1.0.0",
       "file": "plugins/buz/http-check/1.0.0.yaml",
-      "sha256": "a5bc4b56240f20705d7308f3c271dabb401e79b29d53043c79264f3b5839592a"
+      "sha256": "5b68d2629ba8f8f5bcc3fb29d33b76771c34a8ab5ae6c06b9466a104c19c9c40",
+      "category": "healthcheck",
+      "name": "Network readiness check (HTTP / TCP / UDP)",
+      "description": "Poll a service until it is ready — HTTP status polling (curl), TCP port probe (nc -z), or best-effort UDP probe. Absorbs the old buz/http-check and buz/wait-for-tunnel use cases. Requires curl and nc (openbsd-netcat) on the Runner.",
+      "description_zh": "轮询服务直至就绪——HTTP 状态码轮询（curl）、TCP 端口探测（nc -z）、尽力而为的 UDP 探测。整合原 buz/http-check 与 buz/wait-for-tunnel 的场景。需要 Runner 装有 curl 和 nc（openbsd-netcat）。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/http-check/1.0.0.yaml",
+      "engine": "shell",
+      "default_timeout": "5m",
+      "requires_buz": ">=1.8.1"
     },
     {
       "version": "1.1.0",
       "file": "plugins/buz/http-check/1.1.0.yaml",
-      "sha256": "452a92cac86946e1368db3560b0bfa095f4ed84564e9881bc65017772a9fd278"
+      "sha256": "edba133a3171ddbf86babee03211ff293babd23dea00591e8710247cb5da4f61",
+      "category": "healthcheck",
+      "name": "Network readiness check (HTTP / TCP / UDP)",
+      "description": "Poll a service until it is ready — HTTP status polling (curl), TCP port probe (nc -z), or best-effort UDP probe. Absorbs the old buz/http-check and buz/wait-for-tunnel use cases. Requires curl and nc (openbsd-netcat) on the Runner.",
+      "description_zh": "轮询服务直至就绪——HTTP 状态码轮询（curl）、TCP 端口探测（nc -z）、尽力而为的 UDP 探测。整合原 buz/http-check 与 buz/wait-for-tunnel 的场景。需要 Runner 装有 curl 和 nc（openbsd-netcat）。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/http-check/1.1.0.yaml",
+      "engine": "shell",
+      "default_timeout": "5m",
+      "requires_buz": ">=1.8.1"
     }
   ]
 }

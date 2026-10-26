@@ -4,12 +4,33 @@
     {
       "version": "1.0.0",
       "file": "plugins/buz/setup-go/1.0.0.yaml",
-      "sha256": "35be6bd8c295d8f17152b532fa40cd662f722a97fdd893c296a512b4b1462b97"
+      "sha256": "1601ed2d70a941cf571ab8eefd1732e45debe587e9495cfdf7012ad372ff2fec",
+      "category": "build",
+      "name": "Go build environment",
+      "description": "Run commands inside a pinned Go toolchain (1.26 or 1.25) with an explicit GOROOT.",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/setup-go/1.0.0.yaml",
+      "engine": "docker",
+      "default_timeout": "30m",
+      "requires_buz": ">=1.8.1"
     },
     {
       "version": "1.1.0",
       "file": "plugins/buz/setup-go/1.1.0.yaml",
-      "sha256": "6806cb459b352bdb24936641732a018c0d901bd0e137b9bbca9f62c8bac3ed49"
+      "sha256": "6806cb459b352bdb24936641732a018c0d901bd0e137b9bbca9f62c8bac3ed49",
+      "category": "build",
+      "name": "Go build environment",
+      "description": "Prepare a pinned Go toolchain (1.26 or 1.25) with an explicit GOROOT for the step's run: commands.",
+      "description_zh": "为步骤的 run: 命令准备固定的 Go 工具链（1.26 或 1.25），显式设置 GOROOT。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/setup-go/1.1.0.yaml",
+      "engine": "docker",
+      "default_timeout": "30m",
+      "requires_buz": ">=1.8.1"
     }
   ]
 }

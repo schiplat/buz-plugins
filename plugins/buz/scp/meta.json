@@ -4,7 +4,18 @@
     {
       "version": "1.0.0",
       "file": "plugins/buz/scp/1.0.0.yaml",
-      "sha256": "bf9ef0b9b4092c1a8e30973f354106d9db823c72830604c8333917925bd6e22b"
+      "sha256": "d6f38a21c4f2c8a090112bdc3f75b01136211a724479b34630257ae10842ab6a",
+      "category": "deploy",
+      "name": "Upload file to target host via scp",
+      "description": "Copy one file from the Buz workspace to a target host over SSH/SCP (engine: shell — runs on the Runner). Key-based auth only: the private key is a masked input written to a per-step temp file and removed afterwards. Prerequisites: ssh/scp on the Runner; the target's `authorized_keys` must trust the matching public key (config only — nothing is installed on the target).",
+      "description_zh": "通过 SSH/SCP 将 Buz 工作区中的单个文件复制到目标主机(engine: shell,在 Runner 上执行)。仅支持密钥认证:私钥为 masked 输入,写入步骤级临时文件用后即删。前提:Runner 装有 ssh/scp;目标机 authorized_keys 信任对应公钥(仅配置,目标机不安装任何东西)。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/scp/1.0.0.yaml",
+      "engine": "shell",
+      "default_timeout": "10m",
+      "requires_buz": ">=1.8.1"
     }
   ]
 }

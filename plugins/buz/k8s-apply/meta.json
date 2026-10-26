@@ -4,7 +4,18 @@
     {
       "version": "1.0.0",
       "file": "plugins/buz/k8s-apply/1.0.0.yaml",
-      "sha256": "e94dcf5f9cdd898aed69fb7e0904df3b6da5472d49c628781c5c128d09878810"
+      "sha256": "1d9b8dcd2f7392e1b6dedffc0822b919ef233e57dca7430aaf428f1bb5d1b84e",
+      "category": "deploy",
+      "name": "Kubernetes apply",
+      "description": "Apply a manifest from the workspace to a Kubernetes cluster using kubectl on the Runner host, with the cluster credential passed as a masked secret.",
+      "description_zh": "使用 Runner 宿主机上的 kubectl，将 workspace 中的清单应用到 Kubernetes 集群——集群凭证以掩码 secret 传入。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/k8s-apply/1.0.0.yaml",
+      "engine": "shell",
+      "default_timeout": "15m",
+      "requires_buz": ">=1.8.1"
     }
   ]
 }
