@@ -4,12 +4,33 @@
     {
       "version": "1.0.0",
       "file": "plugins/buz/setup-node/1.0.0.yaml",
-      "sha256": "9c524b593bb08605e55ee4bebc1c27f7c2f3e5b06ce1aac62c40bff14644a669"
+      "sha256": "c3916024e55f6629526437fcabe0e9d597c923c10b37c6d8bdaa6b94217f914e",
+      "category": "build",
+      "name": "Node.js build environment (npm)",
+      "description": "Run commands inside a pinned Node.js toolchain (24 active LTS or 22 maintenance LTS) with npm and corepack.",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/setup-node/1.0.0.yaml",
+      "engine": "docker",
+      "default_timeout": "30m",
+      "requires_buz": ">=1.8.1"
     },
     {
       "version": "1.1.0",
       "file": "plugins/buz/setup-node/1.1.0.yaml",
-      "sha256": "8d03a2a1e143957f004ace2449f6c12fd8f233d9f6f5883bef519c91412dd615"
+      "sha256": "8d03a2a1e143957f004ace2449f6c12fd8f233d9f6f5883bef519c91412dd615",
+      "category": "build",
+      "name": "Node.js build environment (npm)",
+      "description": "Prepare a pinned Node.js toolchain (24 active LTS or 22 maintenance LTS) with npm and corepack for the step's run: commands.",
+      "description_zh": "为步骤的 run: 命令准备固定的 Node.js 工具链（24 活跃 LTS 或 22 维护 LTS），内置 npm 与 corepack。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/setup-node/1.1.0.yaml",
+      "engine": "docker",
+      "default_timeout": "30m",
+      "requires_buz": ">=1.8.1"
     }
   ]
 }

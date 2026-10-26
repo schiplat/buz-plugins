@@ -4,7 +4,18 @@
     {
       "version": "1.0.0",
       "file": "plugins/buz/oss-download/1.0.0.yaml",
-      "sha256": "ae05501317a2e61baf92a212d5f42e3dc3b834ea4f52baf9e2501cded70c42cf"
+      "sha256": "315528f030bf1fa586ff416516e610ba8fd36707bda2160fbe578714375b73d1",
+      "category": "source",
+      "name": "Download file from Alibaba Cloud OSS",
+      "description": "Download one object from an Alibaba Cloud OSS bucket with ossutil v2 — the download counterpart of buz/oss-upload. Dual engine: docker unpacks into the Runner workspace; engine: ssh (set `host:`) downloads directly on each target host (ossutil required there). AK/SK are masked inputs (digest-pinned image for the docker context).",
+      "description_zh": "使用 ossutil v2 从阿里云 OSS 存储桶下载单个对象到 Buz 工作区——buz/oss-upload 的下载对称版。AK/SK 以 masked 输入传入 digest 锁定的 oss-tools 镜像。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/oss-download/1.0.0.yaml",
+      "engine": "docker",
+      "default_timeout": "10m",
+      "requires_buz": ">=1.8.1"
     }
   ]
 }

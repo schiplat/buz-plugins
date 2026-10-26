@@ -2,9 +2,10 @@
 """Generate index.json for the buz-plugin step index (marketplace ADR §6.1).
 
 Recursively walks visible plugins/**/*.yaml|yml specs, extracts the `id` / `version` top-level scalars,
-hashes each file, and emits:
+hashes each file, and emits the full scalar meta alongside the entry:
 
-    { "steps": [ { "id": ..., "version": ..., "file": ..., "sha256": ..., "category": ... } ] }
+    { "steps": [ { "id": ..., "version": ..., "file": ..., "sha256": ...,
+                   "category": ..., "requires_buz": ..., "engine": ..., ... } ] }
 
 Stdlib only (no PyYAML dependency). Invalid or duplicate entries fail the
 run — generation happens in CI after `buz step validate` has already gated
@@ -25,6 +26,59 @@ ID_RE = re.compile(r"^id:\s*[\"']?([a-z0-9-]+/[a-z0-9-]+)[\"']?\s*$", re.MULTILI
 VERSION_RE = re.compile(r"^version:\s*[\"']?(\d+\.\d+\.\d+)[\"']?\s*$", re.MULTILINE)
 CATEGORY_LINE_RE = re.compile(r"^category:\s*(.*?)\s*$", re.MULTILINE)
 CATEGORY_RE = re.compile(r"[A-Za-z0-9 _-]+")
+
+# Top-level scalar meta published alongside id/version/file/sha256 so the
+# manager can list and compatibility-gate plugins without downloading every
+# template (the `requires_buz` contract gate in particular). Only simple
+# top-level scalars are indexed; block scalars and nested structures stay
+# out — the full spec remains the single source of truth.
+META_FIELDS = (
+    "name",
+    "description",
+    "description_zh",
+    "author",
+    "publisher",
+    "license",
+    "source_repo",
+    "engine",
+    "default_timeout",
+    "requires_buz",
+)
+REQUIRES_BUZ_RE = re.compile(r"^(>=)?\d+\.\d+\.\d+$")
+# A scalar whose whole value is one of these forms is a block scalar header
+# ("description: |"), not an inline value — skip the field.
+BLOCK_SCALAR_RE = re.compile(r"[|>][-+0-9]*\s*#?.*$")
+
+
+def extract_meta(raw: str) -> dict[str, str]:
+    """Extract top-level scalar meta fields from a spec's raw text."""
+    meta: dict[str, str] = {}
+    for field in META_FIELDS:
+        match = re.search(
+            rf"^{field}:[ \t]+(\"[^\"]*\"|'[^']*'|[^#\n]*?)[ \t]*(?:#.*)?$",
+            raw,
+            re.MULTILINE,
+        )
+        if not match:
+            continue
+        value = match.group(1).strip()
+        if not value or BLOCK_SCALAR_RE.fullmatch(value):
+            continue
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        if value:
+            meta[field] = value
+    return meta
+
+
+def check_requires_buz(meta: dict[str, str], path: Path) -> None:
+    """Fail the build on a malformed contract gate (CI validates specs with
+    `buz step validate` first; this mirrors the manager's accepted forms)."""
+    requires = meta.get("requires_buz")
+    if requires is not None and not REQUIRES_BUZ_RE.fullmatch(requires):
+        raise SystemExit(
+            f"{path}: requires_buz {requires!r} is not '>=X.Y.Z' or exact 'X.Y.Z'"
+        )
 
 
 def extract_category(raw: str) -> str | None:
@@ -135,6 +189,8 @@ def main() -> None:
         step_id = extract(ID_RE, raw, "id", path)
         version = extract(VERSION_RE, raw, "version", path)
         category = extract_category(raw)
+        meta = extract_meta(raw)
+        check_requires_buz(meta, path)
         key = (step_id, version)
         if key in seen:
             raise SystemExit(
@@ -149,6 +205,7 @@ def main() -> None:
         }
         if category:
             entry["category"] = category
+        entry.update(meta)
         steps.append(entry)
 
     steps.sort(key=lambda s: (s["id"], s["version"]))
@@ -178,11 +235,7 @@ def main() -> None:
                     {
                         "id": entries[0]["id"],
                         "versions": [
-                            {
-                                "version": e["version"],
-                                "file": e["file"],
-                                "sha256": e["sha256"],
-                            }
+                            {key: value for key, value in e.items() if key != "id"}
                             for e in entries
                         ],
                     },

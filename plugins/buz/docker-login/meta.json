@@ -4,12 +4,34 @@
     {
       "version": "1.0.0",
       "file": "plugins/buz/docker-login/1.0.0.yaml",
-      "sha256": "33b8cf056dc6a0c604f5999e7df1c057754125ffb618068539f09b0b68323f09"
+      "sha256": "55d69ce54ab58842296048893f1c1dad782726538fa2437f21bc75f639f71c5e",
+      "category": "build",
+      "name": "Docker registry login",
+      "description": "Log the Docker CLI into a registry for later steps (docker build/push, engine docker pulls). Credentials land in the job-scoped DOCKER_CONFIG dir and are removed when the job ends. Requires the Docker CLI on the Runner host.",
+      "description_zh": "登录容器镜像仓库，供后续步骤使用（docker build/push、docker 引擎拉私有镜像）。凭证写入 job 级 DOCKER_CONFIG 目录，job 结束即清除。需要 Runner 主机装有 Docker CLI。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/docker-login/1.0.0.yaml",
+      "engine": "shell",
+      "default_timeout": "2m",
+      "requires_buz": ">=1.8.1"
     },
     {
       "version": "1.1.0",
       "file": "plugins/buz/docker-login/1.1.0.yaml",
-      "sha256": "d88d7850420f70a249b3fcd9f38c86495c5153a2d03dd1dcc51393ce3f756a48"
+      "sha256": "51903d75d17376c8141e56a60370d85ba97d7fae67fdabcba7cc63e0a8dc3e04",
+      "category": "build",
+      "name": "Docker registry login",
+      "description": "Log the Docker CLI into a registry for later steps (docker build/push, engine docker pulls). Credentials land in the job-scoped DOCKER_CONFIG dir and are removed when the job ends. Optional debug output shows a redacted command and exit status. Requires the Docker CLI on the Runner host.",
+      "description_zh": "登录容器镜像仓库，供后续步骤使用（docker build/push、docker 引擎拉私有镜像）。凭证写入 job 级 DOCKER_CONFIG 目录，job 结束即清除。可选 debug 输出脱敏命令和退出码。需要 Runner 主机装有 Docker CLI。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/docker-login/1.1.0.yaml",
+      "engine": "shell",
+      "default_timeout": "2m",
+      "requires_buz": ">=1.8.1"
     }
   ]
 }

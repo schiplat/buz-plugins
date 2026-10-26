@@ -4,7 +4,18 @@
     {
       "version": "1.0.0",
       "file": "plugins/buz/docker-compose/1.0.0.yaml",
-      "sha256": "c5325efb7262cf227f481b0b0cbd9c92659744a99dd7ad4d83058b2b42478a2e"
+      "sha256": "c5325efb7262cf227f481b0b0cbd9c92659744a99dd7ad4d83058b2b42478a2e",
+      "category": "deploy",
+      "name": "Docker Compose deployment",
+      "description": "Deploy a Docker Compose project on the target SSH host — optional image injection, pull, recreate, and status. Pair with buz/http-check for readiness.",
+      "description_zh": "在目标 SSH 主机上部署 Docker Compose 项目——可选镜像注入、拉取、重建与状态输出；配合 buz/http-check 做就绪检查。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/docker-compose/1.0.0.yaml",
+      "engine": "ssh",
+      "default_timeout": "15m",
+      "requires_buz": ">=1.7.5"
     }
   ]
 }

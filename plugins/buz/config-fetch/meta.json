@@ -4,12 +4,34 @@
     {
       "version": "1.0.0",
       "file": "plugins/buz/config-fetch/1.0.0.yaml",
-      "sha256": "2bcf9eb2edd5ed6dffbaff35f96ba7a9f981a0d078fe799e5596f482b71feb98"
+      "sha256": "b53699b9f97abe19fff82e82bb21abbd92924c39f857c919a892b18937e49947",
+      "category": "source",
+      "name": "Fetch config bundle into the workspace",
+      "description": "Download a configuration bundle (tar.gz) into the workspace and unpack it — typically a presigned object-storage URL (OSS / S3 / MinIO / R2). Pair with the `config.render` block on later steps (render-only mode) to render env files. Requires curl and tar on the Runner host.",
+      "description_zh": "下载配置包（tar.gz）到工作区并解包——通常使用对象存储的预签名 URL（OSS / S3 / MinIO / R2 通用）。后续步骤配合 config.render（render-only 模式）渲染 env 文件。需要 Runner 主机装有 curl 和 tar。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/config-fetch/1.0.0.yaml",
+      "engine": "shell",
+      "default_timeout": "10m",
+      "requires_buz": ">=1.8.1"
     },
     {
       "version": "1.1.0",
       "file": "plugins/buz/config-fetch/1.1.0.yaml",
-      "sha256": "988e26ad6b146cbe3974922b344e8361b41461e3043ab9602a15532df4630743"
+      "sha256": "77c5d47030adf9eb2d5313162cbae2ef9dd71809f4f3157117bf22917d48686b",
+      "category": "source",
+      "name": "Fetch config bundle into the workspace",
+      "description": "Download a configuration bundle (tar.gz) and unpack it from a presigned object-storage URL (OSS / S3 / MinIO / R2), with optional HTTP Basic or header-based authentication. Dual engine: shell unpacks into the Runner workspace; engine: ssh (set `host:`) unpacks into an absolute directory on each target host. Pair with the `config.render` block on later steps (render-only mode). Requires curl and tar where it runs.",
+      "description_zh": "下载配置包（tar.gz）到工作区并解包——通常使用对象存储的预签名 URL（OSS / S3 / MinIO / R2 通用）。后续步骤配合 config.render（render-only 模式）渲染 env 文件。需要 Runner 主机装有 curl 和 tar。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/config-fetch/1.1.0.yaml",
+      "engine": "shell",
+      "default_timeout": "10m",
+      "requires_buz": ">=1.8.1"
     }
   ]
 }

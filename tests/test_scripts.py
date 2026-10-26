@@ -73,6 +73,33 @@ class GenIndexTests(unittest.TestCase):
         with self.assertRaisesRegex(SystemExit, "simple label"):
             self.gen_index.extract_category("category: invalid/category\\n")
 
+    def test_index_extracts_full_scalar_meta_and_ignores_block_scalars(self):
+        raw = (
+            "id: buz/example\n"
+            "version: 1.0.0\n"
+            "name: Example\n"
+            "description: |\n"
+            "  block scalar body\n"
+            "engine: shell # comment\n"
+            'requires_buz: ">=1.8.1"\n'
+            "inputs:\n"
+            "  nested_engine: docker\n"
+        )
+        meta = self.gen_index.extract_meta(raw)
+        self.assertEqual(
+            meta,
+            {"name": "Example", "engine": "shell", "requires_buz": ">=1.8.1"},
+            "block scalars and nested keys stay out of the indexed meta",
+        )
+
+    def test_index_rejects_malformed_requires_buz(self):
+        meta = {"requires_buz": "^1.8.0"}
+        with self.assertRaises(SystemExit):
+            self.gen_index.check_requires_buz(meta, Path("plugins/buz/example/1.0.0.yaml"))
+        # Accepted forms pass silently.
+        for value in (">=1.8.1", "1.10.4"):
+            self.gen_index.check_requires_buz({"requires_buz": value}, Path("x"))
+
     def test_index_rejects_whitespace_only_category(self):
         with self.assertRaisesRegex(SystemExit, "simple label"):
             self.gen_index.extract_category("category:    ")

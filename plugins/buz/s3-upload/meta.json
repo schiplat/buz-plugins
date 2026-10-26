@@ -4,12 +4,34 @@
     {
       "version": "1.0.1",
       "file": "plugins/buz/s3-upload/1.0.1.yaml",
-      "sha256": "3828f53e735535b20bc5dabf9fddb385a7863a8a741d2e7d15555eda748b6151"
+      "sha256": "17ddf360159dade310abcf370a9eb24682ccd6c2af5ee523198c21db641af950",
+      "category": "upload",
+      "name": "Upload file to S3",
+      "description": "Upload one file from the Buz workspace to an S3 bucket using the official AWS CLI v2.",
+      "description_zh": "使用 AWS CLI v2 将 Buz 工作区中的单个文件上传到 S3 存储桶。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/s3-upload/1.0.1.yaml",
+      "engine": "docker",
+      "default_timeout": "10m",
+      "requires_buz": ">=1.8.1"
     },
     {
       "version": "1.0.2",
       "file": "plugins/buz/s3-upload/1.0.2.yaml",
-      "sha256": "c38e6b0c048f803542a3031c0b9ac07c11efe69c07f26c7c261923bf4384078b"
+      "sha256": "3b8e300d313de87342793a4d6a851abe1bf503eec1340c6c194cdad56229c5b5",
+      "category": "upload",
+      "name": "Upload file to S3",
+      "description": "Upload one file from the Buz workspace to an S3 bucket using the official AWS CLI v2.",
+      "description_zh": "使用 AWS CLI v2 将 Buz 工作区中的单个文件上传到 S3 存储桶。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/s3-upload/1.0.2.yaml",
+      "engine": "docker",
+      "default_timeout": "10m",
+      "requires_buz": ">=1.8.1"
     }
   ]
 }

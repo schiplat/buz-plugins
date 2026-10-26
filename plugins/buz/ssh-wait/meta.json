@@ -4,7 +4,18 @@
     {
       "version": "1.0.0",
       "file": "plugins/buz/ssh-wait/1.0.0.yaml",
-      "sha256": "d6fa685bdf230bc440beb6d16ba6fb25b4fd062e865d8c397777eb9487de83d0"
+      "sha256": "86dbbcf592e60eea4725a05ff1eae2c50bbbec3875f74611cda48a4b3accbe07",
+      "category": "deployment",
+      "name": "Wait for SSH host (reboot / rebuild)",
+      "description": "Block until an SSH server answers on the target host — wait out a reboot or cloud-init before the next deploy step. Runs from the runner host.",
+      "description_zh": "等待目标主机 SSH 可登录（重启/重装后），再继续后续部署步骤。利用 Runner 出站网络，无需目标机暴露额外端口。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/ssh-wait/1.0.0.yaml",
+      "engine": "shell",
+      "default_timeout": "15m",
+      "requires_buz": ">=1.8.1"
     }
   ]
 }

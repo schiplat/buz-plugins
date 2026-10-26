@@ -10,6 +10,7 @@ keywords: [oss, alibaba-cloud, upload, artifact, storage]
 license: Apache-2.0
 source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/oss-upload/1.0.2.yaml
 engine: docker
+requires_buz: ">=1.8.1"
 image: docker.io/schiplat/buz-plugins-oss-tools@sha256:b822a353d2803152bb1dc8b8e21d571dce78fb8e29eb5079c8a36201c694aaac
 default_timeout: 10m
 inputs:

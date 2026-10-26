@@ -4,12 +4,33 @@
     {
       "version": "1.0.0",
       "file": "plugins/buz/setup-lua/1.0.0.yaml",
-      "sha256": "460ef0eb12f3471b3c6f0be94fdbcd8b6e9e37777cb506669ccdab70d45e1735"
+      "sha256": "c9c9aeba228ce8250c1204b3abbb87b7c519f47269a8d362e9b77de0a8aa553f",
+      "category": "build",
+      "name": "Lua runtime (5.4/5.3/LuaJIT)",
+      "description": "Run commands with a pinned Lua interpreter — lua 5.4, lua 5.3, or LuaJIT 2.1, all Debian-packaged.",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/setup-lua/1.0.0.yaml",
+      "engine": "docker",
+      "default_timeout": "30m",
+      "requires_buz": ">=1.8.1"
     },
     {
       "version": "1.1.0",
       "file": "plugins/buz/setup-lua/1.1.0.yaml",
-      "sha256": "16bcbfd697b886457f61829114e09d7bffd472b923ad3d25abd8874dc8279cb4"
+      "sha256": "16bcbfd697b886457f61829114e09d7bffd472b923ad3d25abd8874dc8279cb4",
+      "category": "build",
+      "name": "Lua runtime (5.4/5.3/LuaJIT)",
+      "description": "Prepare a pinned Lua interpreter for the step's run: commands — lua 5.4, lua 5.3, or LuaJIT 2.1, all Debian-packaged.",
+      "description_zh": "为步骤的 run: 命令准备固定的 Lua 解释器——lua 5.4、lua 5.3 或 LuaJIT 2.1，均为 Debian 官方包。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/setup-lua/1.1.0.yaml",
+      "engine": "docker",
+      "default_timeout": "30m",
+      "requires_buz": ">=1.8.1"
     }
   ]
 }
