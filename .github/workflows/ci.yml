@@ -124,7 +124,10 @@ jobs:
 
       - name: Install buz-plugin
         env:
-          GH_TOKEN: ${{ secrets.BUZ_REPO_PAT_V2 }}
+          # Needs read access to the PRIVATE schiplat/buz repository (a
+          # fine-grained PAT scoped to it). BUZ_PLUGIN_REPO_TOKEN takes
+          # precedence; the existing validator PAT is only a fallback.
+          GH_TOKEN: ${{ secrets.BUZ_PLUGIN_REPO_TOKEN || secrets.BUZ_REPO_PAT_V2 }}
           # Pinned: a tool release may change the index contract, and that must
           # be a deliberate bump, not a silent follow-the-latest.
           BUZ_PLUGIN_VERSION: "1.11.0"
