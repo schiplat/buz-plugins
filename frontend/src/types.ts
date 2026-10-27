@@ -45,6 +45,13 @@ export const REPO_URL = 'https://github.com/schiplat/buz-plugins'
 export const NEW_TEMPLATE_URL = `${REPO_URL}/new/master?filename=plugins/your-template.yaml`
 export const REQUEST_PLUGIN_URL = `${REPO_URL}/issues/new?template=plugin_request.yml`
 
+/** Authoring toolchain (`buz-plugin`): init / validate / index / mirror check.
+ *  Published as an asset of the Buz releases — the buz-plugin binaries live in
+ *  the main repository's releases alongside the Manager and Runner. */
+export const PLUGIN_TOOL_URL = 'https://github.com/schiplat/buz/releases'
+export const PLUGIN_TOOL_DOCS_URL =
+  'https://buz.schiplat.com/docs/01-architecture/authoring/plugin-tooling/'
+
 export function reportUrl(t: StepTemplate) {
   return `${REPO_URL}/issues/new?template=report.yml&title=${encodeURIComponent(`[report] ${t.id}@${t.version}`)}`
 }
