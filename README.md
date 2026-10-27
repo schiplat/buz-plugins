@@ -13,6 +13,22 @@ steps:
       title: deploy done
 ```
 
+## Repository manifests
+
+Three generated files at the source root (`plugins/`) — each answers a
+different question:
+
+| file | answers | refreshed |
+|------|---------|-----------|
+| [`plugins/index.json`](plugins/index.json) | **what exists** — every plugin version, content sha256, scalar meta | CI on green master; snapshot tags attach a copy |
+| [`plugins/reviews.json`](plugins/reviews.json) | **what humans approved** — the review ledger (content hashes) | human review + CI badge refresh |
+| [`plugins/revision.json`](plugins/revision.json) | **what is freshest** — drift sentinel (commit sha + time) | CI, written last |
+
+Mirrors compare two `revision.json` files to detect drift without pulling
+the full index. Never hand-edit hashes — `scripts/gen_index.py` /
+`gen_reviews.py` (or the `buz-plugin` CLI) generate them from the specs.
+See [governance](docs/governance.md) for the review process.
+
 ## Templates
 
 | Step | Engine | Purpose |
