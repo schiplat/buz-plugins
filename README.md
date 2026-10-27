@@ -130,7 +130,7 @@ For community templates, `author_url` should link to the author's profile or org
 Validate locally with the same checker CI uses:
 
 ```bash
-buz-manager step-validate plugins/          # or a single file
+buz-manager plugin-validate plugins/        # or a single file
 ```
 
 Rules that matter:

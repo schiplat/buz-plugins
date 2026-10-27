@@ -47,7 +47,9 @@ jobs:
       - name: Check private validator availability
         id: validator-token
         env:
-          GH_TOKEN: ${{ secrets.BUZ_REPO_PAT_V2 }}
+          # Same fallback chain as the buz-plugin install below: any of the
+          # three may carry read access to the private schiplat/buz releases.
+          GH_TOKEN: ${{ secrets.BUZ_PLUGIN_REPO_TOKEN || secrets.BUZ_REPO_PAT || secrets.BUZ_REPO_PAT_V2 }}
         run: |
           if [ -n "$GH_TOKEN" ]; then
             echo "available=true" >> "$GITHUB_OUTPUT"
@@ -55,17 +57,19 @@ jobs:
             echo "available=false" >> "$GITHUB_OUTPUT"
             echo "Fork PR: private buz-manager validation is skipped; public checks and tests remain required." >&2
           else
-            echo "BUZ_REPO_PAT_V2 is required for private buz-manager validation on trusted pushes and internal PRs." >&2
+            echo "A token with read access to schiplat/buz releases (BUZ_PLUGIN_REPO_TOKEN / BUZ_REPO_PAT / BUZ_REPO_PAT_V2) is required for private buz-manager validation on trusted pushes and internal PRs." >&2
             exit 1
           fi
 
       - name: Install buz-manager (release binary)
         if: steps.validator-token.outputs.available == 'true'
         env:
-          GH_TOKEN: ${{ secrets.BUZ_REPO_PAT_V2 }}
+          GH_TOKEN: ${{ secrets.BUZ_PLUGIN_REPO_TOKEN || secrets.BUZ_REPO_PAT || secrets.BUZ_REPO_PAT_V2 }}
           BUZ_VERSION: ${{ vars.BUZ_VERSION }}
         run: |
-          API="https://api.github.com/repos/schiplatv2/buz/releases"
+          # The authoritative private repo — releases must come from
+          # schiplat/buz so validation never runs against a stale binary.
+          API="https://api.github.com/repos/schiplat/buz/releases"
           if [ -n "$BUZ_VERSION" ]; then
             RELEASE=$(curl -sfL -H "Authorization: Bearer $GH_TOKEN" "$API/tags/$BUZ_VERSION")
           else
@@ -77,7 +81,7 @@ jobs:
           sudo install -m 0755 "$(find . -type f -path '*/bin/buz-manager' | head -1)" /usr/local/bin/buz-manager
           buz-manager --version
 
-      - name: Validate step specs
+      - name: Validate plugin specs
         if: steps.validator-token.outputs.available == 'true'
         run: |
           mapfile -d '' specs < <(find plugins -type d -name '.*' -prune -o -type f \
@@ -86,7 +90,7 @@ jobs:
             echo "No plugin YAML specs found." >&2
             exit 1
           fi
-          buz-manager step-validate "${specs[@]}"
+          buz-manager plugin-validate "${specs[@]}"
 
       - name: Egress report + allowlist check (reviewed baseline)
         run: python3 scripts/egress.py --print --expect egress-allowlist.json

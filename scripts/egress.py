@@ -724,7 +724,7 @@ def main() -> None:
         raw = path.read_text(encoding="utf-8")
         spec = yaml.safe_load(raw)
         if not spec or not isinstance(spec, dict):
-            raise SystemExit(f"{path}: not a valid step spec — run step-validate")
+            raise SystemExit(f"{path}: not a valid plugin spec — run plugin-validate")
         urls, hosts = extract_egress(spec.get("run") or "")
         endpoint_inputs = {
             str(name) for name in (spec.get("inputs") or {}) if _endpoint_input(str(name))

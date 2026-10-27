@@ -289,7 +289,7 @@ def main() -> None:
         + "\n",
         encoding="utf-8",
     )
-    print(f"index.json: {len(steps)} step(s) written to {index_path} (sequence {sequence})")
+    print(f"index.json: {len(steps)} plugin version(s) written to {index_path} (sequence {sequence})")
 
     # Per-plugin meta files (<plugin dir>/meta.json): the manager's
     # single-plugin refresh fetches one small file instead of the whole

@@ -15,7 +15,7 @@ directory (`dist/` — what `wrangler pages deploy dist` ships):
 └── reviews.json                      (copied when present)
 
 Requires PyYAML (CI installs it; the strict validator remains the Rust
-`buz-manager step-validate` — this script only renders what already passed).
+`buz-manager plugin-validate` — this script only renders what already passed).
 """
 
 import argparse
