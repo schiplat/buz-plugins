@@ -388,11 +388,15 @@ def main() -> None:
     if revision_path.exists():
         shutil.copy(revision_path, manifest_dir / "revision.json")
 
-    # Detached signature over plugins/index.json — mirrors copy it verbatim and
-    # a Manager with the trust anchor on refuses the site without it.
+    # Detached signatures over plugins/index.json and plugins/reviews.json —
+    # mirrors copy them verbatim; a Manager with the trust anchor on refuses
+    # the site (index or forged ledger) without them.
     signature_path = resolve("plugins/index.json.sig")
     if signature_path.exists():
         shutil.copy(signature_path, manifest_dir / "index.json.sig")
+    reviews_signature_path = resolve("plugins/reviews.json.sig")
+    if reviews_signature_path.exists():
+        shutil.copy(reviews_signature_path, manifest_dir / "reviews.json.sig")
 
     # Per-plugin meta.json files (Phase §6.8 single-plugin refresh): stage
     # alongside the templates so the manager can fetch them from the same
