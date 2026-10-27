@@ -267,10 +267,39 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Generate index.json
-        run: python3 scripts/gen_index.py --revision "${GITHUB_SHA}" --updated-at "$(git log -1 --format=%cI)"
+      - name: Install buz-plugin
+        env:
+          GH_TOKEN: ${{ secrets.BUZ_PLUGIN_REPO_TOKEN || secrets.BUZ_REPO_PAT || secrets.BUZ_REPO_PAT_V2 }}
+          BUZ_PLUGIN_VERSION: "1.11.0"
+        run: |
+          set -euo pipefail
+          DIR="$RUNNER_TEMP/buz-plugin"
+          mkdir -p "$DIR"
+          gh release download "v${BUZ_PLUGIN_VERSION}" \
+            --repo schiplat/buz \
+            --pattern "buz-plugin-${BUZ_PLUGIN_VERSION}-linux-x86_64.tar.gz" \
+            --dir "$DIR"
+          tar -xzf "$DIR/buz-plugin-${BUZ_PLUGIN_VERSION}-linux-x86_64.tar.gz" -C "$DIR"
+          echo "$DIR" >> "$GITHUB_PATH"
+          "$DIR/buz-plugin" --version
+
+      - name: Generate and sign index.json
+        env:
+          BUZ_PLUGIN_SIGNING_KEY: ${{ secrets.BUZ_PLUGIN_SIGNING_KEY }}
+        run: |
+          set -euo pipefail
+          REV="${GITHUB_SHA}"
+          AT="$(git log -1 --format=%cI)"
+          umask 077
+          KEY="$RUNNER_TEMP/signing-key.json"
+          printf '%s' "$BUZ_PLUGIN_SIGNING_KEY" > "$KEY"
+          trap 'rm -f "$KEY"' EXIT
+          buz-plugin index --revision "$REV" --updated-at "$AT" --sign-key "$KEY"
+          buz-plugin index --check --revision "$REV" --updated-at "$AT" --sign-key "$KEY"
 
       - name: Attach index.json to the release
         uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.2.2
         with:
-          files: index.json
+          files: |
+            plugins/index.json
+            plugins/index.json.sig
