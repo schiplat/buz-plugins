@@ -136,7 +136,7 @@ jobs:
           GH_TOKEN: ${{ secrets.BUZ_PLUGIN_REPO_TOKEN || secrets.BUZ_REPO_PAT || secrets.BUZ_REPO_PAT_V2 }}
           # Pinned: a tool release may change the index contract, and that must
           # be a deliberate bump, not a silent follow-the-latest.
-          BUZ_PLUGIN_VERSION: "1.11.0"
+          BUZ_PLUGIN_VERSION: "1.12.0"
         run: |
           set -euo pipefail
           DIR="$RUNNER_TEMP/buz-plugin"
@@ -270,7 +270,7 @@ jobs:
       - name: Install buz-plugin
         env:
           GH_TOKEN: ${{ secrets.BUZ_PLUGIN_REPO_TOKEN || secrets.BUZ_REPO_PAT || secrets.BUZ_REPO_PAT_V2 }}
-          BUZ_PLUGIN_VERSION: "1.11.0"
+          BUZ_PLUGIN_VERSION: "1.12.0"
         run: |
           set -euo pipefail
           DIR="$RUNNER_TEMP/buz-plugin"

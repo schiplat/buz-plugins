@@ -11,8 +11,14 @@ with the same layout (the manager rejects mixed-namespace indexes).
 Recursively walks visible plugins/**/*.yaml|yml specs, extracts the `id` / `version` top-level scalars,
 hashes each file, and emits the full scalar meta alongside the entry:
 
-    { "steps": [ { "id": ..., "version": ..., "file": ..., "sha256": ...,
+    { "sequence": 3, "issued_at": "...",
+      "steps": [ { "id": ..., "version": ..., "file": ..., "sha256": ...,
                    "category": ..., "requires_buz": ..., "engine": ..., ... } ] }
+
+`sequence` is signed with the rest of the index and is the Manager's
+anti-rollback anchor: an index claiming a lower sequence than one already
+accepted for the source is refused. It advances only when the entries change,
+so a no-op regeneration keeps the bytes (and the signature) identical.
 
 Stdlib only (no PyYAML dependency). Invalid or duplicate entries fail the
 run — generation happens in CI after `buz step validate` has already gated
@@ -27,6 +33,7 @@ import json
 import os
 import re
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 ID_RE = re.compile(r"^id:\s*[\"']?([a-z0-9-]+/[a-z0-9-]+)[\"']?\s*$", re.MULTILINE)
@@ -133,6 +140,31 @@ def relative_file(path: Path, root: Path) -> str:
         ) from None
 
 
+def now_iso() -> str:
+    """UTC timestamp in the same shape the Rust tool emits (second precision)."""
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def catalog_header(previous: object, steps: list[dict], args: argparse.Namespace) -> tuple[int, str]:
+    """Pick (sequence, issued_at) for this index.
+
+    Byte-stability rule: unchanged entries keep both values from the committed
+    index, so regeneration is a no-op and the detached signature still matches.
+    Any entry change advances the sequence — that is what makes an older,
+    validly signed index detectable as a replay.
+    """
+    inherited = previous if isinstance(previous, dict) else {}
+    prev_sequence = inherited.get("sequence")
+    if args.sequence is None and inherited.get("steps") == steps and isinstance(prev_sequence, int):
+        return prev_sequence, inherited.get("issued_at") or now_iso()
+    sequence = args.sequence
+    if sequence is None:
+        sequence = (prev_sequence if isinstance(prev_sequence, int) else 0) + 1
+    if sequence < 1:
+        raise SystemExit("--sequence must be at least 1 (0 never names a catalog version)")
+    return sequence, args.updated_at or now_iso()
+
+
 def discover_plugin_files(plugin_dir: Path) -> list[Path]:
     """Return sorted YAML specs, excluding hidden paths and symlinks."""
     if plugin_dir.is_symlink() or not plugin_dir.is_dir():
@@ -183,6 +215,11 @@ def main() -> None:
     parser.add_argument(
         "--updated-at",
         help="timestamp recorded beside the revision (ISO-8601, display only)",
+    )
+    parser.add_argument(
+        "--sequence",
+        type=int,
+        help="pin the catalog sequence instead of deriving it from the committed index",
     )
     args = parser.parse_args()
 
@@ -238,11 +275,21 @@ def main() -> None:
 
     steps.sort(key=lambda s: (s["id"], s["version"]))
     index_path = plugin_dir / "index.json"
+    try:
+        previous = json.loads(index_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        previous = None
+    sequence, issued_at = catalog_header(previous, steps, args)
     index_path.write_text(
-        json.dumps({"steps": steps}, indent=2, ensure_ascii=False) + "\n",
+        json.dumps(
+            {"sequence": sequence, "issued_at": issued_at, "steps": steps},
+            indent=2,
+            ensure_ascii=False,
+        )
+        + "\n",
         encoding="utf-8",
     )
-    print(f"index.json: {len(steps)} step(s) written to {index_path}")
+    print(f"index.json: {len(steps)} step(s) written to {index_path} (sequence {sequence})")
 
     # Per-plugin meta files (<plugin dir>/meta.json): the manager's
     # single-plugin refresh fetches one small file instead of the whole
@@ -276,8 +323,10 @@ def main() -> None:
     # Revision sentinel — written LAST on purpose: mirrors publish content
     # first and the sentinel commits the sync. Comparing two tiny sentinel
     # files detects drift without pulling the full index; equal revisions
-    # mean mirror and canonical serve identical indexes (the index itself
-    # stays byte-deterministic — volatility lives in the sentinel).
+    # mean mirror and canonical serve identical indexes. The index itself is
+    # byte-stable for unchanged entries (sequence/issued_at are reused), so
+    # the sentinel covers "this build ran" while the index covers "the
+    # catalog changed".
     if args.revision:
         sentinel_path = plugin_dir / "revision.json"
         sentinel_path.write_text(
