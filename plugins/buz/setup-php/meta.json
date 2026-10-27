@@ -3,7 +3,7 @@
   "versions": [
     {
       "version": "1.0.0",
-      "file": "plugins/buz/setup-php/1.0.0.yaml",
+      "file": "setup-php/1.0.0.yaml",
       "sha256": "512de66eb5456575d6fdea950e5defbb48b0c8c2c35cfe1819fe4ea085215348",
       "category": "build",
       "name": "PHP build environment (composer)",
@@ -18,7 +18,7 @@
     },
     {
       "version": "1.1.0",
-      "file": "plugins/buz/setup-php/1.1.0.yaml",
+      "file": "setup-php/1.1.0.yaml",
       "sha256": "98d81e796fb4bd1f0e1258837c45f4431a20d50ca1e6b2e888ba511260f90847",
       "category": "build",
       "name": "PHP build environment (composer)",

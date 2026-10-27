@@ -3,7 +3,7 @@
   "versions": [
     {
       "version": "1.0.0",
-      "file": "plugins/buz/http-check/1.0.0.yaml",
+      "file": "http-check/1.0.0.yaml",
       "sha256": "5b68d2629ba8f8f5bcc3fb29d33b76771c34a8ab5ae6c06b9466a104c19c9c40",
       "category": "healthcheck",
       "name": "Network readiness check (HTTP / TCP / UDP)",
@@ -19,7 +19,7 @@
     },
     {
       "version": "1.1.0",
-      "file": "plugins/buz/http-check/1.1.0.yaml",
+      "file": "http-check/1.1.0.yaml",
       "sha256": "edba133a3171ddbf86babee03211ff293babd23dea00591e8710247cb5da4f61",
       "category": "healthcheck",
       "name": "Network readiness check (HTTP / TCP / UDP)",

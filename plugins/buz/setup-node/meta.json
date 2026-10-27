@@ -3,7 +3,7 @@
   "versions": [
     {
       "version": "1.0.0",
-      "file": "plugins/buz/setup-node/1.0.0.yaml",
+      "file": "setup-node/1.0.0.yaml",
       "sha256": "c3916024e55f6629526437fcabe0e9d597c923c10b37c6d8bdaa6b94217f914e",
       "category": "build",
       "name": "Node.js build environment (npm)",
@@ -18,7 +18,7 @@
     },
     {
       "version": "1.1.0",
-      "file": "plugins/buz/setup-node/1.1.0.yaml",
+      "file": "setup-node/1.1.0.yaml",
       "sha256": "8d03a2a1e143957f004ace2449f6c12fd8f233d9f6f5883bef519c91412dd615",
       "category": "build",
       "name": "Node.js build environment (npm)",

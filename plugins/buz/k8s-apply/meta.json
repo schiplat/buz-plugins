@@ -3,7 +3,7 @@
   "versions": [
     {
       "version": "1.0.0",
-      "file": "plugins/buz/k8s-apply/1.0.0.yaml",
+      "file": "k8s-apply/1.0.0.yaml",
       "sha256": "1d9b8dcd2f7392e1b6dedffc0822b919ef233e57dca7430aaf428f1bb5d1b84e",
       "category": "deploy",
       "name": "Kubernetes apply",

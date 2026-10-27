@@ -254,7 +254,7 @@ def main() -> None:
         return candidate if candidate.is_absolute() else root / candidate
 
     parser.add_argument("--plugins-dir", default="plugins")
-    parser.add_argument("--reviews", default="reviews.json")
+    parser.add_argument("--reviews", default="plugins/buz/reviews.json")
     parser.add_argument("--out-dir", default="dist", help="Deployable output directory")
     parser.add_argument(
         "--dist-dir",

@@ -3,7 +3,7 @@
   "versions": [
     {
       "version": "1.0.0",
-      "file": "plugins/buz/ssh-wait/1.0.0.yaml",
+      "file": "ssh-wait/1.0.0.yaml",
       "sha256": "86dbbcf592e60eea4725a05ff1eae2c50bbbec3875f74611cda48a4b3accbe07",
       "category": "deployment",
       "name": "Wait for SSH host (reboot / rebuild)",

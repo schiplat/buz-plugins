@@ -3,7 +3,7 @@
   "versions": [
     {
       "version": "1.0.0",
-      "file": "plugins/buz/git-clone/1.0.0.yaml",
+      "file": "git-clone/1.0.0.yaml",
       "sha256": "f45f45b7d4ba7aa379913093582cc33d2ba82d6029fa777ab8a170cf6c136433",
       "category": "source",
       "name": "Git clone",
@@ -19,7 +19,7 @@
     },
     {
       "version": "1.1.0",
-      "file": "plugins/buz/git-clone/1.1.0.yaml",
+      "file": "git-clone/1.1.0.yaml",
       "sha256": "317779cf746890fb01b805fbe2e2eaf93feb1c35365ce2feba0c428e4f0d8f25",
       "category": "source",
       "name": "Git clone",
