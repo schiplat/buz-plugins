@@ -129,10 +129,11 @@ jobs:
         id: buz-plugin
         continue-on-error: true
         env:
-          # Needs read access to the PRIVATE schiplat/buz repository (a
-          # fine-grained PAT scoped to it). BUZ_PLUGIN_REPO_TOKEN takes
-          # precedence; the existing validator PAT is only a fallback.
-          GH_TOKEN: ${{ secrets.BUZ_PLUGIN_REPO_TOKEN || secrets.BUZ_REPO_PAT_V2 }}
+          # Read access to the PRIVATE schiplat/buz release. BUZ_PLUGIN_REPO_TOKEN
+          # (a token scoped to just that repository) wins when present;
+          # BUZ_REPO_PAT is the account-level token already authorized for it.
+          # BUZ_REPO_PAT_V2 covers the validator mirror (schiplatv2/buz) only.
+          GH_TOKEN: ${{ secrets.BUZ_PLUGIN_REPO_TOKEN || secrets.BUZ_REPO_PAT }}
           # Pinned: a tool release may change the index contract, and that must
           # be a deliberate bump, not a silent follow-the-latest.
           BUZ_PLUGIN_VERSION: "1.11.0"
