@@ -3,7 +3,7 @@
   "versions": [
     {
       "version": "1.0.0",
-      "file": "plugins/buz/config-fetch/1.0.0.yaml",
+      "file": "config-fetch/1.0.0.yaml",
       "sha256": "b53699b9f97abe19fff82e82bb21abbd92924c39f857c919a892b18937e49947",
       "category": "source",
       "name": "Fetch config bundle into the workspace",
@@ -19,7 +19,7 @@
     },
     {
       "version": "1.1.0",
-      "file": "plugins/buz/config-fetch/1.1.0.yaml",
+      "file": "config-fetch/1.1.0.yaml",
       "sha256": "77c5d47030adf9eb2d5313162cbae2ef9dd71809f4f3157117bf22917d48686b",
       "category": "source",
       "name": "Fetch config bundle into the workspace",

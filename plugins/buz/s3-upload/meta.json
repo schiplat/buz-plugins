@@ -3,7 +3,7 @@
   "versions": [
     {
       "version": "1.0.1",
-      "file": "plugins/buz/s3-upload/1.0.1.yaml",
+      "file": "s3-upload/1.0.1.yaml",
       "sha256": "17ddf360159dade310abcf370a9eb24682ccd6c2af5ee523198c21db641af950",
       "category": "upload",
       "name": "Upload file to S3",
@@ -19,7 +19,7 @@
     },
     {
       "version": "1.0.2",
-      "file": "plugins/buz/s3-upload/1.0.2.yaml",
+      "file": "s3-upload/1.0.2.yaml",
       "sha256": "3b8e300d313de87342793a4d6a851abe1bf503eec1340c6c194cdad56229c5b5",
       "category": "upload",
       "name": "Upload file to S3",

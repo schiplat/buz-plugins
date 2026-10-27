@@ -3,7 +3,7 @@
   "versions": [
     {
       "version": "1.0.0",
-      "file": "plugins/buz/docker-logout/1.0.0.yaml",
+      "file": "docker-logout/1.0.0.yaml",
       "sha256": "1727d43e62a7b98e2f36e1087f0ce472390f10a04718fb924b9a28dac57b34b5",
       "category": "build",
       "name": "Docker registry logout",

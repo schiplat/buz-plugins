@@ -3,7 +3,7 @@
     {
       "id": "buz/archive",
       "version": "1.0.0",
-      "file": "plugins/buz/archive/1.0.0.yaml",
+      "file": "archive/1.0.0.yaml",
       "sha256": "680275ea94125f3946c720721ce0b0b108ac323c3fbfc0760f6fc0539994cafd",
       "category": "artifact",
       "name": "Archive workspace paths",
@@ -20,7 +20,7 @@
     {
       "id": "buz/archive",
       "version": "1.1.0",
-      "file": "plugins/buz/archive/1.1.0.yaml",
+      "file": "archive/1.1.0.yaml",
       "sha256": "3f8ffbed675f0fdd72083a730ebd344a694f4f8b4b8df237764d647e9895f391",
       "category": "artifact",
       "name": "Archive workspace paths",
@@ -37,7 +37,7 @@
     {
       "id": "buz/checkout",
       "version": "1.2.0",
-      "file": "plugins/buz/checkout/1.2.0.yaml",
+      "file": "checkout/1.2.0.yaml",
       "sha256": "e743c965050df9df114fce297dbdad55a577cd3aee7a25411bbe4b8ab38edd33",
       "category": "source",
       "name": "Git checkout",
@@ -54,7 +54,7 @@
     {
       "id": "buz/config-fetch",
       "version": "1.0.0",
-      "file": "plugins/buz/config-fetch/1.0.0.yaml",
+      "file": "config-fetch/1.0.0.yaml",
       "sha256": "b53699b9f97abe19fff82e82bb21abbd92924c39f857c919a892b18937e49947",
       "category": "source",
       "name": "Fetch config bundle into the workspace",
@@ -71,7 +71,7 @@
     {
       "id": "buz/config-fetch",
       "version": "1.1.0",
-      "file": "plugins/buz/config-fetch/1.1.0.yaml",
+      "file": "config-fetch/1.1.0.yaml",
       "sha256": "77c5d47030adf9eb2d5313162cbae2ef9dd71809f4f3157117bf22917d48686b",
       "category": "source",
       "name": "Fetch config bundle into the workspace",
@@ -88,7 +88,7 @@
     {
       "id": "buz/dingtalk",
       "version": "1.0.0",
-      "file": "plugins/buz/dingtalk/1.0.0.yaml",
+      "file": "dingtalk/1.0.0.yaml",
       "sha256": "76c88bb744c72a5356cd2ca91f30f81ac4b1d62d31cdd987b4f5ba1febd521cb",
       "category": "notifications",
       "name": "DingTalk group notification",
@@ -105,7 +105,7 @@
     {
       "id": "buz/docker",
       "version": "1.0.0",
-      "file": "plugins/buz/docker/1.0.0.yaml",
+      "file": "docker/1.0.0.yaml",
       "sha256": "7400edb2f661fcc4bc5832af716867cbb4fe91b98522a4fcb8da68802f1c5156",
       "category": "build",
       "name": "Docker image build and push",
@@ -122,7 +122,7 @@
     {
       "id": "buz/docker",
       "version": "1.1.0",
-      "file": "plugins/buz/docker/1.1.0.yaml",
+      "file": "docker/1.1.0.yaml",
       "sha256": "59f898a5ad23720f4a30091761b17ada1d65423beba5a63137ffde0d7551295d",
       "category": "build",
       "name": "Docker image build and push",
@@ -139,7 +139,7 @@
     {
       "id": "buz/docker-compose",
       "version": "1.0.0",
-      "file": "plugins/buz/docker-compose/1.0.0.yaml",
+      "file": "docker-compose/1.0.0.yaml",
       "sha256": "c5325efb7262cf227f481b0b0cbd9c92659744a99dd7ad4d83058b2b42478a2e",
       "category": "deploy",
       "name": "Docker Compose deployment",
@@ -156,7 +156,7 @@
     {
       "id": "buz/docker-login",
       "version": "1.0.0",
-      "file": "plugins/buz/docker-login/1.0.0.yaml",
+      "file": "docker-login/1.0.0.yaml",
       "sha256": "55d69ce54ab58842296048893f1c1dad782726538fa2437f21bc75f639f71c5e",
       "category": "build",
       "name": "Docker registry login",
@@ -173,7 +173,7 @@
     {
       "id": "buz/docker-login",
       "version": "1.1.0",
-      "file": "plugins/buz/docker-login/1.1.0.yaml",
+      "file": "docker-login/1.1.0.yaml",
       "sha256": "51903d75d17376c8141e56a60370d85ba97d7fae67fdabcba7cc63e0a8dc3e04",
       "category": "build",
       "name": "Docker registry login",
@@ -190,7 +190,7 @@
     {
       "id": "buz/docker-logout",
       "version": "1.0.0",
-      "file": "plugins/buz/docker-logout/1.0.0.yaml",
+      "file": "docker-logout/1.0.0.yaml",
       "sha256": "1727d43e62a7b98e2f36e1087f0ce472390f10a04718fb924b9a28dac57b34b5",
       "category": "build",
       "name": "Docker registry logout",
@@ -207,7 +207,7 @@
     {
       "id": "buz/feishu",
       "version": "1.0.0",
-      "file": "plugins/buz/feishu/1.0.0.yaml",
+      "file": "feishu/1.0.0.yaml",
       "sha256": "453a8999182352a683520c172db4481e17f3a1f9afe715ca480397cb22d85c5e",
       "category": "notifications",
       "name": "Feishu group notification",
@@ -224,7 +224,7 @@
     {
       "id": "buz/git-clone",
       "version": "1.0.0",
-      "file": "plugins/buz/git-clone/1.0.0.yaml",
+      "file": "git-clone/1.0.0.yaml",
       "sha256": "f45f45b7d4ba7aa379913093582cc33d2ba82d6029fa777ab8a170cf6c136433",
       "category": "source",
       "name": "Git clone",
@@ -241,7 +241,7 @@
     {
       "id": "buz/git-clone",
       "version": "1.1.0",
-      "file": "plugins/buz/git-clone/1.1.0.yaml",
+      "file": "git-clone/1.1.0.yaml",
       "sha256": "317779cf746890fb01b805fbe2e2eaf93feb1c35365ce2feba0c428e4f0d8f25",
       "category": "source",
       "name": "Git clone",
@@ -258,7 +258,7 @@
     {
       "id": "buz/helm-upgrade",
       "version": "1.0.0",
-      "file": "plugins/buz/helm-upgrade/1.0.0.yaml",
+      "file": "helm-upgrade/1.0.0.yaml",
       "sha256": "7de3f4c7947fe5d9e53730452465a73a5034069058714d44a8de927b69b5a6fc",
       "category": "deploy",
       "name": "Helm upgrade",
@@ -275,7 +275,7 @@
     {
       "id": "buz/http-check",
       "version": "1.0.0",
-      "file": "plugins/buz/http-check/1.0.0.yaml",
+      "file": "http-check/1.0.0.yaml",
       "sha256": "5b68d2629ba8f8f5bcc3fb29d33b76771c34a8ab5ae6c06b9466a104c19c9c40",
       "category": "healthcheck",
       "name": "Network readiness check (HTTP / TCP / UDP)",
@@ -292,7 +292,7 @@
     {
       "id": "buz/http-check",
       "version": "1.1.0",
-      "file": "plugins/buz/http-check/1.1.0.yaml",
+      "file": "http-check/1.1.0.yaml",
       "sha256": "edba133a3171ddbf86babee03211ff293babd23dea00591e8710247cb5da4f61",
       "category": "healthcheck",
       "name": "Network readiness check (HTTP / TCP / UDP)",
@@ -309,7 +309,7 @@
     {
       "id": "buz/k8s-apply",
       "version": "1.0.0",
-      "file": "plugins/buz/k8s-apply/1.0.0.yaml",
+      "file": "k8s-apply/1.0.0.yaml",
       "sha256": "1d9b8dcd2f7392e1b6dedffc0822b919ef233e57dca7430aaf428f1bb5d1b84e",
       "category": "deploy",
       "name": "Kubernetes apply",
@@ -326,7 +326,7 @@
     {
       "id": "buz/oss-download",
       "version": "1.0.0",
-      "file": "plugins/buz/oss-download/1.0.0.yaml",
+      "file": "oss-download/1.0.0.yaml",
       "sha256": "315528f030bf1fa586ff416516e610ba8fd36707bda2160fbe578714375b73d1",
       "category": "source",
       "name": "Download file from Alibaba Cloud OSS",
@@ -343,7 +343,7 @@
     {
       "id": "buz/oss-upload",
       "version": "1.0.1",
-      "file": "plugins/buz/oss-upload/1.0.1.yaml",
+      "file": "oss-upload/1.0.1.yaml",
       "sha256": "52dda348dca18496c9816977f3e70ca35335351d1c2ed1e443988c3ca38e3ac8",
       "category": "upload",
       "name": "Upload file to Alibaba Cloud OSS",
@@ -360,7 +360,7 @@
     {
       "id": "buz/oss-upload",
       "version": "1.0.2",
-      "file": "plugins/buz/oss-upload/1.0.2.yaml",
+      "file": "oss-upload/1.0.2.yaml",
       "sha256": "3d5222b497f4bb111d9406b3593661ba3a29bb91612db3a1e0aa9bec9f725bef",
       "category": "upload",
       "name": "Upload file to Alibaba Cloud OSS",
@@ -377,7 +377,7 @@
     {
       "id": "buz/s3-upload",
       "version": "1.0.1",
-      "file": "plugins/buz/s3-upload/1.0.1.yaml",
+      "file": "s3-upload/1.0.1.yaml",
       "sha256": "17ddf360159dade310abcf370a9eb24682ccd6c2af5ee523198c21db641af950",
       "category": "upload",
       "name": "Upload file to S3",
@@ -394,7 +394,7 @@
     {
       "id": "buz/s3-upload",
       "version": "1.0.2",
-      "file": "plugins/buz/s3-upload/1.0.2.yaml",
+      "file": "s3-upload/1.0.2.yaml",
       "sha256": "3b8e300d313de87342793a4d6a851abe1bf503eec1340c6c194cdad56229c5b5",
       "category": "upload",
       "name": "Upload file to S3",
@@ -411,7 +411,7 @@
     {
       "id": "buz/scp",
       "version": "1.0.0",
-      "file": "plugins/buz/scp/1.0.0.yaml",
+      "file": "scp/1.0.0.yaml",
       "sha256": "d6f38a21c4f2c8a090112bdc3f75b01136211a724479b34630257ae10842ab6a",
       "category": "deploy",
       "name": "Upload file to target host via scp",
@@ -428,7 +428,7 @@
     {
       "id": "buz/setup-go",
       "version": "1.0.0",
-      "file": "plugins/buz/setup-go/1.0.0.yaml",
+      "file": "setup-go/1.0.0.yaml",
       "sha256": "1601ed2d70a941cf571ab8eefd1732e45debe587e9495cfdf7012ad372ff2fec",
       "category": "build",
       "name": "Go build environment",
@@ -444,7 +444,7 @@
     {
       "id": "buz/setup-go",
       "version": "1.1.0",
-      "file": "plugins/buz/setup-go/1.1.0.yaml",
+      "file": "setup-go/1.1.0.yaml",
       "sha256": "6806cb459b352bdb24936641732a018c0d901bd0e137b9bbca9f62c8bac3ed49",
       "category": "build",
       "name": "Go build environment",
@@ -461,7 +461,7 @@
     {
       "id": "buz/setup-java",
       "version": "1.0.0",
-      "file": "plugins/buz/setup-java/1.0.0.yaml",
+      "file": "setup-java/1.0.0.yaml",
       "sha256": "3610a3a75e3dedcbf462d6d2addbc4ae89195605e38a61f169f945f4f8f378f1",
       "category": "build",
       "name": "Java build environment (Temurin JDK)",
@@ -477,7 +477,7 @@
     {
       "id": "buz/setup-java",
       "version": "1.1.0",
-      "file": "plugins/buz/setup-java/1.1.0.yaml",
+      "file": "setup-java/1.1.0.yaml",
       "sha256": "5ee4b0eaf106617ec8a0401a53b6a48a062234a3981363b2e1ba718ea5bcdb05",
       "category": "build",
       "name": "Java build environment (Temurin JDK)",
@@ -494,7 +494,7 @@
     {
       "id": "buz/setup-lua",
       "version": "1.0.0",
-      "file": "plugins/buz/setup-lua/1.0.0.yaml",
+      "file": "setup-lua/1.0.0.yaml",
       "sha256": "c9c9aeba228ce8250c1204b3abbb87b7c519f47269a8d362e9b77de0a8aa553f",
       "category": "build",
       "name": "Lua runtime (5.4/5.3/LuaJIT)",
@@ -510,7 +510,7 @@
     {
       "id": "buz/setup-lua",
       "version": "1.1.0",
-      "file": "plugins/buz/setup-lua/1.1.0.yaml",
+      "file": "setup-lua/1.1.0.yaml",
       "sha256": "16bcbfd697b886457f61829114e09d7bffd472b923ad3d25abd8874dc8279cb4",
       "category": "build",
       "name": "Lua runtime (5.4/5.3/LuaJIT)",
@@ -527,7 +527,7 @@
     {
       "id": "buz/setup-node",
       "version": "1.0.0",
-      "file": "plugins/buz/setup-node/1.0.0.yaml",
+      "file": "setup-node/1.0.0.yaml",
       "sha256": "c3916024e55f6629526437fcabe0e9d597c923c10b37c6d8bdaa6b94217f914e",
       "category": "build",
       "name": "Node.js build environment (npm)",
@@ -543,7 +543,7 @@
     {
       "id": "buz/setup-node",
       "version": "1.1.0",
-      "file": "plugins/buz/setup-node/1.1.0.yaml",
+      "file": "setup-node/1.1.0.yaml",
       "sha256": "8d03a2a1e143957f004ace2449f6c12fd8f233d9f6f5883bef519c91412dd615",
       "category": "build",
       "name": "Node.js build environment (npm)",
@@ -560,7 +560,7 @@
     {
       "id": "buz/setup-php",
       "version": "1.0.0",
-      "file": "plugins/buz/setup-php/1.0.0.yaml",
+      "file": "setup-php/1.0.0.yaml",
       "sha256": "512de66eb5456575d6fdea950e5defbb48b0c8c2c35cfe1819fe4ea085215348",
       "category": "build",
       "name": "PHP build environment (composer)",
@@ -576,7 +576,7 @@
     {
       "id": "buz/setup-php",
       "version": "1.1.0",
-      "file": "plugins/buz/setup-php/1.1.0.yaml",
+      "file": "setup-php/1.1.0.yaml",
       "sha256": "98d81e796fb4bd1f0e1258837c45f4431a20d50ca1e6b2e888ba511260f90847",
       "category": "build",
       "name": "PHP build environment (composer)",
@@ -593,7 +593,7 @@
     {
       "id": "buz/setup-python",
       "version": "1.0.0",
-      "file": "plugins/buz/setup-python/1.0.0.yaml",
+      "file": "setup-python/1.0.0.yaml",
       "sha256": "58b42deffc226f149f09453164060172f7c56bd02a6f38fc6b09183bdc933bb8",
       "category": "build",
       "name": "Python build environment (pip)",
@@ -609,7 +609,7 @@
     {
       "id": "buz/setup-python",
       "version": "1.1.0",
-      "file": "plugins/buz/setup-python/1.1.0.yaml",
+      "file": "setup-python/1.1.0.yaml",
       "sha256": "2647858a70af58a7be29496be73bd7c765fe3bf437231eb82b5896e328b65a5f",
       "category": "build",
       "name": "Python build environment (pip)",
@@ -626,7 +626,7 @@
     {
       "id": "buz/setup-ruby",
       "version": "1.0.0",
-      "file": "plugins/buz/setup-ruby/1.0.0.yaml",
+      "file": "setup-ruby/1.0.0.yaml",
       "sha256": "15f8e336b4c42c415604d99db868a4ed25a1ec79dc6487af9912b2dddbbec458",
       "category": "build",
       "name": "Ruby build environment (gem/bundler)",
@@ -642,7 +642,7 @@
     {
       "id": "buz/setup-ruby",
       "version": "1.1.0",
-      "file": "plugins/buz/setup-ruby/1.1.0.yaml",
+      "file": "setup-ruby/1.1.0.yaml",
       "sha256": "36afa11b31430ae7edcc965964bdbe2149d5eae3e9a6eed2e595b5f7449c69f4",
       "category": "build",
       "name": "Ruby build environment (gem/bundler)",
@@ -659,7 +659,7 @@
     {
       "id": "buz/setup-rust",
       "version": "1.0.0",
-      "file": "plugins/buz/setup-rust/1.0.0.yaml",
+      "file": "setup-rust/1.0.0.yaml",
       "sha256": "c6ac39137b93903c23f3ed7e0f27997ec9d6bd42e929f56e79ef0a91d857cd76",
       "category": "build",
       "name": "Rust build environment (cargo)",
@@ -675,7 +675,7 @@
     {
       "id": "buz/setup-rust",
       "version": "1.1.0",
-      "file": "plugins/buz/setup-rust/1.1.0.yaml",
+      "file": "setup-rust/1.1.0.yaml",
       "sha256": "c4aafbd5b38e3b2dc2afb5b9df2f146d002492fa034ad45062377a37180741b4",
       "category": "build",
       "name": "Rust build environment (cargo)",
@@ -692,7 +692,7 @@
     {
       "id": "buz/slack",
       "version": "1.0.0",
-      "file": "plugins/buz/slack/1.0.0.yaml",
+      "file": "slack/1.0.0.yaml",
       "sha256": "d9c69fcd3931dd75947f08b179a4a9a205728b9db107d8ac1acb29a9c73efbcd",
       "category": "notifications",
       "name": "Slack incoming-webhook notification",
@@ -709,7 +709,7 @@
     {
       "id": "buz/ssh-wait",
       "version": "1.0.0",
-      "file": "plugins/buz/ssh-wait/1.0.0.yaml",
+      "file": "ssh-wait/1.0.0.yaml",
       "sha256": "86dbbcf592e60eea4725a05ff1eae2c50bbbec3875f74611cda48a4b3accbe07",
       "category": "deployment",
       "name": "Wait for SSH host (reboot / rebuild)",
@@ -726,7 +726,7 @@
     {
       "id": "buz/webhook-notify",
       "version": "1.0.0",
-      "file": "plugins/buz/webhook-notify/1.0.0.yaml",
+      "file": "webhook-notify/1.0.0.yaml",
       "sha256": "6823a2c56f09926d78c9f75e70a730899a94994cac13573a19d846429ee65277",
       "category": "notifications",
       "name": "Generic webhook notification",
@@ -743,7 +743,7 @@
     {
       "id": "buz/wecom",
       "version": "1.0.0",
-      "file": "plugins/buz/wecom/1.0.0.yaml",
+      "file": "wecom/1.0.0.yaml",
       "sha256": "d37f9ca6003bdd9d1f94616aae59c5a111effac329c3169a8392e4f10e287978",
       "category": "notifications",
       "name": "WeCom group notification",

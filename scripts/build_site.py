@@ -254,7 +254,7 @@ def main() -> None:
         return candidate if candidate.is_absolute() else root / candidate
 
     parser.add_argument("--plugins-dir", default="plugins")
-    parser.add_argument("--reviews", default="reviews.json")
+    parser.add_argument("--reviews", default="plugins/buz/reviews.json")
     parser.add_argument("--out-dir", default="dist", help="Deployable output directory")
     parser.add_argument(
         "--dist-dir",
@@ -378,6 +378,10 @@ def main() -> None:
         shutil.copy2(path, staged_path)
     if reviews_path.exists():
         shutil.copy(reviews_path, out_dir / "reviews.json")
+
+    revision_path = resolve("plugins/buz/revision.json")
+    if revision_path.exists():
+        shutil.copy(revision_path, out_dir / "revision.json")
 
     # Per-plugin meta.json files (Phase §6.8 single-plugin refresh): stage
     # alongside the templates so the manager can fetch them from the same

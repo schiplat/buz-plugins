@@ -3,7 +3,7 @@
   "versions": [
     {
       "version": "1.0.0",
-      "file": "plugins/buz/oss-download/1.0.0.yaml",
+      "file": "oss-download/1.0.0.yaml",
       "sha256": "315528f030bf1fa586ff416516e610ba8fd36707bda2160fbe578714375b73d1",
       "category": "source",
       "name": "Download file from Alibaba Cloud OSS",

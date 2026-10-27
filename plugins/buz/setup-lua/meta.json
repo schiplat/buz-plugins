@@ -3,7 +3,7 @@
   "versions": [
     {
       "version": "1.0.0",
-      "file": "plugins/buz/setup-lua/1.0.0.yaml",
+      "file": "setup-lua/1.0.0.yaml",
       "sha256": "c9c9aeba228ce8250c1204b3abbb87b7c519f47269a8d362e9b77de0a8aa553f",
       "category": "build",
       "name": "Lua runtime (5.4/5.3/LuaJIT)",
@@ -18,7 +18,7 @@
     },
     {
       "version": "1.1.0",
-      "file": "plugins/buz/setup-lua/1.1.0.yaml",
+      "file": "setup-lua/1.1.0.yaml",
       "sha256": "16bcbfd697b886457f61829114e09d7bffd472b923ad3d25abd8874dc8279cb4",
       "category": "build",
       "name": "Lua runtime (5.4/5.3/LuaJIT)",

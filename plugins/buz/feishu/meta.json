@@ -3,7 +3,7 @@
   "versions": [
     {
       "version": "1.0.0",
-      "file": "plugins/buz/feishu/1.0.0.yaml",
+      "file": "feishu/1.0.0.yaml",
       "sha256": "453a8999182352a683520c172db4481e17f3a1f9afe715ca480397cb22d85c5e",
       "category": "notifications",
       "name": "Feishu group notification",

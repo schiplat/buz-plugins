@@ -3,7 +3,7 @@
   "versions": [
     {
       "version": "1.0.0",
-      "file": "plugins/buz/setup-python/1.0.0.yaml",
+      "file": "setup-python/1.0.0.yaml",
       "sha256": "58b42deffc226f149f09453164060172f7c56bd02a6f38fc6b09183bdc933bb8",
       "category": "build",
       "name": "Python build environment (pip)",
@@ -18,7 +18,7 @@
     },
     {
       "version": "1.1.0",
-      "file": "plugins/buz/setup-python/1.1.0.yaml",
+      "file": "setup-python/1.1.0.yaml",
       "sha256": "2647858a70af58a7be29496be73bd7c765fe3bf437231eb82b5896e328b65a5f",
       "category": "build",
       "name": "Python build environment (pip)",

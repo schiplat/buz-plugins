@@ -3,7 +3,7 @@
   "versions": [
     {
       "version": "1.0.0",
-      "file": "plugins/buz/setup-rust/1.0.0.yaml",
+      "file": "setup-rust/1.0.0.yaml",
       "sha256": "c6ac39137b93903c23f3ed7e0f27997ec9d6bd42e929f56e79ef0a91d857cd76",
       "category": "build",
       "name": "Rust build environment (cargo)",
@@ -18,7 +18,7 @@
     },
     {
       "version": "1.1.0",
-      "file": "plugins/buz/setup-rust/1.1.0.yaml",
+      "file": "setup-rust/1.1.0.yaml",
       "sha256": "c4aafbd5b38e3b2dc2afb5b9df2f146d002492fa034ad45062377a37180741b4",
       "category": "build",
       "name": "Rust build environment (cargo)",

@@ -3,7 +3,7 @@
   "versions": [
     {
       "version": "1.2.0",
-      "file": "plugins/buz/checkout/1.2.0.yaml",
+      "file": "checkout/1.2.0.yaml",
       "sha256": "e743c965050df9df114fce297dbdad55a577cd3aee7a25411bbe4b8ab38edd33",
       "category": "source",
       "name": "Git checkout",

@@ -7,10 +7,11 @@ dist/
 # appended via scripts/gen_reviews.py after human review.
 !reviews.json
 
-# index.json is committed too: the full-meta manifest (id/version/sha256
-# plus the scalar meta incl. requires_buz) is the compatibility contract —
-# git clones and offline consumers get it without the deployed site. CI
-# regenerates a byte-identical copy for deploys and release assets.
+# plugins/<ns>/index.json is committed too: the per-namespace full-meta
+# manifest (id/version/sha256 plus the scalar meta incl. requires_buz) is the
+# compatibility contract — git clones and offline consumers get it without
+# the deployed site. CI regenerates a byte-identical copy for deploys and
+# release assets (--merged writes the repo-root site view).
 
 # Node
 node_modules/

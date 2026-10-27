@@ -3,7 +3,7 @@
   "versions": [
     {
       "version": "1.0.0",
-      "file": "plugins/buz/slack/1.0.0.yaml",
+      "file": "slack/1.0.0.yaml",
       "sha256": "d9c69fcd3931dd75947f08b179a4a9a205728b9db107d8ac1acb29a9c73efbcd",
       "category": "notifications",
       "name": "Slack incoming-webhook notification",

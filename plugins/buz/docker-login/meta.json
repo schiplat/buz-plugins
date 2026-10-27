@@ -3,7 +3,7 @@
   "versions": [
     {
       "version": "1.0.0",
-      "file": "plugins/buz/docker-login/1.0.0.yaml",
+      "file": "docker-login/1.0.0.yaml",
       "sha256": "55d69ce54ab58842296048893f1c1dad782726538fa2437f21bc75f639f71c5e",
       "category": "build",
       "name": "Docker registry login",
@@ -19,7 +19,7 @@
     },
     {
       "version": "1.1.0",
-      "file": "plugins/buz/docker-login/1.1.0.yaml",
+      "file": "docker-login/1.1.0.yaml",
       "sha256": "51903d75d17376c8141e56a60370d85ba97d7fae67fdabcba7cc63e0a8dc3e04",
       "category": "build",
       "name": "Docker registry login",

@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Generate index.json for the buz-plugin step index (marketplace ADR §6.1).
+"""Generate the per-namespace step indexes (marketplace ADR §6.1).
+
+Writes one `plugins/<ns>/index.json` per namespace; `file:` paths are relative
+to the index's own directory (the manager joins them against the source base
+URL — the index URL minus `index.json`). The namespace directory is the
+publishing/trust boundary.
 
 Recursively walks visible plugins/**/*.yaml|yml specs, extracts the `id` / `version` top-level scalars,
 hashes each file, and emits the full scalar meta alongside the entry:
@@ -163,11 +168,28 @@ def main() -> None:
         return candidate if candidate.is_absolute() else root / candidate
 
     parser.add_argument("--plugins-dir", default="plugins")
-    parser.add_argument("--output", default="index.json")
+    parser.add_argument(
+        "--namespace",
+        help="generate the index for one namespace only (required when several exist under plugins/)",
+    )
+    parser.add_argument(
+        "--merged",
+        metavar="PATH",
+        help="additionally write a merged repo-root-relative index (marketplace site view)",
+    )
     parser.add_argument(
         "--no-meta",
         action="store_true",
         help="skip per-plugin meta.json output (CI dry runs)",
+    )
+    parser.add_argument(
+        "--revision",
+        help="write plugins/<ns>/revision.json with this source revision (CI commit sha); "
+        "mirrors compare it to detect drift without pulling the full index",
+    )
+    parser.add_argument(
+        "--updated-at",
+        help="timestamp recorded beside the revision (ISO-8601, display only)",
     )
     args = parser.parse_args()
 
@@ -182,8 +204,12 @@ def main() -> None:
     if not files:
         raise SystemExit(f"{plugin_dir}: no *.yaml/*.yml step specs found")
 
-    steps = []
+    # First pass: parse every spec and group by id namespace. One index per
+    # namespace — `plugins/<ns>/index.json` — is the publishing convention:
+    # the directory owning the namespace is the trust boundary, and the
+    # manager derives the source base URL from the index location.
     seen: dict[tuple[str, str], str] = {}
+    by_ns: dict[str, list[dict]] = {}
     for path in files:
         raw = path.read_text(encoding="utf-8")
         step_id = extract(ID_RE, raw, "id", path)
@@ -197,39 +223,113 @@ def main() -> None:
                 f"{path}: duplicate id+version {key} (already in {seen[key]})"
             )
         seen[key] = str(path)
-        entry = {
+        by_ns.setdefault(step_id.split("/")[0], []).append({
+            "path": path,
+            "raw": raw,
             "id": step_id,
             "version": version,
-            "file": relative_file(path, root),
-            "sha256": hashlib.sha256(raw.encode("utf-8")).hexdigest(),
-        }
-        if category:
-            entry["category"] = category
-        entry.update(meta)
-        steps.append(entry)
+            "category": category,
+            "meta": meta,
+        })
 
-    steps.sort(key=lambda s: (s["id"], s["version"]))
-    index = {"steps": steps}
-    output = resolve(args.output)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    Path(output).write_text(
-        json.dumps(index, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-    )
-    print(f"index.json: {len(steps)} step(s) written to {output}")
+    if args.namespace:
+        if args.namespace not in by_ns:
+            raise SystemExit(
+                f"{plugin_dir}: no specs for namespace '{args.namespace}' "
+                f"(found: {', '.join(sorted(by_ns)) or 'none'})"
+            )
+        namespaces = [args.namespace]
+    else:
+        if len(by_ns) > 1:
+            raise SystemExit(
+                f"{plugin_dir}: several namespaces ({', '.join(sorted(by_ns))}) — "
+                "one index per namespace; pass --namespace"
+            )
+        namespaces = sorted(by_ns)
 
-    # Per-plugin meta files (<plugin dir>/meta.json, repo-relative): the
-    # manager's single-plugin refresh fetches one small file instead of the
-    # whole index — cheap on intermittent networks. Same entry schema as the
-    # index; file paths remain repo-relative.
+    total = 0
+    for ns in namespaces:
+        ns_dir = plugin_dir / ns
+        steps = []
+        for item in by_ns[ns]:
+            path = item["path"]
+            # Layout convention: a namespace's specs live under plugins/<ns>/.
+            # `file:` is relative to the index's own directory so the manager
+            # joins it against the source base URL.
+            try:
+                rel = path.resolve().relative_to(ns_dir.resolve()).as_posix()
+            except ValueError:
+                raise SystemExit(
+                    f"{path}: namespace '{ns}' specs must live under {ns_dir}"
+                ) from None
+            entry = {
+                "id": item["id"],
+                "version": item["version"],
+                "file": rel,
+                "sha256": hashlib.sha256(item["raw"].encode("utf-8")).hexdigest(),
+            }
+            if item["category"]:
+                entry["category"] = item["category"]
+            entry.update(item["meta"])
+            steps.append(entry)
+        steps.sort(key=lambda s: (s["id"], s["version"]))
+        index_path = ns_dir / "index.json"
+        index_path.parent.mkdir(parents=True, exist_ok=True)
+        index_path.write_text(
+            json.dumps({"steps": steps}, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        total += len(steps)
+        print(f"index.json: {len(steps)} step(s) written to {index_path}")
+
+    if args.merged:
+        merged = []
+        for ns in namespaces:
+            for item in by_ns[ns]:
+                entry = {
+                    "id": item["id"],
+                    "version": item["version"],
+                    "file": relative_file(item["path"], root),
+                    "sha256": hashlib.sha256(item["raw"].encode("utf-8")).hexdigest(),
+                }
+                if item["category"]:
+                    entry["category"] = item["category"]
+                entry.update(item["meta"])
+                merged.append(entry)
+        merged.sort(key=lambda s: (s["id"], s["version"]))
+        merged_path = resolve(args.merged)
+        merged_path.parent.mkdir(parents=True, exist_ok=True)
+        merged_path.write_text(
+            json.dumps({"steps": merged}, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        print(f"merged index: {len(merged)} step(s) written to {merged_path}")
+
+    # Per-plugin meta files (<plugin dir>/meta.json): the manager's
+    # single-plugin refresh fetches one small file instead of the whole
+    # index — cheap on intermittent networks. Same entry schema as the
+    # index; file paths stay namespace-relative so both resolve against
+    # the same source base URL.
     if args.no_meta:
         print("meta.json: skipped (--no-meta)")
     else:
         metas: dict[str, list[dict]] = {}
-        for entry in steps:
-            plugin_dir = (root / entry["file"]).parent
-            metas.setdefault(str(plugin_dir), []).append(entry)
-        for plugin_dir_str, entries in sorted(metas.items()):
-            meta_path = Path(plugin_dir_str) / "meta.json"
+        for ns in namespaces:
+            ns_dir = plugin_dir / ns
+            for item in by_ns[ns]:
+                rel = item["path"].resolve().relative_to(ns_dir.resolve()).as_posix()
+                entry = {
+                    "id": item["id"],
+                    "version": item["version"],
+                    "file": rel,
+                    "sha256": hashlib.sha256(item["raw"].encode("utf-8")).hexdigest(),
+                }
+                if item["category"]:
+                    entry["category"] = item["category"]
+                entry.update(item["meta"])
+                metas.setdefault(str(item["path"].parent), []).append(entry)
+        for plugin_meta_dir, entries in sorted(metas.items()):
+            meta_path = Path(plugin_meta_dir) / "meta.json"
             meta_path.write_text(
                 json.dumps(
                     {
@@ -246,6 +346,24 @@ def main() -> None:
                 encoding="utf-8",
             )
         print(f"meta.json: {len(metas)} plugin(s) written")
+
+    # Namespace revision sentinel — written LAST on purpose: mirrors publish
+    # content first and the sentinel commits the sync. Comparing two tiny
+    # sentinel files detects drift without pulling the full index; equal
+    # revisions mean mirror and canonical serve identical indexes (the index
+    # itself stays byte-deterministic — volatility lives in the sentinel).
+    if args.revision:
+        for ns in namespaces:
+            sentinel = {
+                "revision": args.revision,
+                "updated_at": args.updated_at,
+            }
+            sentinel_path = plugin_dir / ns / "revision.json"
+            sentinel_path.write_text(
+                json.dumps(sentinel, indent=2, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+        print(f"revision.json: written for {len(namespaces)} namespace(s) (revision {args.revision})")
 
 
 if __name__ == "__main__":
