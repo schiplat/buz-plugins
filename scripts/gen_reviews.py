@@ -27,7 +27,7 @@ Manual mode (community, and first review of new official ids):
         --date 2026-10-04 --commit $(git rev-parse --short HEAD) \
         "someuser/telegram ...
 
-Both modes read plugins/ + plugins/buz/index.json (run scripts/gen_index.py first).
+Both modes read plugins/ + plugins/index.json (run scripts/gen_index.py first).
 Manual entries are upserted by (id, version): a fresh review replaces only a
 stale review for that version; reviews for older pinned versions and unrelated
 records are preserved. Auto entries are rebuilt from the current index on every
@@ -55,7 +55,7 @@ def resolve(path: str) -> Path:
 
 
 def load_index() -> dict[str, dict]:
-    index_path = resolve("plugins/buz/index.json")
+    index_path = resolve("plugins/index.json")
     if not index_path.exists():
         raise SystemExit("index.json not found — run scripts/gen_index.py first")
     index = json.loads(index_path.read_text(encoding="utf-8"))
@@ -179,7 +179,7 @@ def merge_reviews(
 
 
 def load_existing_reviews() -> list[dict]:
-    out_path = resolve("plugins/buz/reviews.json")
+    out_path = resolve("plugins/reviews.json")
     if not out_path.exists():
         return []
     data = json.loads(out_path.read_text(encoding="utf-8"))
@@ -192,7 +192,7 @@ def load_existing_reviews() -> list[dict]:
 
 
 def merge_and_write(new_entries: list[dict], keep_manual: bool) -> None:
-    out_path = resolve("plugins/buz/reviews.json")
+    out_path = resolve("plugins/reviews.json")
     existing = load_existing_reviews()
     merged = merge_reviews(existing, new_entries, keep_manual)
     content = json.dumps({"reviews": merged}, indent=2, ensure_ascii=False) + "\n"

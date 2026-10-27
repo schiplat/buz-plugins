@@ -765,7 +765,8 @@ class SitePathTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(dir=ROOT) as source_tmp:
             source_root = Path(source_tmp)
             (source_root / "scripts").mkdir()
-            (source_root / "index.json").write_text('{"steps": []}\n')
+            (source_root / "plugins").mkdir()
+            (source_root / "plugins" / "index.json").write_text('{"steps": []}\n')
             plugin_dir = source_root / "plugins"
             nested = plugin_dir / "buz" / "oss-upload"
             nested.mkdir(parents=True)

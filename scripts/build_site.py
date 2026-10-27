@@ -254,7 +254,7 @@ def main() -> None:
         return candidate if candidate.is_absolute() else root / candidate
 
     parser.add_argument("--plugins-dir", default="plugins")
-    parser.add_argument("--reviews", default="plugins/buz/reviews.json")
+    parser.add_argument("--reviews", default="plugins/reviews.json")
     parser.add_argument("--out-dir", default="dist", help="Deployable output directory")
     parser.add_argument(
         "--dist-dir",
@@ -360,9 +360,9 @@ def main() -> None:
 
     # Stage the rest of the deployable directory (Phase 2 Manager sync
     # consumes index.json and the raw plugin files from the same origin).
-    index_path = root / "index.json"
+    index_path = root / "plugins" / "index.json"
     if not index_path.exists():
-        raise SystemExit("index.json not found — run scripts/gen_index.py first")
+        raise SystemExit("plugins/index.json not found — run scripts/gen_index.py first")
     shutil.copy(index_path, out_dir / "index.json")
     for path in files:
         try:
@@ -379,7 +379,7 @@ def main() -> None:
     if reviews_path.exists():
         shutil.copy(reviews_path, out_dir / "reviews.json")
 
-    revision_path = resolve("plugins/buz/revision.json")
+    revision_path = resolve("plugins/revision.json")
     if revision_path.exists():
         shutil.copy(revision_path, out_dir / "revision.json")
 
