@@ -379,6 +379,10 @@ def main() -> None:
     if reviews_path.exists():
         shutil.copy(reviews_path, out_dir / "reviews.json")
 
+    revision_path = resolve("plugins/buz/revision.json")
+    if revision_path.exists():
+        shutil.copy(revision_path, out_dir / "revision.json")
+
     # Per-plugin meta.json files (Phase §6.8 single-plugin refresh): stage
     # alongside the templates so the manager can fetch them from the same
     # origin. Missing meta files are fine — the manager falls back to the

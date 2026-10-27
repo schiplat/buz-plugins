@@ -182,6 +182,15 @@ def main() -> None:
         action="store_true",
         help="skip per-plugin meta.json output (CI dry runs)",
     )
+    parser.add_argument(
+        "--revision",
+        help="write plugins/<ns>/revision.json with this source revision (CI commit sha); "
+        "mirrors compare it to detect drift without pulling the full index",
+    )
+    parser.add_argument(
+        "--updated-at",
+        help="timestamp recorded beside the revision (ISO-8601, display only)",
+    )
     args = parser.parse_args()
 
     plugin_dir = resolve(args.plugins_dir)
@@ -337,6 +346,24 @@ def main() -> None:
                 encoding="utf-8",
             )
         print(f"meta.json: {len(metas)} plugin(s) written")
+
+    # Namespace revision sentinel — written LAST on purpose: mirrors publish
+    # content first and the sentinel commits the sync. Comparing two tiny
+    # sentinel files detects drift without pulling the full index; equal
+    # revisions mean mirror and canonical serve identical indexes (the index
+    # itself stays byte-deterministic — volatility lives in the sentinel).
+    if args.revision:
+        for ns in namespaces:
+            sentinel = {
+                "revision": args.revision,
+                "updated_at": args.updated_at,
+            }
+            sentinel_path = plugin_dir / ns / "revision.json"
+            sentinel_path.write_text(
+                json.dumps(sentinel, indent=2, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+        print(f"revision.json: written for {len(namespaces)} namespace(s) (revision {args.revision})")
 
 
 if __name__ == "__main__":
