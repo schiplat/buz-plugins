@@ -363,7 +363,12 @@ def main() -> None:
     index_path = root / "plugins" / "index.json"
     if not index_path.exists():
         raise SystemExit("plugins/index.json not found — run scripts/gen_index.py first")
-    shutil.copy(index_path, out_dir / "index.json")
+    # Stage the manifests at their source-root paths: the Manager's base URL
+    # is <site>/plugins/, so index/reviews/revision must resolve under
+    # plugins/ — a root-level copy would parse but its file: targets 404.
+    manifest_dir = out_dir / "plugins"
+    manifest_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copy(index_path, manifest_dir / "index.json")
     for path in files:
         try:
             indexed_relative_path = path.resolve().relative_to(root.resolve())
@@ -377,11 +382,11 @@ def main() -> None:
         staged_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(path, staged_path)
     if reviews_path.exists():
-        shutil.copy(reviews_path, out_dir / "reviews.json")
+        shutil.copy(reviews_path, manifest_dir / "reviews.json")
 
     revision_path = resolve("plugins/revision.json")
     if revision_path.exists():
-        shutil.copy(revision_path, out_dir / "revision.json")
+        shutil.copy(revision_path, manifest_dir / "revision.json")
 
     # Per-plugin meta.json files (Phase §6.8 single-plugin refresh): stage
     # alongside the templates so the manager can fetch them from the same
