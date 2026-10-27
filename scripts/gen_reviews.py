@@ -7,7 +7,7 @@ Two entry kinds live in reviews.json, distinguished by `source`:
   The FIRST review of an official id is human: a brand-new official id is
   never auto-blessed; record it with the manual command below after
   reviewing the exact file contents. Once the id is blessed, green CI is
-  the tracking gate — step-validate + lint_runs + egress allowlist all
+  the tracking gate — plugin-validate + lint_runs + egress allowlist all
   passing on the exact content hash — and every version of that id is
   refreshed on each run. Entries carry `source: "ci"` and are
   REGENERATED per run — never hand-edited.
