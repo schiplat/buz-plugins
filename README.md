@@ -24,6 +24,13 @@ different question:
 | [`plugins/reviews.json`](plugins/reviews.json) | **what humans approved** — the review ledger (content hashes) | human review + CI badge refresh |
 | [`plugins/revision.json`](plugins/revision.json) | **what is freshest** — drift sentinel (commit sha + time) | CI, written last |
 
+The index may also carry a detached signature (`index.json.sig`) so a Manager
+can prove the index itself was not rewritten, mirrors included: generate it
+with `buz-plugin keygen` (once) and `buz-plugin index --sign-key` (every
+publish). **The private key is a CI secret and never lives in this
+repository** — see [Plugin Tooling](https://buz.schiplat.com/docs/01-architecture/authoring/plugin-tooling/)
+for the full procedure.
+
 Mirrors compare two `revision.json` files to detect drift without pulling
 the full index. Never hand-edit hashes — `scripts/gen_index.py` /
 `gen_reviews.py` (or the `buz-plugin` CLI) generate them from the specs.
