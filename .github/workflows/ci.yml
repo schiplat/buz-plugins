@@ -122,10 +122,47 @@ jobs:
           npm ci
           npm run build
 
+      - name: Install buz-plugin
+        env:
+          GH_TOKEN: ${{ secrets.BUZ_REPO_PAT_V2 }}
+          # Pinned: a tool release may change the index contract, and that must
+          # be a deliberate bump, not a silent follow-the-latest.
+          BUZ_PLUGIN_VERSION: "1.11.0"
+        run: |
+          set -euo pipefail
+          DIR="$RUNNER_TEMP/buz-plugin"
+          mkdir -p "$DIR"
+          gh release download "v${BUZ_PLUGIN_VERSION}" \
+            --repo schiplat/buz \
+            --pattern "buz-plugin-${BUZ_PLUGIN_VERSION}-linux-x86_64.tar.gz" \
+            --dir "$DIR"
+          tar -xzf "$DIR/buz-plugin-${BUZ_PLUGIN_VERSION}-linux-x86_64.tar.gz" -C "$DIR"
+          echo "$DIR" >> "$GITHUB_PATH"
+          "$DIR/buz-plugin" --version
+
+      - name: Generate the index (signed when the key is available)
+        env:
+          BUZ_PLUGIN_SIGNING_KEY: ${{ secrets.BUZ_PLUGIN_SIGNING_KEY }}
+        run: |
+          set -euo pipefail
+          REV="${GITHUB_SHA}"
+          AT="$(git log -1 --format=%cI)"
+          if [ -n "${BUZ_PLUGIN_SIGNING_KEY:-}" ]; then
+            umask 077
+            KEY="$RUNNER_TEMP/signing-key.json"
+            printf '%s' "$BUZ_PLUGIN_SIGNING_KEY" > "$KEY"
+            trap 'rm -f "$KEY"' EXIT
+            buz-plugin index --revision "$REV" --updated-at "$AT" --sign-key "$KEY"
+            buz-plugin index --check --revision "$REV" --updated-at "$AT" --sign-key "$KEY"
+          else
+            # Fork PRs receive no secrets; the index still has to be valid.
+            echo "signing key unavailable — generating an unsigned index"
+            buz-plugin index --revision "$REV" --updated-at "$AT"
+          fi
+
       - name: Stage deployable directory (site + index + plugin files)
         run: |
           pip install pyyaml
-          python3 scripts/gen_index.py --revision "${GITHUB_SHA}" --updated-at "$(git log -1 --format=%cI)"
           python3 scripts/gen_reviews.py --auto --commit "${GITHUB_SHA::7}"
           python3 scripts/build_site.py --dist-dir frontend/dist
           python3 scripts/check_site_sources.py
@@ -176,15 +213,21 @@ jobs:
       - name: Commit refreshed reviews.json
         continue-on-error: true
         run: |
-          cp dist/reviews.json plugins/reviews.json
-          cp dist/revision.json plugins/revision.json
-          cp dist/index.json plugins/index.json
+          # build_site stages the manifests under dist/plugins/ (the Manager
+          # resolves manifest-relative paths against <site>/plugins/).
+          cp dist/plugins/reviews.json plugins/reviews.json
+          cp dist/plugins/revision.json plugins/revision.json
+          cp dist/plugins/index.json plugins/index.json
+          if [ -f dist/plugins/index.json.sig ]; then
+            cp dist/plugins/index.json.sig plugins/index.json.sig
+          fi
           if git diff --quiet plugins/reviews.json plugins/revision.json plugins/index.json; then
             echo "reviews.json unchanged — nothing to commit"
           else
             git config user.name "buz-bot"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add plugins/reviews.json plugins/revision.json plugins/index.json
+            [ -f plugins/index.json.sig ] && git add plugins/index.json.sig
             git commit -m "ci: refresh official review badges [skip ci]"
             # Parallel runs (badge refreshes, pin merges) move master while this
             # job runs, and both sides regenerate the same file with different
