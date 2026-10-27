@@ -8,6 +8,8 @@ export const T = {
   details: 'Details',
   report: 'Report a template',
   request: 'Request a plugin',
+  getTool: 'Get buz-plugin',
+  getToolTip: 'Authoring toolchain: scaffold, validate and index plugins, and check mirrors',
   securityNote: 'Security concerns: report privately',
   inputs: 'Inputs',
   usage: 'Usage',

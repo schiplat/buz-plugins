@@ -24,9 +24,19 @@ different question:
 | [`plugins/reviews.json`](plugins/reviews.json) | **what humans approved** — the review ledger (content hashes) | human review + CI badge refresh |
 | [`plugins/revision.json`](plugins/revision.json) | **what is freshest** — drift sentinel (commit sha + time) | CI, written last |
 
+The index may also carry a detached signature (`index.json.sig`) so a Manager
+can prove the index itself was not rewritten, mirrors included: generate it
+with `buz-plugin keygen` (once) and `buz-plugin index --sign-key` (every
+publish). **The private key is a CI secret and never lives in this
+repository** — see [Plugin Tooling](https://buz.schiplat.com/docs/01-architecture/authoring/plugin-tooling/)
+for the full procedure.
+
 Mirrors compare two `revision.json` files to detect drift without pulling
 the full index. Never hand-edit hashes — `scripts/gen_index.py` /
 `gen_reviews.py` (or the `buz-plugin` CLI) generate them from the specs.
+`buz-plugin index --check` will become the CI gate here: it fails when the
+committed manifests differ from what the specs produce (including a stale
+`meta.json` left by a deleted plugin).
 See [governance](docs/governance.md) for the review process.
 
 ## Templates
@@ -124,7 +134,7 @@ Full spec: marketplace ADR §5 (`docs/design/step-marketplace.md` in the buz rep
 
 ## CI
 
-- **validate**: downloads the `buz-manager` binary from the private buz release (no Rust toolchain, no source build) and runs `step-validate` on the recursively discovered YAML file list on every push/PR; also runs `shellcheck` over `scripts/*.sh`. `BUZ_REPO_PAT_V2` must be configured with read access to `schiplatv2/buz`; if absent, validation fails explicitly. GitHub does not expose repository secrets to fork PRs, so fork contributors need a maintainer-run validation or a branch within the repository before merge; required checks must not be treated as passing when validation is skipped.
+- **validate**: downloads the `buz-manager` binary from the private buz release (no Rust toolchain, no source build) and runs `buz-plugin validate` on the recursively discovered YAML file list on every push/PR; also runs `shellcheck` over `scripts/*.sh`. `BUZ_REPO_PAT_V2` must be configured with read access to `schiplatv2/buz`; if absent, validation fails explicitly. GitHub does not expose repository secrets to fork PRs, so fork contributors need a maintainer-run validation or a branch within the repository before merge; required checks must not be treated as passing when validation is skipped.
 
   Optional version pin — repo Settings → Secrets and variables → Actions → **Variables** tab:
 
@@ -147,7 +157,7 @@ Full spec: marketplace ADR §5 (`docs/design/step-marketplace.md` in the buz rep
 
 Every entry in `reviews.json` binds a review to a **content sha256** — any content change invalidates the badge automatically, so a reviewed v1.0 never launders trust for an unreviewed v1.1. The two namespaces carry different trust models:
 
-- **Official (`buz/*`) — human first review, CI tracking after.** A brand-new official template is never auto-blessed: once a maintainer reviews the exact file contents, the id is recorded with the same manual command community templates use (`scripts/gen_reviews.py --date <d> --commit <sha> buz/<name>`; both scripts read `plugins/buz/index.json`, so run `scripts/gen_index.py` first whenever the local copy is missing or stale — it is a gitignored build product). From then on CI keeps every version of that id fresh on green master — `step-validate` + `lint_runs` + the egress allowlist must pass for the exact content hash, and the allowlist itself is part of review, not a build fix. CI regenerates ci-source entries on every push to `master` (`scripts/gen_reviews.py --auto`) and commits the refreshed manifest.
+- **Official (`buz/*`) — human first review, CI tracking after.** A brand-new official template is never auto-blessed: once a maintainer reviews the exact file contents, the id is recorded with the same manual command community templates use (`scripts/gen_reviews.py --date <d> --commit <sha> buz/<name>`; both scripts read `plugins/buz/index.json`, so run `scripts/gen_index.py` first whenever the local copy is missing or stale — it is a gitignored build product). From then on CI keeps every version of that id fresh on green master — `buz-plugin validate` + `lint_runs` + the egress allowlist must pass for the exact content hash, and the allowlist itself is part of review, not a build fix. CI regenerates ci-source entries on every push to `master` (`scripts/gen_reviews.py --auto`) and commits the refreshed manifest.
 - **Community (`<author>/…`) — human-issued.** CI green is a prerequisite, never a substitute: a maintainer reviews the PR on GitHub, then records the entry using the canonical full ID from the YAML/index, e.g. `scripts/gen_reviews.py --date <d> --commit <sha> buz/telegram`. Manual invocation upserts the selected current content review and preserves unrelated review records.
 
 Managers can enforce it:

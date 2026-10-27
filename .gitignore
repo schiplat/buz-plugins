@@ -13,6 +13,13 @@ dist/
 # the deployed site. CI regenerates a byte-identical copy for deploys and
 # release assets (--merged writes the repo-root site view).
 
+# Signing keys NEVER live in the repo (the signature proves the index was not
+# rewritten; a committed key would prove nothing). Generate with
+# `buz-plugin keygen --out signing-key.json` and keep it in a CI secret.
+signing-key*.json
+*-signing-key.json
+*.ed25519
+
 # Node
 node_modules/
 frontend/dist/

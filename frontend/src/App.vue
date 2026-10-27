@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import {
   Check,
   Copy,
+  Download,
   ExternalLink,
   Hash,
   List,
@@ -27,7 +28,7 @@ import { copyText } from '@/lib/clipboard'
 import { T } from '@/ui-text'
 import type { StepLibrary, StepTemplate } from '@/types'
 import { groupPlugins, pluginHeading, selectPluginVersion, detailPageUrl, formatBuzRequirement, truncateDescription, compareVersions, type StepPlugin } from '@/lib/plugins'
-import { NEW_TEMPLATE_URL, REPO_URL, REQUEST_PLUGIN_URL } from '@/types'
+import { NEW_TEMPLATE_URL, PLUGIN_TOOL_URL, REPO_URL, REQUEST_PLUGIN_URL } from '@/types'
 
 const library = ref<StepLibrary>({ templates: [], unparseable: [] })
 const loading = ref(true)
@@ -251,6 +252,16 @@ onMounted(async () => {
           <span class="text-lg font-semibold tracking-tight">Buz Plugins Marketplace</span>
         </a>
         <div class="flex items-center gap-2">
+          <a
+            :href="PLUGIN_TOOL_URL"
+            target="_blank"
+            rel="noopener"
+            class="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+            :title="T.getToolTip"
+          >
+            <Download class="h-3.5 w-3.5" />
+            {{ T.getTool }}
+          </a>
           <a :href="REQUEST_PLUGIN_URL" target="_blank" rel="noopener" class="text-xs font-medium text-primary hover:underline">
             {{ T.request }}
           </a>
@@ -393,6 +404,13 @@ onMounted(async () => {
                   </Badge>
                   <Badge :variant="(plugin.latest.publisher || 'community') === 'official' ? 'official' : 'community'">
                     {{ (plugin.latest.publisher || 'community') === 'official' ? T.official : T.community }}
+                  </Badge>
+                  <Badge
+                    v-if="plugin.latest.requires_buz"
+                    variant="warn"
+                    :title="T.requiresBuzTip"
+                  >
+                    {{ T.requiresBuz }} {{ formatBuzRequirement(plugin.latest.requires_buz) }}
                   </Badge>
                 </div>
                 <div class="mt-1.5 flex items-center gap-1">
