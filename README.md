@@ -27,6 +27,9 @@ different question:
 Mirrors compare two `revision.json` files to detect drift without pulling
 the full index. Never hand-edit hashes — `scripts/gen_index.py` /
 `gen_reviews.py` (or the `buz-plugin` CLI) generate them from the specs.
+`buz-plugin index --check` will become the CI gate here: it fails when the
+committed manifests differ from what the specs produce (including a stale
+`meta.json` left by a deleted plugin).
 See [governance](docs/governance.md) for the review process.
 
 ## Templates
