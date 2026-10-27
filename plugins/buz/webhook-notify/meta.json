@@ -3,7 +3,7 @@
   "versions": [
     {
       "version": "1.0.0",
-      "file": "webhook-notify/1.0.0.yaml",
+      "file": "buz/webhook-notify/1.0.0.yaml",
       "sha256": "6823a2c56f09926d78c9f75e70a730899a94994cac13573a19d846429ee65277",
       "category": "notifications",
       "name": "Generic webhook notification",

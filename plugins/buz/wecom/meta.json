@@ -3,7 +3,7 @@
   "versions": [
     {
       "version": "1.0.0",
-      "file": "wecom/1.0.0.yaml",
+      "file": "buz/wecom/1.0.0.yaml",
       "sha256": "d37f9ca6003bdd9d1f94616aae59c5a111effac329c3169a8392e4f10e287978",
       "category": "notifications",
       "name": "WeCom group notification",

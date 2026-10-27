@@ -3,7 +3,7 @@
   "versions": [
     {
       "version": "1.0.0",
-      "file": "setup-ruby/1.0.0.yaml",
+      "file": "buz/setup-ruby/1.0.0.yaml",
       "sha256": "15f8e336b4c42c415604d99db868a4ed25a1ec79dc6487af9912b2dddbbec458",
       "category": "build",
       "name": "Ruby build environment (gem/bundler)",
@@ -18,7 +18,7 @@
     },
     {
       "version": "1.1.0",
-      "file": "setup-ruby/1.1.0.yaml",
+      "file": "buz/setup-ruby/1.1.0.yaml",
       "sha256": "36afa11b31430ae7edcc965964bdbe2149d5eae3e9a6eed2e595b5f7449c69f4",
       "category": "build",
       "name": "Ruby build environment (gem/bundler)",

@@ -3,7 +3,7 @@
   "versions": [
     {
       "version": "1.0.0",
-      "file": "archive/1.0.0.yaml",
+      "file": "buz/archive/1.0.0.yaml",
       "sha256": "680275ea94125f3946c720721ce0b0b108ac323c3fbfc0760f6fc0539994cafd",
       "category": "artifact",
       "name": "Archive workspace paths",
@@ -19,7 +19,7 @@
     },
     {
       "version": "1.1.0",
-      "file": "archive/1.1.0.yaml",
+      "file": "buz/archive/1.1.0.yaml",
       "sha256": "3f8ffbed675f0fdd72083a730ebd344a694f4f8b4b8df237764d647e9895f391",
       "category": "artifact",
       "name": "Archive workspace paths",

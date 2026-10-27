@@ -3,7 +3,7 @@
   "versions": [
     {
       "version": "1.0.0",
-      "file": "helm-upgrade/1.0.0.yaml",
+      "file": "buz/helm-upgrade/1.0.0.yaml",
       "sha256": "7de3f4c7947fe5d9e53730452465a73a5034069058714d44a8de927b69b5a6fc",
       "category": "deploy",
       "name": "Helm upgrade",

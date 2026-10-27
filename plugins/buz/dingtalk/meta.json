@@ -3,7 +3,7 @@
   "versions": [
     {
       "version": "1.0.0",
-      "file": "dingtalk/1.0.0.yaml",
+      "file": "buz/dingtalk/1.0.0.yaml",
       "sha256": "76c88bb744c72a5356cd2ca91f30f81ac4b1d62d31cdd987b4f5ba1febd521cb",
       "category": "notifications",
       "name": "DingTalk group notification",

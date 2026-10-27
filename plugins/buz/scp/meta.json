@@ -3,7 +3,7 @@
   "versions": [
     {
       "version": "1.0.0",
-      "file": "scp/1.0.0.yaml",
+      "file": "buz/scp/1.0.0.yaml",
       "sha256": "d6f38a21c4f2c8a090112bdc3f75b01136211a724479b34630257ae10842ab6a",
       "category": "deploy",
       "name": "Upload file to target host via scp",

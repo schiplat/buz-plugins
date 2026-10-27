@@ -3,7 +3,7 @@
   "versions": [
     {
       "version": "1.0.0",
-      "file": "docker/1.0.0.yaml",
+      "file": "buz/docker/1.0.0.yaml",
       "sha256": "7400edb2f661fcc4bc5832af716867cbb4fe91b98522a4fcb8da68802f1c5156",
       "category": "build",
       "name": "Docker image build and push",
@@ -19,7 +19,7 @@
     },
     {
       "version": "1.1.0",
-      "file": "docker/1.1.0.yaml",
+      "file": "buz/docker/1.1.0.yaml",
       "sha256": "59f898a5ad23720f4a30091761b17ada1d65423beba5a63137ffde0d7551295d",
       "category": "build",
       "name": "Docker image build and push",
