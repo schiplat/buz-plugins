@@ -394,6 +394,13 @@ onMounted(async () => {
                   <Badge :variant="(plugin.latest.publisher || 'community') === 'official' ? 'official' : 'community'">
                     {{ (plugin.latest.publisher || 'community') === 'official' ? T.official : T.community }}
                   </Badge>
+                  <Badge
+                    v-if="plugin.latest.requires_buz"
+                    variant="warn"
+                    :title="T.requiresBuzTip"
+                  >
+                    {{ T.requiresBuz }} {{ formatBuzRequirement(plugin.latest.requires_buz) }}
+                  </Badge>
                 </div>
                 <div class="mt-1.5 flex items-center gap-1">
                   <span class="font-mono text-xs text-muted-foreground">{{ plugin.id }} · v{{ plugin.latest.version }}</span>
