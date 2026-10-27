@@ -122,7 +122,12 @@ jobs:
           npm ci
           npm run build
 
+      # Best-effort: the tool lives in the PRIVATE schiplat/buz release, and a
+      # missing credential must not block the site build. Absence is surfaced
+      # as a warning annotation and the index is generated unsigned.
       - name: Install buz-plugin
+        id: buz-plugin
+        continue-on-error: true
         env:
           # Needs read access to the PRIVATE schiplat/buz repository (a
           # fine-grained PAT scoped to it). BUZ_PLUGIN_REPO_TOKEN takes
@@ -141,15 +146,22 @@ jobs:
             --dir "$DIR"
           tar -xzf "$DIR/buz-plugin-${BUZ_PLUGIN_VERSION}-linux-x86_64.tar.gz" -C "$DIR"
           echo "$DIR" >> "$GITHUB_PATH"
+          echo "available=true" >> "$GITHUB_OUTPUT"
           "$DIR/buz-plugin" --version
 
-      - name: Generate the index (signed when the key is available)
+      - name: Generate the index (signed when the tool and key are available)
         env:
           BUZ_PLUGIN_SIGNING_KEY: ${{ secrets.BUZ_PLUGIN_SIGNING_KEY }}
         run: |
           set -euo pipefail
           REV="${GITHUB_SHA}"
           AT="$(git log -1 --format=%cI)"
+          if ! command -v buz-plugin >/dev/null 2>&1; then
+            echo "::warning title=Index unsigned::buz-plugin could not be downloaded (private \" \
+              "repository credential missing) — falling back to scripts/gen_index.py"
+            python3 scripts/gen_index.py --revision "$REV" --updated-at "$AT"
+            exit 0
+          fi
           if [ -n "${BUZ_PLUGIN_SIGNING_KEY:-}" ]; then
             umask 077
             KEY="$RUNNER_TEMP/signing-key.json"
@@ -159,7 +171,7 @@ jobs:
             buz-plugin index --check --revision "$REV" --updated-at "$AT" --sign-key "$KEY"
           else
             # Fork PRs receive no secrets; the index still has to be valid.
-            echo "signing key unavailable — generating an unsigned index"
+            echo "::warning title=Index unsigned::signing key unavailable (fork PR?) — the index is published unsigned"
             buz-plugin index --revision "$REV" --updated-at "$AT"
           fi
 
