@@ -157,8 +157,7 @@ jobs:
           REV="${GITHUB_SHA}"
           AT="$(git log -1 --format=%cI)"
           if ! command -v buz-plugin >/dev/null 2>&1; then
-            echo "::warning title=Index unsigned::buz-plugin could not be downloaded (private \" \
-              "repository credential missing) — falling back to scripts/gen_index.py"
+            echo "::warning title=Index unsigned::buz-plugin unavailable (no credential for the private repo) - falling back to scripts/gen_index.py"
             python3 scripts/gen_index.py --revision "$REV" --updated-at "$AT"
             exit 0
           fi
