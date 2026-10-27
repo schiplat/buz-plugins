@@ -31,10 +31,17 @@ publish). **The private key is a CI secret and never lives in this
 repository** — see [Plugin Tooling](https://buz.schiplat.com/docs/01-architecture/authoring/plugin-tooling/)
 for the full procedure.
 
-The header's `sequence` sits inside the signed bytes and only advances when a
-plugin entry changes. A Manager that requires signatures remembers the highest
-sequence it accepted and refuses a lower one, so an older catalogue cannot be
-replayed; `issued_at` records when that catalogue version was issued.
+The same signing run produces `reviews.json.sig` when the ledger is present:
+under a trust anchor a Manager refuses a review ledger it cannot verify, so
+the badges cannot be forged by rewriting `reviews.json` alone. CI therefore
+refreshes the ledger *before* signing, and the deploy write-back commits the
+signature beside it.
+
+The index header's `sequence` sits inside the signed bytes and only advances
+when a plugin entry changes. A Manager that requires signatures remembers the
+highest sequence it accepted and refuses a lower one, so an older catalogue
+cannot be replayed; `issued_at` records when that catalogue version was
+issued.
 
 Mirrors compare two `revision.json` files to detect drift without pulling
 the full index. Never hand-edit hashes — `scripts/gen_index.py` /
