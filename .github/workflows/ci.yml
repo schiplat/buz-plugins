@@ -95,7 +95,7 @@ jobs:
         run: python3 scripts/check_plugin_images.py
 
       - name: Generate index (dry run)
-        run: python3 scripts/gen_index.py --merged /tmp/index.json && head /tmp/index.json
+        run: python3 scripts/gen_index.py && test -f plugins/index.json
 
       - name: Public fork PR validation notice
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true
