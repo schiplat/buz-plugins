@@ -1,0 +1,21 @@
+{
+  "id": "buz/env-render",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "file": "buz/env-render/1.0.0.yaml",
+      "sha256": "cc091ec312642c0b7d58080bb2ca3fff228594dbf372dd9d956c654e080c7a91",
+      "category": "config",
+      "name": "Render env file from a dotenv template",
+      "description": "Expand a dotenv-style template (env.example) into an env file, substituting ${secrets.NAME} placeholders from explicit `with:` values. Replaces the kernel `config.render` block with a plugin step: secrets are declared where they are used (GHA-style), masked in logs, and the substitution happens where the file lives. Fail/warn/blank missing policies, output mode, and backup rotation match the kernel behavior. Dual engine: shell renders inside the job workspace; engine: ssh (set `host:`) renders into an absolute directory on each target host. Requires bash where it runs. Values must be single-line (double-quoted values keep their inner text verbatim).",
+      "description_zh": "将 dotenv 风格模板（env.example）展开为 env 文件——从显式 `with:` 值替换 ${secrets.NAME} 占位符。以插件步骤替代内核 `config.render` 块：secret 在使用处声明（GHA 风格）、日志自动脱敏、替换发生在文件所在之处。缺失策略 fail/warn/blank、输出权限与备份轮换与内核行为一致。双引擎：shell 在任务工作区内渲染；engine: ssh（设置 `host:`）在目标主机的绝对目录内渲染。运行处需要 bash。值需为单行（双引号包裹的值内部原样保留）。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/env-render/1.0.0.yaml",
+      "engine": "shell",
+      "default_timeout": "2m",
+      "requires_buz": ">=1.8.1"
+    }
+  ]
+}
