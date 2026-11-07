@@ -2,15 +2,14 @@
 
 Official step-template marketplace for [Buz](https://github.com/schiplat/buz) — reusable pipeline steps (notifications, deploy helpers, health checks) referenced from pipelines via `uses:`.
 
-Browse the published catalog at **[plugins.buz.schiplat.com](https://plugins.buz.schiplat.com)**.
+Browse the published catalog at **[plugins.buz.schiplat.com](https://plugins.buz.schiplat.com)** — every plugin's purpose, inputs, masking, engines, and a usage example live on its catalog page; this README deliberately does not list them (the catalog is generated from the index and never drifts from it).
 
 ```yaml
 steps:
-  - name: notify
-    uses: buz/feishu@1.0.0
+  - name: my-step
+    uses: buz/<plugin>@<version>   # browse the catalog for ids and versions
     with:
-      webhook: ${secrets.FEISHU_WEBHOOK}
-      title: deploy done
+      <input>: ${secrets.<NAME>}
 ```
 
 ## Repository manifests
@@ -54,42 +53,11 @@ See [governance](docs/governance.md) for the review process.
 
 ## Templates
 
-| Step | Engine | Purpose |
-|------|--------|---------|
-| `buz/feishu` | shell | Feishu group-bot notification (job link, @all) |
-| `buz/dingtalk` | shell | DingTalk group-bot notification (optional HMAC signing) |
-| `buz/wecom` | shell | WeCom (WeChat Work) group-bot notification |
-| `buz/slack` | shell | Slack incoming webhook |
-| `buz/http-check` | shell | Readiness checks — HTTP status / TCP port / best-effort UDP polling (absorbs wait-for-tunnel) |
-| `buz/ssh-wait` | shell | Wait for SSH on a target host (after reboot/rebuild) |
-| `buz/oss-upload` | docker | Upload a workspace file to Alibaba Cloud OSS with ossutil v2 |
-| `buz/s3-upload` | docker | Upload a workspace file to S3 with AWS CLI v2 |
-| `buz/archive` | shell/ssh | Pack workspace paths into a tar.gz with sha256 checksum |
-| `buz/docker-compose` | ssh | Deploy a Docker Compose project on the target host (Buz 1.7.5+) |
-| `buz/scp` | shell | Copy a workspace file to a target host over scp — key auth, nothing installed on the target |
-| `buz/docker` | docker | Build and push an OCI image from a workspace context (requires Buz 1.8.1+ and `docker-socket` capability) |
-| `buz/docker-login` | shell/ssh | Registry login — Runner host by default, or target hosts via `engine: ssh` (pair with `buz/docker-logout`) |
-| `buz/docker-logout` | shell/ssh | Best-effort registry logout on the Runner host or target hosts via `engine: ssh` |
-| `buz/config-fetch` | shell/ssh | Download + unpack a config bundle (presigned OSS/S3/MinIO/R2 URL, optional Basic/header auth) — Runner workspace or target hosts via `engine: ssh` |
-| `buz/checkout` | shell | Check out a repo like actions/checkout: webhook commits via `BUZ_GIT_SHA`, branch/tag/SHA refs, shallow, submodules, token auth |
-| `buz/git-clone` | shell | Legacy clone template (superseded by `buz/checkout`; kept for existing pipelines) |
-| `buz/webhook-notify` | shell | Generic JSON webhook notifications with job metadata |
-| `buz/k8s-apply` | shell | Apply workspace manifests to Kubernetes with kubectl |
-| `buz/helm-upgrade` | shell | Helm upgrade --install from a workspace chart |
-| `buz/setup-rust` | docker | Rust build environment: pinned toolchain, on-demand rustup install, optional cargo cache |
-| `buz/setup-ruby` | docker | Ruby build environment (3.4/3.3) with gem/bundler caching |
-| `buz/setup-php` | docker | PHP build environment (8.4/8.3) with Composer and its cache |
-| `buz/setup-lua` | docker | Lua interpreter 5.4 / 5.3 / LuaJIT 2.1 (Debian-packaged) |
-| `buz/setup-python` | docker | Python build environment (3.14/3.13/3.12) with pip caching |
-| `buz/setup-node` | docker | Node.js build environment (24/22 LTS) with npm caching |
-| `buz/setup-java` | docker | Java build environment (Temurin JDK 21/25/17) with Gradle cache support |
-| `buz/setup-go` | docker | Go build environment (1.26/1.25) with module/build caching |
-
-Each `buz/setup-*` template (1.1.0) is a harness: it prepares the selected toolchain, then the step's own `run:` commands execute in the same shell (Buz 1.8.1+ appends them), starting in the step directory — `default_dir: source`, overridable per step with `work_dir`; the directory must resolve physically within the workspace. Version 1.0.0 templates remain available with their historical `script` and `workdir` inputs. Every step is an isolated container, so state travels between steps via workspace files, not the environment. With `cache: true` the package-manager cache lives under `<workspace>/.cache/` and is reused by later jobs on the same Runner. Builds download dependencies from the language ecosystems (crates.io, rubygems.org, packagist.org, PyPI, the npm registry, Maven Central, the Go module proxy, …); make sure Runner egress policy allows the endpoints your build needs. Template authoring conventions for image-backed plugins: [docs/image-template-conventions.md](docs/image-template-conventions.md).
+The catalog — every plugin, version, engine, input, and a usage example — lives at **[plugins.buz.schiplat.com](https://plugins.buz.schiplat.com)** and is generated from the signed index, so it can never drift from what a Manager actually resolves. Each plugin directory also carries its own `README.md` with full details.
 
 Missing a template you need? [Request a plugin](https://github.com/schiplat/buz-plugins/issues/new?template=plugin_request.yml) — open a wishlist issue and the maintainers/community will triage it; contributions under your own namespace are welcome.
 
-Docker templates require a Docker-enabled Runner and Linux `amd64` tool images that have been published and digest-pinned. Changes to an image's build context or its own YAML template automatically publish only that image from `master`; after a successful build, the workflow opens or updates a family-specific PR to pin its template to the published digest. See [image build, publishing, and runtime requirements](docs/plugin-images.md) for the optional `BUZ_PLUGIN_GITHUB_PR_TOKEN` needed to trigger CI on generated PRs. The upload templates are currently `1.0.2`; use their digest-pinned references for production.
+Image-backed plugins require a Docker-enabled Runner and digest-pinned Linux `amd64` tool images; how those images are built, published, and pinned: [docs/plugin-images.md](docs/plugin-images.md), with authoring conventions in [docs/image-template-conventions.md](docs/image-template-conventions.md).
 
 ## Use in your Manager
 
@@ -119,7 +87,7 @@ The example includes both Shell and digest-pinned Docker templates. Planning pri
 
 ## Authoring
 
-Step specs use `plugins/<namespace>/<name>/<version>.yaml` (for example `plugins/buz/feishu/1.0.0.yaml`). The namespace/name path follows the canonical step ID; multiple versions may coexist, and only YAML files are indexed. Every plugin directory must ship a non-empty `README.md` documenting the step's purpose, inputs, and a usage example — CI enforces this (`scripts/check_plugin_readmes.py`). Plugin names use a single technology noun (`docker`, `docker-compose`, `archive`, `setup-<lang>`, `feishu`) rather than verb phrases — the pipeline context supplies the verb. Governance and trust model — what the marketplace certifies, the official/community tiers, and the ssh engine policy: [docs/governance.md](docs/governance.md). Plugin-specific Docker build assets belong alongside that plugin in an `image/` subdirectory and are not scanned as templates. The canonical ID format is `<namespace>/<name>` (for example `buz/feishu`); optional `category` metadata is separate and never part of the ID. The `id` field is the canonical identity everywhere: use the complete ID in `uses:`, review commands, issues, and provenance. `@version` belongs on pipeline `uses:` references, while issue/review identifiers should use the ID itself (the issue title includes `@version` where useful). Required fields: `id`, `version` (`X.Y.Z`), `engine`, `run`. Inputs support `type` (string/number/boolean/choice/list), `required`, `default`, `masking`, `pattern`, `options`. Optional fields: `name`, `category`, `description`, `description_zh`, `author`, `author_url`, `source_repo`, `keywords`, `publisher` (`official` | `community`), `license`, `default_timeout`.
+Step specs use `plugins/<namespace>/<name>/<version>.yaml` (for example `plugins/buz/<name>/<version>.yaml`). The namespace/name path follows the canonical step ID; multiple versions may coexist, and only YAML files are indexed. Every plugin directory must ship a non-empty `README.md` documenting the step's purpose, inputs, and a usage example — CI enforces this (`scripts/check_plugin_readmes.py`). Plugin names use a single technology noun (`docker`, `archive`, `setup-<lang>`) rather than verb phrases — the pipeline context supplies the verb. Governance and trust model — what the marketplace certifies, the official/community tiers, and the ssh engine policy: [docs/governance.md](docs/governance.md). Plugin-specific Docker build assets belong alongside that plugin in an `image/` subdirectory and are not scanned as templates. The canonical ID format is `<namespace>/<name>` (for example `buz/<name>`); optional `category` metadata is separate and never part of the ID. The `id` field is the canonical identity everywhere: use the complete ID in `uses:`, review commands, issues, and provenance. `@version` belongs on pipeline `uses:` references, while issue/review identifiers should use the ID itself (the issue title includes `@version` where useful). Required fields: `id`, `version` (`X.Y.Z`), `engine`, `run`. Inputs support `type` (string/number/boolean/choice/list), `required`, `default`, `masking`, `pattern`, `options`. Optional fields: `name`, `category`, `description`, `description_zh`, `author`, `author_url`, `source_repo`, `keywords`, `publisher` (`official` | `community`), `license`, `default_timeout`.
 
 Community templates must declare `author` and `source_repo` — attribution is part of inclusion.
 
@@ -171,7 +139,7 @@ Full spec: marketplace ADR §5 (`docs/design/step-marketplace.md` in the buz rep
 Every entry in `reviews.json` binds a review to a **content sha256** — any content change invalidates the badge automatically, so a reviewed v1.0 never launders trust for an unreviewed v1.1. The two namespaces carry different trust models:
 
 - **Official (`buz/*`) — human first review, CI tracking after.** A brand-new official template is never auto-blessed: once a maintainer reviews the exact file contents, the id is recorded with the same manual command community templates use (`scripts/gen_reviews.py --date <d> --commit <sha> buz/<name>`; both scripts read `plugins/buz/index.json`, so run `scripts/gen_index.py` first whenever the local copy is missing or stale — it is a gitignored build product). From then on CI keeps every version of that id fresh on green master — `buz-plugin validate` + `lint_runs` + the egress allowlist must pass for the exact content hash, and the allowlist itself is part of review, not a build fix. CI regenerates ci-source entries on every push to `master` (`scripts/gen_reviews.py --auto`) and commits the refreshed manifest.
-- **Community (`<author>/…`) — human-issued.** CI green is a prerequisite, never a substitute: a maintainer reviews the PR on GitHub, then records the entry using the canonical full ID from the YAML/index, e.g. `scripts/gen_reviews.py --date <d> --commit <sha> buz/telegram`. Manual invocation upserts the selected current content review and preserves unrelated review records.
+- **Community (`<author>/…`) — human-issued.** CI green is a prerequisite, never a substitute: a maintainer reviews the PR on GitHub, then records the entry using the canonical full ID from the YAML/index, e.g. `scripts/gen_reviews.py --date <d> --commit <sha> buz/<name>`. Manual invocation upserts the selected current content review and preserves unrelated review records.
 
 Managers can enforce it:
 
@@ -185,14 +153,14 @@ Unreviewed templates resolve with a warning by default; the review status is rec
 
 ## Reporting problems
 
-- **Broken / incorrect template** → [open an issue](https://github.com/schiplat/buz-plugins/issues/new?template=report.yml) with the canonical full step ID (including `buz/` for official steps) and version, e.g. `buz/feishu@1.0.0`
+- **Broken / incorrect template** → [open an issue](https://github.com/schiplat/buz-plugins/issues/new?template=report.yml) with the canonical full step ID (including `buz/` for official steps) and version, e.g. `buz/<name>@<version>`
 - **Suspected backdoor / malicious behavior** → **do not post details publicly**: use [Private vulnerability reporting](https://github.com/schiplat/buz-plugins/security/advisories/new). Maintainers triage privately, respond within **7 days**, and publish an outcome after handling.
 
 Triage outcomes: benign → closed; violating → template **removed from the index** (takedown) and, when applicable, a note published; fixable → author PR with a version bump (content hash changes, so the review badge auto-invalidates until re-reviewed).
 
 ## Namespace note
 
-In Phase 1 (local index) a `uses:` reference is the complete template `id` plus `@version` — e.g. `buz/feishu@1.2.0`. The index `file` value is a repository-relative POSIX path (for example `plugins/buz/feishu/1.0.0.yaml`); consumers should resolve it relative to the index/repository root, never depend on an absolute build-machine path. Namespace→index-source bindings (`community/...` pointing at a configured remote index) arrive with Phase 2 `https` indexes.
+In Phase 1 (local index) a `uses:` reference is the complete template `id` plus `@version` — e.g. `buz/<name>@<version>`. The index `file` value is a repository-relative POSIX path (for example `plugins/buz/<name>/<version>.yaml`); consumers should resolve it relative to the index/repository root, never depend on an absolute build-machine path. Namespace→index-source bindings (`community/...` pointing at a configured remote index) arrive with Phase 2 `https` indexes.
 
 ## License
 
