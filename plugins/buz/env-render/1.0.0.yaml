@@ -1,0 +1,198 @@
+id: buz/env-render
+processes_secret_placeholders: true
+category: config
+name: Render env file from a dotenv template
+version: 1.0.0
+description: "Expand a dotenv-style template (env.example) into an env file, substituting ${secrets.NAME} placeholders from explicit `with:` values. Replaces the kernel `config.render` block with a plugin step: secrets are declared where they are used (GHA-style), masked in logs, and the substitution happens where the file lives. Fail/warn/blank missing policies, output mode, and backup rotation match the kernel behavior. Dual engine: shell renders inside the job workspace; engine: ssh (set `host:`) renders into an absolute directory on each target host. Requires bash where it runs. Values must be single-line (double-quoted values keep their inner text verbatim)."
+description_zh: "将 dotenv 风格模板（env.example）展开为 env 文件——从显式 `with:` 值替换 ${secrets.NAME} 占位符。以插件步骤替代内核 `config.render` 块：secret 在使用处声明（GHA 风格）、日志自动脱敏、替换发生在文件所在之处。缺失策略 fail/warn/blank、输出权限与备份轮换与内核行为一致。双引擎：shell 在任务工作区内渲染；engine: ssh（设置 `host:`）在目标主机的绝对目录内渲染。运行处需要 bash。值需为单行（双引号包裹的值内部原样保留）。"
+publisher: official
+author: "buz maintainers"
+keywords: [env, render, dotenv, template, config, secrets, 渲染, 配置, 环境变量]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/env-render/1.0.0.yaml
+engine: shell
+requires_buz: ">=1.8.1"
+engines: [shell, ssh]
+default_timeout: 2m
+inputs:
+  dest_dir:
+    type: string
+    required: true
+    description: 'Directory holding the template and receiving the output. engine: ssh → absolute path on each target host; shell → relative path inside the job workspace (same dual rule as buz/config-fetch).'
+  template:
+    type: string
+    required: true
+    description: Template filename inside dest_dir (for example env.example). Must differ from output.
+  output:
+    type: string
+    default: ".env"
+    description: Output filename inside dest_dir.
+  values:
+    type: string
+    required: true
+    masking: true
+    description: 'Substitution values, one `NAME=${secrets.NAME}` per line (Buz expands the references before the step runs). Every ${secrets.NAME} the template references must have a line here. Values must be single-line; wrap in double quotes to preserve leading/trailing spaces.'
+  on_missing:
+    type: string
+    default: "fail"
+    description: fail — refuse the render naming the missing reference; warn — write the key with an empty value, annotate the file with a WARNING comment, and list all missing references on stderr; blank — write the key with an empty value.
+  mode:
+    type: string
+    default: "0600"
+    description: Octal permission for the output file (for example 0600).
+  backup_keep:
+    type: number
+    default: "3"
+    description: Rotated backups of a previously existing output (output.bak.1 = most recent). 0 disables backups.
+run: |
+  set -euo pipefail
+
+  : "${INPUT_DEST_DIR:?dest_dir is required}"
+  : "${INPUT_TEMPLATE:?template is required}"
+  : "${INPUT_OUTPUT:?.env}"
+  : "${INPUT_VALUES:?values is required}"
+  : "${INPUT_ON_MISSING:-fail}"
+  : "${INPUT_MODE:-0600}"
+  : "${INPUT_BACKUP_KEEP:-3}"
+
+  case "$INPUT_ON_MISSING" in
+    fail|warn|blank) ;;
+    *) printf 'on_missing must be fail, warn or blank (got %s)\n' "$INPUT_ON_MISSING" >&2; exit 2 ;;
+  esac
+
+  # dest context (dual engine — same rule as buz/config-fetch): ssh → the
+  # absolute path on each target host; shell → inside the job workspace.
+  case "$INPUT_DEST_DIR" in
+    /*|*..*)
+      if [ "$BUZ_STEP_ENGINE" != "ssh" ]; then
+        printf 'dest_dir must be an absolute path with engine: ssh (got %s)\n' "$INPUT_DEST_DIR" >&2
+        exit 2
+      fi
+      ;;
+    *)
+      if [ "$BUZ_STEP_ENGINE" = "ssh" ]; then
+        printf 'relative dest_dir resolves inside the workspace — use an absolute dest_dir with engine: ssh (got %s)\n' "$INPUT_DEST_DIR" >&2
+        exit 2
+      fi
+      ;;
+  esac
+  case "$INPUT_OUTPUT" in
+    "$INPUT_TEMPLATE") printf 'output must differ from template (%s)\n' "$INPUT_OUTPUT" >&2; exit 2 ;;
+  esac
+
+  mkdir -p "$INPUT_DEST_DIR"
+  tpl="$INPUT_DEST_DIR/$INPUT_TEMPLATE"
+  out="$INPUT_DEST_DIR/$INPUT_OUTPUT"
+  if [ ! -f "$tpl" ]; then
+    printf 'template not found: %s\n' "$tpl" >&2
+    exit 3
+  fi
+
+  # ── substitution map from `values` (dotenv-style single lines) ──
+  declare -A MAP=()
+  lineno=0
+  while IFS= read -r raw || [ -n "$raw" ]; do
+    lineno=$((lineno + 1))
+    raw="${raw%$'\r'}"
+    [ -z "$raw" ] && continue
+    case "$raw" in \#*) continue ;; esac
+    case "$raw" in
+      *=*) ;;
+      *) printf 'values line %d is not KEY=VALUE\n' "$lineno" >&2; exit 2 ;;
+    esac
+    key="${raw%%=*}"
+    val="${raw#*=}"
+    key="$(printf '%s' "$key" | tr -d '[:space:]')"
+    if [ -z "$key" ]; then
+      printf 'values line %d has an empty key\n' "$lineno" >&2
+      exit 2
+    fi
+    case "$val" in
+      \"*\") val="${val#\"}"; val="${val%\"}" ;;
+    esac
+    MAP[$key]="$val"
+  done <<< "$INPUT_VALUES"
+
+  # ── expand line by line (mirrors the kernel render semantics) ──
+  missing_all=()
+  changed_missing=0
+  rendered="$(mktemp "$INPUT_DEST_DIR/.buz-env-render.XXXXXX")"
+  trap 'rm -f "$rendered"' EXIT
+  : > "$rendered"
+
+  while IFS= read -r line || [ -n "$line" ]; do
+    line="${line%$'\r'}"
+    # references on this line: ${secrets.NAME}
+    refs="$(printf '%s' "$line" | grep -oE '\$\{secrets\.[A-Za-z_][A-Za-z0-9_]*\}' | sort -u || true)"
+    line_missing=()
+    if [ -n "$refs" ]; then
+      while IFS= read -r ref; do
+        [ -z "$ref" ] && continue
+        name="${ref#\$\{secrets.\}}"; name="${name%\}}"
+        if [ -z "${MAP[$name]+set}" ]; then
+          line_missing+=("$name")
+          missing_all+=("$name")
+        fi
+      done <<< "$refs"
+    fi
+
+    # expand present references (quoted pattern → literal, value → verbatim)
+    for name in "${!MAP[@]}"; do
+      line="${line//"\${secrets.$name}"/"${MAP[$name]}"}"
+    done
+
+    key_part="${line%%=*}"
+    case "$line" in
+      *=*) ;;
+      *) printf '%s\n' "$line" >> "$rendered"; continue ;;
+    esac
+    if [ "${#line_missing[@]}" -gt 0 ]; then
+      case "$INPUT_ON_MISSING" in
+        fail)
+          printf 'render failed: %s is not in values (template %s)\n' \
+            "${line_missing[0]}" "$INPUT_TEMPLATE" >&2
+          exit 4
+          ;;
+        warn)
+          printf '# WARNING: %s missing at %s\n' \
+            "${line_missing[0]}" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$rendered"
+          printf '%s=\n' "$key_part" >> "$rendered"
+          ;;
+        blank)
+          printf '%s=\n' "$key_part" >> "$rendered"
+          ;;
+      esac
+    else
+      printf '%s\n' "$line" >> "$rendered"
+    fi
+  done < "$tpl"
+
+  if [ "$INPUT_ON_MISSING" = warn ] && [ "${#missing_all[@]}" -gt 0 ]; then
+    printf 'render completed with missing references: %s\n' \
+      "$(printf '%s ' "${missing_all[@]}" | sed 's/ $//')" >&2
+  fi
+
+  # ── backup rotation (output.bak.1 = most recent) ──
+  if [ -f "$out" ] && [ "$INPUT_BACKUP_KEEP" != "0" ]; then
+    i="$INPUT_BACKUP_KEEP"
+    while [ "$i" -gt 1 ]; do
+      [ -f "$out.bak.$((i - 1))" ] && mv -f "$out.bak.$((i - 1))" "$out.bak.$i"
+      i=$((i - 1))
+    done
+    cp -f "$out" "$out.bak.1"
+  fi
+
+  old_hash=""
+  [ -f "$out" ] && old_hash="$(sha256sum < "$out" | awk '{print $1}')"
+  new_hash="$(sha256sum < "$rendered" | awk '{print $1}')"
+  chmod "$INPUT_MODE" "$rendered"
+  mv -f "$rendered" "$out"
+  trap - EXIT
+
+  if [ "$old_hash" = "$new_hash" ]; then
+    printf 'env rendered (unchanged): %s\n' "$out"
+  else
+    printf 'env rendered: %s (changed)\n' "$out"
+  fi
+  printf 'backup_keep=%s mode=%s on_missing=%s\n' \
+    "$INPUT_BACKUP_KEEP" "$INPUT_MODE" "$INPUT_ON_MISSING"

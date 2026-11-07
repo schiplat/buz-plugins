@@ -123,6 +123,10 @@
       "registry"
     ]
   },
+  "buz/env-render": {
+    "hosts": [],
+    "endpoint_inputs": []
+  },
   "buz/docker-logout": {
     "hosts": [],
     "endpoint_inputs": [
