@@ -1,6 +1,16 @@
 {
   "reviews": [
     {
+      "id": "buz/env-render",
+      "version": "1.0.0",
+      "sha256": "cc091ec312642c0b7d58080bb2ca3fff228594dbf372dd9d956c654e080c7a91",
+      "reviewed_at": "2026-11-07",
+      "review_commit": "ddd9cec",
+      "scope": "official bootstrap: reviewed run block (placeholder matching only, no direct secret access), with: surface, egress-none",
+      "source": "human",
+      "category": "config"
+    },
+    {
       "id": "buz/archive",
       "version": "1.0.0",
       "sha256": "680275ea94125f3946c720721ce0b0b108ac323c3fbfc0760f6fc0539994cafd",
