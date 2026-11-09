@@ -57,8 +57,33 @@ META_FIELDS = (
     "engine",
     "default_timeout",
     "requires_buz",
+    "deprecated",
 )
 REQUIRES_BUZ_RE = re.compile(r"^(>=)?\d+\.\d+\.\d+$")
+# Metadata-only flags for versions whose YAML must stay byte-identical: editing
+# a published spec would change its content hash and break `@sha256:` pins.
+DEPRECATIONS_FILE = "deprecations.json"
+
+
+def load_deprecations(plugin_dir: Path) -> dict[tuple[str, str], str]:
+    path = plugin_dir / DEPRECATIONS_FILE
+    if not path.exists():
+        return {}
+    data = json.loads(path.read_text(encoding="utf-8"))
+    entries = data.get("deprecations", []) if isinstance(data, dict) else []
+    out: dict[tuple[str, str], str] = {}
+    for entry in entries:
+        try:
+            key = (entry["id"], entry["version"])
+            reason = entry["reason"]
+        except (KeyError, TypeError):
+            raise SystemExit(f"{path}: each deprecation needs id, version, and reason")
+        if not reason.strip():
+            raise SystemExit(f"{path}: {key[0]}@{key[1]} has an empty reason")
+        if key in out:
+            raise SystemExit(f"{path}: duplicate deprecation for {key[0]}@{key[1]}")
+        out[key] = reason.strip()
+    return out
 # A scalar whose whole value is one of these forms is a block scalar header
 # ("description: |"), not an inline value — skip the field.
 BLOCK_SCALAR_RE = re.compile(r"[|>][-+0-9]*\s*#?.*$")
@@ -241,6 +266,7 @@ def main() -> None:
     steps = []
     seen: dict[tuple[str, str], str] = {}
     namespaces: set[str] = set()
+    deprecations = load_deprecations(plugin_dir)
     for path in files:
         raw = path.read_text(encoding="utf-8")
         step_id = extract(ID_RE, raw, "id", path)
@@ -264,7 +290,18 @@ def main() -> None:
         if category:
             entry["category"] = category
         entry.update(meta)
+        if "deprecated" not in entry and key in deprecations:
+            entry["deprecated"] = deprecations[key]
         steps.append(entry)
+
+    unknown = [
+        key for key in deprecations if key not in seen
+    ]
+    if unknown:
+        raise SystemExit(
+            f"{plugin_dir / DEPRECATIONS_FILE}: deprecation entries match no "
+            f"published version: {', '.join(f'{i}@{v}' for i, v in unknown)}"
+        )
 
     if len(namespaces) > 1:
         raise SystemExit(
