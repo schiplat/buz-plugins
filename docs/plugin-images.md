@@ -50,17 +50,25 @@ The run-ID version tag identifies the build, while templates use immutable manif
 
 Removing an old template file does not remove or change its Docker image; the digest stays pullable for every pipeline still pinned to that version.
 
+## Base-image digest pinning
+
+Every Dockerfile `FROM` line carries the manifest-list digest its tag
+resolved to at pin time (`FROM golang:1.26-bookworm@sha256:…`), so rebuilding
+the same recipe is deterministic until a base is deliberately refreshed. The
+**`pin-base-images`** workflow (manual dispatch) re-resolves every base via
+the registry manifest API and opens one PR refreshing whatever moved
+upstream — the tag stays readable, only the digest updates. Merging that PR
+changes every family's build inputs: the publish workflow rebuilds all
+families and the usual per-family digest-pin PRs follow.
+
 ## Future hardening
 
-- **Base-image digest pinning** (`FROM golang:1.26-bookworm@sha256:…`): today
-  base tags are mutable, so rebuilding the same Dockerfile produces a
-  different digest. Pinning base images makes rebuilds deterministic. Landing
-  this changes every family's digest once — plan it as one coordinated bump
-  together with multi-arch (below), since both are digest-changing events.
 - **Multi-arch**: images are `linux/amd64`-only. Apple Silicon / arm64 hosts
   need `linux/arm64` legs (buildx manifest list); because a manifest-list
-  digest differs from the single-arch digest, this is also a coordinated
-  pin bump across all families.
+  digest differs from the single-arch digest, this is a coordinated
+  pin bump across all families. Cross-building toolchain images needs native
+  arm64 runners or QEMU emulation (slow for `RUN`-heavy recipes); plan the
+  runner budget before switching it on.
 
 ## Runtime requirements and credentials
 
