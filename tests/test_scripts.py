@@ -1,6 +1,7 @@
 import importlib.util
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -373,6 +374,66 @@ class PluginImageWorkflowTests(unittest.TestCase):
             with self.assertRaisesRegex(SystemExit, "refusing to replace an existing non-initial image tag"):
                 pin_script.pin_spec(root, "oss-tools", "sha256:" + "c" * 64)
 
+    def test_build_ledger_is_created_appended_and_idempotent(self):
+        pin_script = load_script("pin_plugin_image")
+        digest = "sha256:" + "a" * 64
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            spec_dir = root / "plugins/buz/oss-upload"
+            spec_dir.mkdir(parents=True)
+            (spec_dir / "1.0.0.yaml").write_text(
+                "id: buz/oss-upload\nversion: 1.0.0\n"
+                "source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/oss-upload/1.0.0.yaml\n"
+                "engine: docker\nimage: docker.io/schiplat/buz-plugins-oss-tools:1.0.0\n"
+            )
+            pinned = pin_script.pin_spec(root, "oss-tools", digest)
+            ledger = pin_script.write_build_ledger(
+                pinned,
+                "buz/oss-upload",
+                "docker.io/schiplat/buz-plugins-oss-tools",
+                digest,
+                commit="abc1234",
+                run_id="41",
+                date="2026-11-09",
+            )
+            self.assertEqual(ledger, spec_dir / "image" / "BUILDS.md")
+            text = ledger.read_text()
+            self.assertIn(
+                "# Image build ledger — buz/oss-upload (docker.io/schiplat/buz-plugins-oss-tools)",
+                text,
+            )
+            self.assertIn("| digest | pinned into | Dockerfile commit | workflow run | date |", text)
+            self.assertIn(
+                f"| {digest} | buz/oss-upload@1.0.0 | abc1234 | 41 | 2026-11-09 |", text
+            )
+            # Idempotent: the same digest+version must not duplicate a row.
+            pin_script.write_build_ledger(
+                pinned,
+                "buz/oss-upload",
+                "docker.io/schiplat/buz-plugins-oss-tools",
+                digest,
+                commit="abc1234",
+                run_id="41",
+                date="2026-11-09",
+            )
+            self.assertEqual(text, ledger.read_text())
+            # A different pin event appends; absent metadata renders as em dashes.
+            other = "sha256:" + "b" * 64
+            pin_script.write_build_ledger(
+                pinned,
+                "buz/oss-upload",
+                "docker.io/schiplat/buz-plugins-oss-tools",
+                other,
+                commit=None,
+                run_id=None,
+                date=None,
+            )
+            rows = [
+                line for line in ledger.read_text().splitlines() if line.startswith("| sha256:")
+            ]
+            self.assertEqual(len(rows), 2)
+            self.assertIn("| — | — |", rows[1])
+
     def test_workflow_publishes_only_changed_amd64_image_families(self):
         self.checker.main()
         workflow = yaml.safe_load((ROOT / ".github/workflows/publish-plugin-image.yml").read_text())
@@ -425,6 +486,9 @@ class PluginImageWorkflowTests(unittest.TestCase):
         self.assertIn("github.ref == 'refs/heads/master'", pin["if"])
         self.assertIn("BUZ_PLUGIN_GITHUB_PR_TOKEN || github.token", workflow_text)
         self.assertIn("gh pr create", workflow_text)
+        # The pin step feeds the build ledger (image/BUILDS.md).
+        self.assertIn('--commit "$GITHUB_SHA"', workflow_text)
+        self.assertIn('--run-id "$GITHUB_RUN_ID"', workflow_text)
         self.assertIn("gh pr edit", workflow_text)
         self.assertNotIn("gh pr merge", workflow_text)
         self.assertIn('title="[skip image build] Pin OSS upload image digest"', workflow_text)
@@ -1524,6 +1588,210 @@ class CheckoutTests(unittest.TestCase):
         result = self.run_checkout(ref="abc", into="sha-check")
         self.assertNotEqual(result.returncode, 0, "3-hex ref is neither branch nor valid SHA length")
         self.assertIn("7-40 hex", result.stderr)
+
+
+class EnvRenderTests(unittest.TestCase):
+    """buz/env-render 1.1.1 — POSIX sh rewrite.
+
+    The Runner executes `run:` blocks via `sh -e -c`, so every case here runs
+    under /bin/sh: the 1.1.0 bash-isms (`declare -A`, herestrings) fail there
+    on dash and macOS. These tests are the execution-level compat gate the
+    text lints cannot provide.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.spec = yaml.safe_load(
+            (ROOT / "plugins/buz/env-render/1.1.1.yaml").read_text()
+        )
+
+    def run_render(self, tpl_text, mappings, inputs=None, engine=None, prefix="BUZV_", prelude=None):
+        tmp = Path(tempfile.mkdtemp(prefix="buz-envrender-"))
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        dest = tmp / "config"
+        dest.mkdir()
+        (dest / "env.example").write_text(tpl_text)
+        for name, value in (prelude or {}).items():
+            (dest / name).write_text(value)
+        env = dict(os.environ)
+        for key in list(env):
+            if key.startswith(("BUZV_", "MYP_", "INPUT_", "BUZ_STEP_ENGINE")):
+                env.pop(key)
+        env.update({"PATH": os.defpath, "HOME": str(tmp)})
+        # Resolution-time injection of the template's input defaults.
+        env.setdefault("INPUT_DEST_DIR", "config")
+        env.setdefault("INPUT_TEMPLATE", "env.example")
+        env.setdefault("INPUT_OUTPUT", ".env")
+        env.setdefault("INPUT_MODE", "0600")
+        env.setdefault("INPUT_BACKUP_KEEP", "3")
+        for name, value in mappings.items():
+            env[f"{prefix}{name}"] = value
+        if engine is not None:
+            env["BUZ_STEP_ENGINE"] = engine
+        for key, value in (inputs or {}).items():
+            env[f"INPUT_{key.upper()}"] = value
+        result = subprocess.run(
+            ["/bin/sh", "-c", self.spec["run"]],
+            cwd=tmp,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+        return result, dest
+
+    def test_spec_contract(self):
+        self.assertEqual(self.spec["id"], "buz/env-render")
+        self.assertEqual(self.spec["engines"], ["shell", "ssh"])
+        self.assertEqual(self.spec["inputs"]["values_prefix"]["default"], "BUZV_")
+        self.assertEqual(self.spec["inputs"]["on_missing"]["default"], "fail")
+        # No masking input: values transit the env channel (Manager masks them).
+        self.assertFalse(any(i.get("masking") for i in self.spec["inputs"].values()))
+        # The run block must stay POSIX sh — the Runner executes `sh -e -c`.
+        run = self.spec["run"]
+        for bashism in ("declare -", "<<<", "pipefail", "$'", "local "):
+            self.assertNotIn(bashism, run, f"bashism in run block: {bashism}")
+
+    def test_renders_masked_values_and_keeps_unresolved_lines(self):
+        weird = "p&ss'w\"d$\\;`x`"
+        result, dest = self.run_render(
+            "A=plain\n# keep ${secrets.GONE} verbatim\nB=${secrets.TOKEN}:${secrets.HOST}\n",
+            {"TOKEN": weird, "HOST": "h.example"},
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        out = (dest / ".env").read_text()
+        self.assertIn(f"B={weird}:h.example\n", out)
+        self.assertIn("# keep ${secrets.GONE} verbatim\n", out)
+        self.assertIn("env rendered: ", result.stdout)
+        self.assertEqual((dest / ".env").stat().st_mode & 0o777, 0o600)
+
+    def test_on_missing_fail_is_the_default_and_refuses_the_render(self):
+        for on_missing in (None, "fail"):
+            with self.subTest(on_missing=on_missing):
+                inputs = {} if on_missing is None else {"on_missing": on_missing}
+                result, dest = self.run_render(
+                    "TOKEN=${secrets.TOKEN}\nOK=${secrets.OK}\n", {"OK": "fine"}, inputs
+                )
+                self.assertEqual(result.returncode, 4, result.stderr)
+                self.assertIn("render failed: TOKEN is not in values", result.stderr)
+                self.assertFalse((dest / ".env").exists())
+
+    def test_on_missing_warn_writes_empty_key_and_lists_missing(self):
+        result, dest = self.run_render(
+            "PAIR=${secrets.GOOD}:${secrets.BAD}\n", {"GOOD": "g"}, {"on_missing": "warn"}
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        out = (dest / ".env").read_text()
+        self.assertIn("# WARNING: BAD missing at ", out)
+        self.assertIn("PAIR=\n", out)
+        self.assertIn("render completed with missing references: BAD", result.stderr)
+
+    def test_on_missing_blank_writes_empty_key_quietly(self):
+        result, dest = self.run_render("X=${secrets.NOPE}\n", {}, {"on_missing": "blank"})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((dest / ".env").read_text(), "X=\n")
+
+    def test_backup_rotation_keep_3(self):
+        prelude = {
+            ".env": "V=old0\n",
+            ".env.bak.1": "V=old1\n",
+            ".env.bak.2": "V=old2\n",
+            ".env.bak.3": "V=old3\n",
+        }
+        result, dest = self.run_render("V=${secrets.V}\n", {"V": "new"}, prelude=prelude)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((dest / ".env").read_text(), "V=new\n")
+        self.assertEqual((dest / ".env.bak.1").read_text(), "V=old0\n")
+        self.assertEqual((dest / ".env.bak.2").read_text(), "V=old1\n")
+        self.assertEqual((dest / ".env.bak.3").read_text(), "V=old2\n")
+        self.assertFalse((dest / ".env.bak.4").exists())
+
+    def test_backup_keep_zero_disables_rotation(self):
+        result, dest = self.run_render(
+            "V=${secrets.V}\n", {"V": "new"}, {"backup_keep": "0"}, prelude={".env": "V=old\n"}
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse((dest / ".env.bak.1").exists())
+
+    def test_unchanged_render_reports_and_still_rotates_backup(self):
+        tpl = "V=${secrets.V}\n"
+        result, dest = self.run_render(tpl, {"V": "same"})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        result, dest = self.run_render(tpl, {"V": "same"}, prelude={".env": "V=same\n"})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("env rendered (unchanged): ", result.stdout)
+        self.assertEqual((dest / ".env.bak.1").read_text(), "V=same\n")
+
+    def test_crlf_stripped_and_missing_final_newline_added(self):
+        result, dest = self.run_render("A=${secrets.A}\r\nB=tail", {"A": "1"})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((dest / ".env").read_bytes(), b"A=1\nB=tail\n")
+
+    def test_substituted_values_are_not_rescanned_for_placeholders(self):
+        result, dest = self.run_render(
+            "X=${secrets.V}\nY=${secrets.OTHER}\n",
+            {"V": "mid${secrets.OTHER}end", "OTHER": "real"},
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        out = (dest / ".env").read_text()
+        self.assertIn("X=mid${secrets.OTHER}end\n", out)
+        self.assertIn("Y=real\n", out)
+
+    def test_multi_line_mapped_value_is_rejected(self):
+        result, _ = self.run_render("X=${secrets.V}\n", {"V": "a\nb"})
+        self.assertEqual(result.returncode, 5, result.stderr)
+        self.assertIn("must be single-line", result.stderr)
+
+    def test_input_validation_rejections(self):
+        cases = [
+            ({"dest_dir": "/tmp/buz-envrender-abs"}, 2, "absolute path with engine: ssh"),
+            ({}, 2, "absolute dest_dir with engine: ssh"),
+            ({"output": "env.example"}, 2, "must differ from template"),
+            ({"on_missing": "maybe"}, 2, "on_missing must be"),
+            ({"template": "nope.txt"}, 3, "template not found"),
+        ]
+        for inputs, expected_code, expected_error in cases:
+            with self.subTest(inputs=inputs):
+                engine = "ssh" if not inputs else None
+                result, _ = self.run_render("A=1\n", {}, inputs, engine=engine)
+                self.assertEqual(result.returncode, expected_code, result.stderr)
+                self.assertIn(expected_error, result.stderr)
+
+    def test_custom_values_prefix(self):
+        result, dest = self.run_render(
+            "T=${secrets.TK}\n", {"TK": "v"}, {"values_prefix": "MYP_"}, prefix="MYP_"
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((dest / ".env").read_text(), "T=v\n")
+
+    def test_script_side_defaults_apply_when_variables_absent(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            dest = tmp / "config"
+            dest.mkdir()
+            (dest / "env.example").write_text("T=${secrets.TK}\n")
+            env = dict(os.environ)
+            for key in list(env):
+                if key.startswith(("BUZV_", "INPUT_", "BUZ_STEP_ENGINE")):
+                    env.pop(key)
+            env.update({
+                "PATH": os.defpath,
+                "HOME": str(tmp),
+                "INPUT_DEST_DIR": "config",
+                "INPUT_TEMPLATE": "env.example",
+                "BUZV_TK": "v",
+            })
+            result = subprocess.run(
+                ["/bin/sh", "-c", self.spec["run"]],
+                cwd=tmp,
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=15,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual((dest / ".env").read_text(), "T=v\n")
+            self.assertIn("backup_keep=3", result.stdout)
 
 
 if __name__ == "__main__":

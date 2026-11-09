@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
@@ -146,13 +147,87 @@ def pin_spec(root: Path, family: str, digest: str) -> Path | None:
     return target_path
 
 
+LEDGER_HEADER = """\
+# Image build ledger — {step_id} ({image})
+#
+# Appended by scripts/pin_plugin_image.py on every digest pin: which template
+# version runs which image digest, and which git commit holds the Dockerfile
+# that produced the build. One row per pin event; digests are immutable, so a
+# published version always runs the digest pinned in its spec — later
+# Dockerfile edits affect only future pins, never the rows below.
+# `image/` describes the NEXT build only; the commit column is the recipe
+# behind each historical digest.
+
+| digest | pinned into | Dockerfile commit | workflow run | date |
+|---|---|---|---|---|
+"""
+
+
+def write_build_ledger(
+    target_path: Path,
+    step_id: str,
+    image: str,
+    digest: str,
+    commit: str | None,
+    run_id: str | None,
+    date: str | None,
+) -> Path:
+    """Append the pin event to `<plugin>/image/BUILDS.md` (created on first pin).
+
+    Idempotent per (digest, template version) so workflow reruns do not
+    duplicate rows.
+    """
+    ledger = target_path.parent / "image" / "BUILDS.md"
+    row_prefix = f"| {digest} | {step_id}@{target_path.stem} |"
+    if ledger.exists():
+        existing = ledger.read_text(encoding="utf-8")
+        if any(line.startswith(row_prefix) for line in existing.splitlines()):
+            return ledger
+    else:
+        ledger.parent.mkdir(parents=True, exist_ok=True)
+        existing = LEDGER_HEADER.format(step_id=step_id, image=image)
+    stamp = date if date else datetime.now(timezone.utc).date().isoformat()
+    row = (
+        f"| {digest} | {step_id}@{target_path.stem} | "
+        f"{commit if commit else '—'} | {run_id if run_id else '—'} | {stamp} |\n"
+    )
+    ledger.write_text(existing + ("" if existing.endswith("\n") else "\n") + row, encoding="utf-8")
+    return ledger
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--family", required=True, choices=sorted(FAMILIES))
     parser.add_argument("--digest", required=True)
     parser.add_argument("--root", type=Path, default=ROOT)
+    parser.add_argument(
+        "--commit",
+        help="git commit holding the image/ tree this digest was built from "
+        "(the workflow passes ${GITHUB_SHA})",
+    )
+    parser.add_argument(
+        "--run-id",
+        help="publish workflow run that built the digest (workflow passes $GITHUB_RUN_ID)",
+    )
+    parser.add_argument(
+        "--date",
+        help="ledger date stamp (defaults to today, UTC)",
+    )
     args = parser.parse_args()
-    pin_spec(args.root.resolve(), args.family, args.digest)
+    target_path = pin_spec(args.root.resolve(), args.family, args.digest)
+    if target_path is None:
+        return
+    step_id, image, _ = FAMILIES[args.family]
+    ledger = write_build_ledger(
+        target_path,
+        step_id,
+        image,
+        args.digest,
+        args.commit,
+        args.run_id,
+        args.date,
+    )
+    print(f"build ledger updated: {ledger}")
 
 
 if __name__ == "__main__":

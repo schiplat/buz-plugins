@@ -1,0 +1,242 @@
+id: buz/env-render
+processes_secret_placeholders: true
+category: config
+name: Render env file from a dotenv template
+version: 1.1.1
+description: "Expand a dotenv-style template (env.example) into an env file, substituting ${secrets.NAME} placeholders with values from the step's own environment. Map each referenced secret on the call site: `env: <values_prefix><NAME>: ${secrets.NAME}` — secrets transit the standard masked env channel and are declared where they are used. Replaces the kernel `config.render` block with a plugin step. Fail/warn/blank missing policies, output mode, and backup rotation match the kernel behavior; on_missing is enforced (1.1.0 never fired it — every discovered reference was pre-seeded into its lookup map). POSIX sh: runs under dash/ash/bash — no bash or GNU tools required. Dual engine: shell renders inside the job workspace; engine: ssh (set `host:`) renders into an absolute directory on each target host. Values must be single-line; mapped multi-line values are rejected."
+description_zh: "将 dotenv 风格模板（env.example）展开为 env 文件——用步骤自身环境变量中的值替换 ${secrets.NAME} 占位符。在调用侧映射每个引用的 secret：`env: <values_prefix><NAME>: ${secrets.NAME}`——secret 走标准脱敏 env 通道、在使用处声明。以插件步骤替代内核 `config.render` 块。缺失策略 fail/warn/blank、输出权限与备份轮换与内核行为一致；on_missing 真正生效（1.1.0 将所有发现的引用预置进查找表，策略从不触发）。POSIX sh：dash/ash/bash 均可运行，不依赖 bash 或 GNU 工具。双引擎：shell 在任务工作区内渲染；engine: ssh（设置 `host:`）在目标主机的绝对目录内渲染。值需为单行；映射到多行值的引用会被拒绝。"
+publisher: official
+author: "buz maintainers"
+keywords: [env, render, dotenv, template, config, secrets, posix, 渲染, 配置, 环境变量]
+license: Apache-2.0
+source_repo: https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/env-render/1.1.1.yaml
+engine: shell
+requires_buz: ">=1.8.1"
+engines: [shell, ssh]
+default_timeout: 2m
+inputs:
+  dest_dir:
+    type: string
+    required: true
+    description: 'Directory holding the template and receiving the output. engine: ssh → absolute path on each target host; shell → relative path inside the job workspace (same dual rule as buz/config-fetch).'
+  template:
+    type: string
+    required: true
+    description: Template filename inside dest_dir (for example env.example). Must differ from output.
+  output:
+    type: string
+    default: ".env"
+    description: Output filename inside dest_dir.
+  values_prefix:
+    type: string
+    default: "BUZV_"
+    description: 'Prefix for the environment variables that carry template values. Map each ${secrets.NAME} the template references by setting `env: <values_prefix><NAME>: ${secrets.NAME}` on the step — the plugin reads them from its own environment. A referenced name whose variable is unset counts as missing (on_missing policy). Values must be single-line.'
+  on_missing:
+    type: string
+    default: "fail"
+    description: fail — refuse the render naming the missing reference; warn — write the key with an empty value, annotate the file with a WARNING comment, and list all missing references on stderr; blank — write the key with an empty value.
+  mode:
+    type: string
+    default: "0600"
+    description: Octal permission for the output file (for example 0600).
+  backup_keep:
+    type: number
+    default: "3"
+    description: Rotated backups of a previously existing output (output.bak.1 = most recent). 0 disables backups.
+run: |
+  set -eu
+
+  : "${INPUT_DEST_DIR:?dest_dir is required}"
+  : "${INPUT_TEMPLATE:?template is required}"
+  # Real assignments, not `: "${VAR:-x}"` no-ops: the fallbacks below must
+  # actually apply when a caller omits the variable.
+  INPUT_OUTPUT=${INPUT_OUTPUT:-.env}
+  INPUT_VALUES_PREFIX=${INPUT_VALUES_PREFIX:-BUZV_}
+  INPUT_ON_MISSING=${INPUT_ON_MISSING:-fail}
+  INPUT_MODE=${INPUT_MODE:-0600}
+  INPUT_BACKUP_KEEP=${INPUT_BACKUP_KEEP:-3}
+  # The Runner injects BUZ_STEP_ENGINE; unset means a shell-engine context.
+  BUZ_STEP_ENGINE=${BUZ_STEP_ENGINE:-shell}
+
+  case "$INPUT_ON_MISSING" in
+    fail|warn|blank) ;;
+    *) printf 'on_missing must be fail, warn or blank (got %s)\n' "$INPUT_ON_MISSING" >&2
+       exit 2 ;;
+  esac
+
+  # dest context (dual engine — same rule as buz/config-fetch): ssh → the
+  # absolute path on each target host; shell → inside the job workspace.
+  case "$INPUT_DEST_DIR" in
+    /*|*..*)
+      if [ "$BUZ_STEP_ENGINE" != "ssh" ]; then
+        printf 'dest_dir must be an absolute path with engine: ssh (got %s)\n' "$INPUT_DEST_DIR" >&2
+        exit 2
+      fi
+      ;;
+    *)
+      if [ "$BUZ_STEP_ENGINE" = "ssh" ]; then
+        printf 'relative dest_dir resolves inside the workspace — use an absolute dest_dir with engine: ssh (got %s)\n' "$INPUT_DEST_DIR" >&2
+        exit 2
+      fi
+      ;;
+  esac
+  case "$INPUT_OUTPUT" in
+    "$INPUT_TEMPLATE")
+      printf 'output must differ from template (%s)\n' "$INPUT_OUTPUT" >&2
+      exit 2
+      ;;
+  esac
+
+  mkdir -p "$INPUT_DEST_DIR"
+  tpl="$INPUT_DEST_DIR/$INPUT_TEMPLATE"
+  out="$INPUT_DEST_DIR/$INPUT_OUTPUT"
+  if [ ! -f "$tpl" ]; then
+    printf 'template not found: %s\n' "$tpl" >&2
+    exit 3
+  fi
+
+  # ── which references map to an environment variable (<prefix><NAME>)? ──
+  # POSIX sh has no associative arrays: presence is checked against the
+  # process environment directly. A referenced NAME is missing iff its
+  # variable is unset; a mapped-but-empty value renders empty (documented).
+  prefix="$INPUT_VALUES_PREFIX"
+  # Literal prefix/suffix via quoted variables: escape sequences in inline
+  # patterns (`\$\{...\}`) do not match reliably across shells (bash 3.2 sh
+  # mode strips nothing), a quoted variable is literal everywhere.
+  ref_prefix='${secrets.'
+  ref_suffix='}'
+  missing_names=""
+  for ref in $(grep -oE '\$\{secrets\.[A-Za-z_][A-Za-z0-9_]*\}' "$tpl" | sort -u); do
+    name=${ref#"$ref_prefix"}
+    name=${name%"$ref_suffix"}
+    if printenv "${prefix}${name}" >/dev/null 2>&1; then
+      :
+    else
+      missing_names="$missing_names $name"
+    fi
+  done
+  missing_names=${missing_names# }
+
+  # ── expand line by line (mirrors the kernel render semantics) ──
+  # awk carries the substitution: literal replace with no regex/quoting
+  # hazards, single pass — substituted values are never re-scanned for
+  # placeholders. fail/multi-line errors go to a side file (POSIX awk has no
+  # /dev/stderr); the temp output is discarded by the EXIT trap.
+  rendered=$(mktemp "$INPUT_DEST_DIR/.buz-env-render.XXXXXX")
+  errfile=$(mktemp "$INPUT_DEST_DIR/.buz-env-render-err.XXXXXX")
+  trap 'rm -f "$rendered" "$errfile"' EXIT
+  : > "$rendered"
+
+  VALUES_PREFIX="$prefix"
+  BUZV_MISSING="$missing_names"
+  BUZV_TS=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+  BUZV_ERRFILE="$errfile"
+  # INPUT_ON_MISSING too: the script-side default is a shell variable — awk
+  # reads it from the environment, so it must be exported.
+  export VALUES_PREFIX BUZV_MISSING BUZV_TS BUZV_ERRFILE INPUT_ON_MISSING
+
+  rc=0
+  awk '
+    BEGIN {
+      prefix = ENVIRON["VALUES_PREFIX"]
+      policy = ENVIRON["INPUT_ON_MISSING"]
+      ts = ENVIRON["BUZV_TS"]
+      errfile = ENVIRON["BUZV_ERRFILE"]
+      n = split(ENVIRON["BUZV_MISSING"], miss, " ")
+      for (i = 1; i <= n; i++) if (miss[i] != "") ismiss[miss[i]] = 1
+    }
+    {
+      line = $0
+      sub(/\r$/, "", line)
+      orig = line
+      # pass 1: substitute every resolvable reference on the line
+      s = line
+      while (match(s, /\$\{secrets\.[A-Za-z_][A-Za-z0-9_]*\}/)) {
+        ref = substr(s, RSTART, RLENGTH)
+        name = substr(ref, 11)
+        sub(/\}$/, "", name)
+        if (!(name in ismiss)) {
+          val = ENVIRON[prefix name]
+          if (index(val, "\n") > 0) {
+            printf "value for %s must be single-line\n", name >> errfile
+            close(errfile)
+            exit 5
+          }
+          pos = index(line, ref)
+          while (pos > 0) {
+            line = substr(line, 1, pos - 1) val substr(line, pos + length(ref))
+            pos = index(line, ref)
+          }
+        }
+        s = substr(s, RSTART + RLENGTH)
+      }
+      if (index(line, "=") == 0) { print line; next }
+      # pass 2: first still-unresolved (missing) reference, in line order,
+      # detected on the ORIGINAL line so text inside substituted values is
+      # never mistaken for a placeholder
+      fm = ""
+      s = orig
+      while (match(s, /\$\{secrets\.[A-Za-z_][A-Za-z0-9_]*\}/)) {
+        name = substr(substr(s, RSTART, RLENGTH), 11)
+        sub(/\}$/, "", name)
+        if (name in ismiss) { fm = name; break }
+        s = substr(s, RSTART + RLENGTH)
+      }
+      if (fm == "") { print line; next }
+      key_part = line
+      sub(/=.*/, "", key_part)
+      if (policy == "fail") {
+        printf "render failed: %s is not in values (template %s)\n", fm, ENVIRON["INPUT_TEMPLATE"] >> errfile
+        close(errfile)
+        exit 4
+      }
+      if (policy == "warn") {
+        print "# WARNING: " fm " missing at " ts
+        print key_part "="
+        next
+      }
+      print key_part "="
+    }
+  ' "$tpl" >> "$rendered" || rc=$?
+
+  if [ "$rc" -ne 0 ]; then
+    if [ -s "$errfile" ]; then
+      cat "$errfile" >&2
+    else
+      printf 'template expansion failed (awk exit %s)\n' "$rc" >&2
+    fi
+    exit "$rc"
+  fi
+  rm -f "$errfile"
+
+  if [ "$INPUT_ON_MISSING" = warn ] && [ -n "$missing_names" ]; then
+    printf 'render completed with missing references: %s\n' "$missing_names" >&2
+  fi
+
+  # ── backup rotation (output.bak.1 = most recent) ──
+  if [ -f "$out" ] && [ "$INPUT_BACKUP_KEEP" != "0" ]; then
+    i="$INPUT_BACKUP_KEEP"
+    while [ "$i" -gt 1 ]; do
+      if [ -f "$out.bak.$((i - 1))" ]; then
+        mv -f "$out.bak.$((i - 1))" "$out.bak.$i"
+      fi
+      i=$((i - 1))
+    done
+    cp -f "$out" "$out.bak.1"
+  fi
+
+  # change detection without GNU sha256sum (POSIX cmp)
+  changed="changed"
+  if [ -f "$out" ] && cmp -s "$out" "$rendered"; then
+    changed="unchanged"
+  fi
+  chmod "$INPUT_MODE" "$rendered"
+  mv -f "$rendered" "$out"
+
+  if [ "$changed" = unchanged ]; then
+    printf 'env rendered (unchanged): %s\n' "$out"
+  else
+    printf 'env rendered: %s (changed)\n' "$out"
+  fi
+  printf 'backup_keep=%s mode=%s on_missing=%s\n' \
+    "$INPUT_BACKUP_KEEP" "$INPUT_MODE" "$INPUT_ON_MISSING"
