@@ -1388,6 +1388,54 @@ class LintRunsTests(unittest.TestCase):
         self.assertIn("buz/oss-upload", self.lint.TERMINAL_RUN_EXCEPTIONS)
         self.assertIn("buz/http-check", self.lint.TERMINAL_RUN_EXCEPTIONS)
 
+    # ── POSIX-sh compat gate ─────────────────────────────────────────────
+    def test_bashisms_are_flagged_one_reason_per_line(self):
+        hits = self.lint.bashism_hits([
+            "declare -A m=()",
+            "# declare inside a comment is fine",
+            "x=1",
+            "if [[ $a = b ]]; then :; fi",
+            "done <<< \"$refs\"",
+            "echo $'\\r'",
+        ])
+        self.assertEqual(len(hits), 4, "comments skipped, first pattern per line wins")
+        for _, reason in hits:
+            self.assertIn("bash-only", reason)
+
+    def test_posix_constructs_pass_the_gate(self):
+        hits = self.lint.bashism_hits([
+            "set -eu",
+            "[ \"$a\" = \"$b\" ] && echo same",
+            "total=$(grep -c . file || true)",
+            "case $x in a) : ;; esac",
+            "for name in $names; do echo \"$name\"; done",
+            "awk 'BEGIN{total+=1} END{print total}' data",
+            "printf '%s\\n' \"${x:-default}\"",
+            "cat <<-'EOF' >> out",
+            "line",
+        ])
+        self.assertEqual(hits, [], f"false positives: {hits}")
+
+    def test_frozen_bash_versions_are_exception_listed_by_id_and_version(self):
+        self.assertIn(("buz/env-render", "1.0.0"), self.lint.BASHISM_EXCEPTIONS)
+        self.assertIn(("buz/env-render", "1.1.1".replace("1.1.1", "1.1.0")), self.lint.BASHISM_EXCEPTIONS)
+        raw = "id: buz/env-render\nversion: 1.0.0\nrun: |\n  declare -A m=()\n"
+        self.assertEqual(self.lint.spec_id(raw), "buz/env-render")
+        self.assertEqual(self.lint.spec_version(raw), "1.0.0")
+
+    def test_all_plugin_run_blocks_are_posix_sh_clean(self):
+        findings = []
+        for path in self.lint.discover_plugin_files(ROOT / "plugins"):
+            raw = path.read_text(encoding="utf-8")
+            key = (self.lint.spec_id(raw), self.lint.spec_version(raw))
+            if key in self.lint.BASHISM_EXCEPTIONS:
+                continue
+            for start, body in self.lint.run_blocks(raw):
+                for offset, reason in self.lint.bashism_hits(body):
+                    findings.append(f"{path}:{start + offset + 1}: {reason}")
+        self.assertEqual(findings, [], "every official spec must parse under POSIX sh")
+
+
     def test_all_plugin_run_blocks_respect_the_terminal_run_rule(self):
         findings = []
         for path in self.lint.discover_plugin_files(ROOT / "plugins"):
