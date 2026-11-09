@@ -1,6 +1,6 @@
 {
-  "sequence": 3,
-  "issued_at": "2026-11-09T06:25:35Z",
+  "sequence": 4,
+  "issued_at": "2026-11-09T10:22:49Z",
   "steps": [
     {
       "id": "buz/archive",
@@ -221,7 +221,8 @@
       "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/env-render/1.0.0.yaml",
       "engine": "shell",
       "default_timeout": "2m",
-      "requires_buz": ">=1.8.1"
+      "requires_buz": ">=1.8.1",
+      "deprecated": "Unusable with the current validator (the multi-line masking `values:` input must be a single ${secrets.NAME} reference) and requires bash 4. Pin 1.1.1 instead."
     },
     {
       "id": "buz/env-render",
@@ -238,7 +239,8 @@
       "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/env-render/1.0.0.yaml",
       "engine": "shell",
       "default_timeout": "2m",
-      "requires_buz": ">=1.8.1"
+      "requires_buz": ">=1.8.1",
+      "deprecated": "Requires bash 4 (`declare -A`, herestrings) and fails on dash/ash/macOS sh; `on_missing` never fired. Pin 1.1.1 instead."
     },
     {
       "id": "buz/env-render",
