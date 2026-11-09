@@ -2,18 +2,22 @@
 """Verify the generated manifests agree with each other.
 
 `index.json` answers *what exists*; `reviews.json` answers *what was
-approved*. Every version published in the index must carry a review entry
-bound to the **same** content sha256:
+approved*; `revision.json` names *which catalog this is*. Every version
+published in the index must carry a review entry bound to the **same**
+content sha256, and the sentinel must equal the catalog digest:
 
-- a missing entry means `require_reviewed` deployments reject that version
-  (and a mirror trusting the index ships it unreviewed);
+- a missing review entry means `require_reviewed` deployments reject that
+  version (and a mirror trusting the index ships it unreviewed);
 - a mismatched sha256 means the review predates a content change, so the
-  badge no longer applies.
+  badge no longer applies;
+- a stale sentinel means mirrors compare a value that no longer describes
+  this catalog. The value is catalog-derived (`scripts/gen_revision.py`), so
+  this is always "forgot to regenerate", never a build-order race.
 
 This runs in the `validate` job. Reviews are refreshed by
 `scripts/gen_reviews.py --auto` (blessed ids) or a manual first review
-(new ids); the fix for a failure is always to refresh the ledger and commit
-it, never to edit hashes by hand.
+(new ids); the fix for a failure is always to regenerate and commit the
+manifest, never to edit hashes by hand.
 
 Usage:
 
@@ -22,6 +26,7 @@ Usage:
 Exit codes: 0 = consistent (warnings allowed), 1 = inconsistencies.
 """
 
+import hashlib
 import json
 import re
 import sys
@@ -47,6 +52,36 @@ def load_json(path: Path) -> dict:
     if not isinstance(data, dict):
         raise SystemExit(f"{path}: expected a JSON object")
     return data
+
+
+def catalog_revision(index: dict) -> str:
+    """Content identity of one catalog — see `scripts/gen_revision.py`.
+
+    Kept in sync with that script on purpose (both derive the same value from
+    the same `(id, version, sha256)` triples); a test pins the two together so
+    they cannot drift apart unnoticed.
+    """
+    steps = index.get("steps")
+    if not isinstance(steps, list):
+        raise SystemExit("index.json: expected a `steps` array")
+    material = sorted(
+        f"{step.get('id')}\0{step.get('version')}\0{str(step.get('sha256', '')).lower()}"
+        for step in steps
+        if isinstance(step, dict)
+    )
+    return hashlib.sha256("\n".join(material).encode("utf-8")).hexdigest()[:16]
+
+
+def check_revision(index: dict, revision: dict) -> list[str]:
+    """The sentinel must name the catalog this index publishes."""
+    expected = catalog_revision(index)
+    actual = revision.get("revision")
+    if actual == expected:
+        return []
+    return [
+        f"revision.json: stale sentinel {actual!r}, expected {expected!r} for this "
+        f"catalog — run `python3 scripts/gen_revision.py` and commit the result"
+    ]
 
 
 def check(index: dict, reviews: dict) -> tuple[list[str], list[str]]:
@@ -201,6 +236,7 @@ def main() -> int:
         index,
         load_json(resolve("plugins/reviews.json")),
     )
+    errors.extend(check_revision(index, load_json(resolve("plugins/revision.json"))))
     meta_errors, meta_warnings = check_meta(index, resolve("plugins"))
     errors.extend(meta_errors)
     warnings.extend(meta_warnings)

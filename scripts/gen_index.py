@@ -233,13 +233,9 @@ def main() -> None:
         help="skip per-plugin meta.json output (CI dry runs)",
     )
     parser.add_argument(
-        "--revision",
-        help="write plugins/revision.json with this source revision (CI commit sha); "
-        "mirrors compare it to detect drift without pulling the full index",
-    )
-    parser.add_argument(
         "--updated-at",
-        help="timestamp recorded beside the revision (ISO-8601, display only)",
+        help="catalog issue timestamp recorded as `issued_at` when the entries "
+        "changed (ISO-8601; inherited unchanged otherwise)",
     )
     parser.add_argument(
         "--sequence",
@@ -357,25 +353,11 @@ def main() -> None:
             )
         print(f"meta.json: {len(metas)} plugin(s) written")
 
-    # Revision sentinel — written LAST on purpose: mirrors publish content
-    # first and the sentinel commits the sync. Comparing two tiny sentinel
-    # files detects drift without pulling the full index; equal revisions
-    # mean mirror and canonical serve identical indexes. The index itself is
-    # byte-stable for unchanged entries (sequence/issued_at are reused), so
-    # the sentinel covers "this build ran" while the index covers "the
-    # catalog changed".
-    if args.revision:
-        sentinel_path = plugin_dir / "revision.json"
-        sentinel_path.write_text(
-            json.dumps(
-                {"revision": args.revision, "updated_at": args.updated_at},
-                indent=2,
-                ensure_ascii=False,
-            )
-            + "\n",
-            encoding="utf-8",
-        )
-        print(f"revision.json: written to {sentinel_path} (revision {args.revision})")
+    # The drift sentinel is a separate, catalog-derived artifact: run
+    # `python3 scripts/gen_revision.py` after this script (CI does) so
+    # revision.json always names the index it ships beside. Keeping it out of
+    # this script is what prevents a build marker (commit sha / wall clock)
+    # from leaking into a file that must equal the deployed copy.
 
 
 if __name__ == "__main__":

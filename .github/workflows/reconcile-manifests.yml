@@ -7,10 +7,11 @@ name: reconcile-manifests
 # generation order CI uses and opens a PR (PRs are allowed where pushes are
 # not) when the committed manifests no longer match the specs.
 #
-# Not a fix for "revision trails HEAD": revision.json records the commit the
-# manifests were generated FROM, so it is always one merge behind by
-# construction. Only catalog/ledger/meta drift opens a PR; a stale sentinel
-# alone is reported, not "fixed".
+# `revision.json` cannot trail HEAD: its value is derived from the published
+# (id, version, sha256) triples, so regeneration from the same catalog is
+# byte-identical and a delayed write-back leaves no drift. The summary below
+# compares the deployed sentinel with that derived value; only
+# catalog/ledger/meta drift opens a PR.
 
 on:
   schedule:
@@ -49,7 +50,8 @@ jobs:
           set -euo pipefail
           REV="$(git rev-parse --short HEAD)"
           AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          python3 scripts/gen_index.py --revision "$REV" --updated-at "$AT"
+          python3 scripts/gen_index.py --updated-at "$AT"
+          python3 scripts/gen_revision.py
           python3 scripts/gen_reviews.py --auto --date "$(date -u +%F)" --commit "$REV"
 
       # Same invariant the PR gate enforces: a version the index advertises
@@ -65,6 +67,7 @@ jobs:
         run: |
           set -euo pipefail
           HEAD_SHA="$(git rev-parse --short HEAD)"
+          DERIVED_REV="$(python3 scripts/gen_revision.py --print)"
           {
             echo "### Manifest state"
             echo ""
@@ -75,11 +78,12 @@ jobs:
             SITE_REV="$(curl -fsSL --max-time 15 \
               https://plugins.buz.schiplat.com/plugins/revision.json \
               | python3 -c 'import sys,json;print(json.load(sys.stdin).get("revision",""))' 2>/dev/null || true)"
+            echo "| derived revision | \`$DERIVED_REV\` |"
             echo "| deployed site revision | \`${SITE_REV:-unreachable}\` |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-          if [ -n "${SITE_REV:-}" ] && [ "$SITE_REV" != "$HEAD_SHA" ]; then
-            echo "::warning title=Deployed catalog lags HEAD::site publishes $SITE_REV, source HEAD is $HEAD_SHA — check the deploy-site job"
+          if [ -n "${SITE_REV:-}" ] && [ "$SITE_REV" != "$DERIVED_REV" ]; then
+            echo "::warning title=Deployed catalog lags source::site publishes $SITE_REV, source derives $DERIVED_REV from HEAD $HEAD_SHA — check the deploy-site job"
           fi
 
           if ! python3 scripts/manifest_drift.py; then

@@ -1,4 +1,6 @@
+import contextlib
 import importlib.util
+import io
 import json
 import os
 import shutil
@@ -2282,6 +2284,127 @@ class ResolveBaseDigestsTests(unittest.TestCase):
                 self.assertIn("@sha256:", dockerfile.read_text())
                 # Current digests → --check passes silently.
                 self.pinner.main(["--check"], resolver=fake)
+
+
+class RevisionSentinelTests(unittest.TestCase):
+    """Catalog-derived drift sentinel (scripts/gen_revision.py + the validate gate).
+
+    `revision.json` must name the catalog, never a build: a value that moves
+    on every build can only trail HEAD, which is exactly the drift the
+    committed copy must not have. The manager (and mirrors) compare two
+    sentinels for **equality** only, so a content identity is sufficient.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.gen_revision = load_script("gen_revision")
+        cls.checker = load_script("check_manifest_consistency")
+
+    @staticmethod
+    def sha(char: str) -> str:
+        return char * 64
+
+    @staticmethod
+    def index(steps, sequence=1, issued_at="2026-01-01T00:00:00Z"):
+        return {"sequence": sequence, "issued_at": issued_at, "steps": steps}
+
+    def test_derivation_is_stable_across_build_metadata_and_entry_order(self):
+        a = {"id": "buz/a", "version": "1.0.0", "sha256": self.sha("a"), "category": "config"}
+        b = {"id": "buz/b", "version": "2.0.0", "sha256": self.sha("b")}
+        one = self.gen_revision.catalog_revision(self.index([a, b], sequence=3))
+        two = self.gen_revision.catalog_revision(
+            self.index([dict(b), dict(a)], sequence=99, issued_at="2030-12-31T23:59:59Z")
+        )
+        self.assertEqual(
+            one, two, "build metadata and entry order must not move the sentinel"
+        )
+        self.assertRegex(one, r"^[0-9a-f]{16}$")
+
+    def test_derivation_changes_only_when_the_catalog_changes(self):
+        base = [{"id": "buz/a", "version": "1.0.0", "sha256": self.sha("a")}]
+        baseline = self.gen_revision.catalog_revision(self.index(base))
+        self.assertEqual(
+            baseline, self.gen_revision.catalog_revision(self.index(list(base)))
+        )
+        for variant in (
+            [{"id": "buz/a", "version": "1.0.0", "sha256": self.sha("b")}],  # content
+            [{"id": "buz/a", "version": "1.0.1", "sha256": self.sha("a")}],  # version
+            [{"id": "buz/c", "version": "1.0.0", "sha256": self.sha("a")}],  # id
+            base + [{"id": "buz/a", "version": "1.0.1", "sha256": self.sha("b")}],
+        ):
+            self.assertNotEqual(
+                baseline,
+                self.gen_revision.catalog_revision(self.index(variant)),
+                f"sentinel did not move for {variant}",
+            )
+
+    def test_checker_and_generator_derive_the_same_value(self):
+        index = self.index(
+            [
+                {"id": "buz/a", "version": "1.0.0", "sha256": self.sha("a")},
+                {"id": "buz/b", "version": "0.1.0", "sha256": self.sha("b")},
+            ]
+        )
+        self.assertEqual(
+            self.checker.catalog_revision(index),
+            self.gen_revision.catalog_revision(index),
+            "the gate and the generator must agree or the gate is unreachable",
+        )
+
+    def test_stale_sentinel_is_rejected_with_the_regeneration_hint(self):
+        index = self.index([{"id": "buz/a", "version": "1.0.0", "sha256": self.sha("a")}])
+        errors = self.checker.check_revision(
+            index, {"revision": "0123456789abcdef", "updated_at": "2026-01-01T00:00:00Z"}
+        )
+        self.assertEqual(len(errors), 1)
+        self.assertIn("stale sentinel", errors[0])
+        self.assertIn("gen_revision.py", errors[0])
+
+    def test_current_sentinel_passes(self):
+        index = self.index([{"id": "buz/a", "version": "1.0.0", "sha256": self.sha("a")}])
+        current = {"revision": self.gen_revision.catalog_revision(index)}
+        self.assertEqual(self.checker.check_revision(index, current), [])
+
+    def test_print_mode_writes_nothing_and_write_mode_records_issued_at(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            index_path = root / "index.json"
+            out_path = root / "revision.json"
+            index = self.index(
+                [{"id": "buz/a", "version": "1.0.0", "sha256": self.sha("a")}],
+                issued_at="2026-02-03T04:05:06Z",
+            )
+            index_path.write_text(json.dumps(index), encoding="utf-8")
+
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                self.assertEqual(
+                    self.gen_revision.main(
+                        [
+                            "--index",
+                            str(index_path),
+                            "--output",
+                            str(out_path),
+                            "--print",
+                        ]
+                    ),
+                    0,
+                )
+            self.assertFalse(out_path.exists(), "--print must not write")
+            self.assertEqual(
+                out.getvalue().strip(), self.gen_revision.catalog_revision(index)
+            )
+
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(
+                    self.gen_revision.main(
+                        ["--index", str(index_path), "--output", str(out_path)]
+                    ),
+                    0,
+                )
+            written = json.loads(out_path.read_text(encoding="utf-8"))
+            self.assertEqual(written["revision"], self.gen_revision.catalog_revision(index))
+            self.assertEqual(written["updated_at"], "2026-02-03T04:05:06Z")
 
 
 if __name__ == "__main__":
