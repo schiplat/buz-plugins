@@ -42,9 +42,68 @@ TERMINAL_RUN_EXCEPTIONS = {
     "buz/ssh-wait",  # probe: `exit 1` is how the step reports timeout
 }
 
+# ── POSIX-sh compat gate ─────────────────────────────────────────────────
+# The Runner executes `run:` blocks via `sh -e -c` (crates/runner
+# engine/shell.rs), and the ssh engine prepends exports to the same line —
+# so a template's run block must parse under POSIX sh. Bash-only constructs
+# kill the step on Debian/Ubuntu (dash), Alpine (ash), and macOS (bash 3.2)
+# with anything from a syntax error to a silent `set -e` early exit. Text
+# review cannot be trusted to catch this (env-render 1.0.0 shipped
+# `declare -A` and ran on none but RHEL-family hosts), so the lint does.
+# Case-sensitive matching on purpose: `select`/`source`/`function` are only
+# keywords when lowercase and line-initial.
+BASHISM_PATTERNS = [
+    (r"\b(?:declare|typeset)\b", "bash-only: declare/typeset — absent from dash/ash; assign directly or use export"),
+    (r"\[\[", "bash-only: [[ ]] compound test — use [ ] with ="),
+    (r"<<<", "bash-only: herestring <<< — use printf | while read"),
+    (r"\$'", "bash-only: ANSI-C quoting $'…' — use printf/tr for control characters"),
+    (r"<\(|>\(", "bash-only: process substitution — use a temp file"),
+    (r"\$\{!", "bash-only: indirect/array-key expansion ${!name}"),
+    (r"^\s*[A-Za-z_][A-Za-z0-9_]*=\(", "bash-only: array assignment NAME=(…) — POSIX sh has no arrays"),
+    (r"^\s*[A-Za-z_][A-Za-z0-9_]*\+=", 'bash-only: append assignment NAME+=… — write NAME="${NAME}…"'),
+    (r"\$\{[A-Za-z_][A-Za-z0-9_]*:[0-9]", "bash-only: substring ${var:offset} — use awk/cut"),
+    (r"\$\{[A-Za-z_][A-Za-z0-9_]*(,,|\^\^)", "bash-only: case modification ${var,,}/${var^^} — use tr"),
+    (r"^\s*select\s", "bash-only: select loop"),
+    (r"\bcoproc\b", "bash-only: coproc"),
+    (r"^\s*source\s", "bash-only: source — use `. ./script`"),
+    (r"^\s*function\s", "bash-only: function keyword — write name() …"),
+    (r"\bshopt\b", "bash-only: shopt"),
+]
+
+# (plugin_id, version) → human reason. Published specs are content-frozen
+# (fixes ship as new versions), so the bash-era env-render releases stay
+# listed until they age out of every Manager's local index.
+BASHISM_EXCEPTIONS = {
+    ("buz/env-render", "1.0.0"): "bash-only original shipped before this gate; frozen at publish — 1.1.1+ is the POSIX line",
+    ("buz/env-render", "1.1.0"): "env-channel redesign, still bash; frozen at publish — 1.1.1+ is the POSIX line",
+}
+
+
+def bashism_hits(body: list[str]) -> list[tuple[int, str]]:
+    """Return (offset, reason) for bash-only constructs, one per line.
+
+    Comment lines are skipped; the first matching pattern per line wins so a
+    line like `declare -A m=()` reports once, not twice.
+    """
+    hits: list[tuple[int, str]] = []
+    for offset, line in enumerate(body):
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        for pattern, reason in BASHISM_PATTERNS:
+            if re.search(pattern, stripped):
+                hits.append((offset, reason))
+                break
+    return hits
+
 
 def spec_id(raw: str) -> str:
     match = re.search(r"^id:\s*(\S+)", raw, re.MULTILINE)
+    return match.group(1) if match else ""
+
+
+def spec_version(raw: str) -> str:
+    match = re.search(r"^version:\s*['\"]?([^'\"\s]+)", raw, re.MULTILINE)
     return match.group(1) if match else ""
 
 
@@ -162,12 +221,20 @@ def main() -> None:
                     f"    {stripped}"
                 )
 
+        # POSIX-sh compat gate (see BASHISM_PATTERNS). Exceptions are keyed
+        # by (id, version): published specs are frozen, fixes are new versions.
+        if (plugin_id, spec_version(raw)) in BASHISM_EXCEPTIONS:
+            continue
+        for start, body in run_blocks(raw):
+            for offset, reason in bashism_hits(body):
+                findings.append(f"{path}:{start + offset + 1}: {reason}\n    {body[offset].strip()}")
+
     if findings:
         print(f"lint: {len(findings)} finding(s) — every hit needs a human reason:")
         for finding in findings:
             print(f"  - {finding}")
         raise SystemExit(1)
-    print(f"lint: clean ({len(files)} spec(s))")
+    print(f"lint: clean ({len(files)} spec(s), POSIX-sh gate on)")
 
 
 if __name__ == "__main__":

@@ -30,7 +30,7 @@ carry none of those claims — they are distributed, not certified.
    binds it to the content sha256.
 2. **CI hash tracking.** After that, green master re-binds the hash on every
    content change: `buz-plugin validate` (schema), `lint_runs` (malice
-   heuristics), and the egress baseline must all pass.
+   heuristics + the POSIX-sh compat gate), and the egress baseline must all pass.
 3. **Egress baseline.** Each official template declares where it may connect:
    literal hosts as an upper bound, and every network-touching input listed
    exactly. Changing the baseline is part of review — the file is the
