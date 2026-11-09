@@ -1,6 +1,6 @@
 {
-  "sequence": 2,
-  "issued_at": "2026-11-06T12:45:48Z",
+  "sequence": 3,
+  "issued_at": "2026-11-09T06:25:35Z",
   "steps": [
     {
       "id": "buz/archive",
@@ -219,6 +219,40 @@
       "publisher": "official",
       "license": "Apache-2.0",
       "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/env-render/1.0.0.yaml",
+      "engine": "shell",
+      "default_timeout": "2m",
+      "requires_buz": ">=1.8.1"
+    },
+    {
+      "id": "buz/env-render",
+      "version": "1.1.0",
+      "file": "buz/env-render/1.1.0.yaml",
+      "sha256": "ad84de2efd857547af570cf0bae5ae4db9a976c7d3f853fad44c940523689337",
+      "category": "config",
+      "name": "Render env file from a dotenv template",
+      "description": "Expand a dotenv-style template (env.example) into an env file, substituting ${secrets.NAME} placeholders with values from the step's own environment. Map each referenced secret on the call site: `env: <values_prefix><NAME>: ${secrets.NAME}` — secrets transit the standard masked env channel and are declared where they are used. Replaces the kernel `config.render` block with a plugin step. Fail/warn/blank missing policies, output mode, and backup rotation match the kernel behavior. Dual engine: shell renders inside the job workspace; engine: ssh (set `host:`) renders into an absolute directory on each target host. Requires bash where it runs. Values must be single-line.",
+      "description_zh": "将 dotenv 风格模板（env.example）展开为 env 文件——用步骤自身环境变量中的值替换 ${secrets.NAME} 占位符。在调用侧映射每个引用的 secret：`env: <values_prefix><NAME>: ${secrets.NAME}`——secret 走标准脱敏 env 通道、在使用处声明。以插件步骤替代内核 `config.render` 块。缺失策略 fail/warn/blank、输出权限与备份轮换与内核行为一致。双引擎：shell 在任务工作区内渲染；engine: ssh（设置 `host:`）在目标主机的绝对目录内渲染。运行处需要 bash。值需为单行。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/env-render/1.0.0.yaml",
+      "engine": "shell",
+      "default_timeout": "2m",
+      "requires_buz": ">=1.8.1"
+    },
+    {
+      "id": "buz/env-render",
+      "version": "1.1.1",
+      "file": "buz/env-render/1.1.1.yaml",
+      "sha256": "e0ebbd7c33c1bd0f011fcf932246f95a619ef3cd84c0aa47e6eb674e2130d4ba",
+      "category": "config",
+      "name": "Render env file from a dotenv template",
+      "description": "Expand a dotenv-style template (env.example) into an env file, substituting ${secrets.NAME} placeholders with values from the step's own environment. Map each referenced secret on the call site: `env: <values_prefix><NAME>: ${secrets.NAME}` — secrets transit the standard masked env channel and are declared where they are used. Replaces the kernel `config.render` block with a plugin step. Fail/warn/blank missing policies, output mode, and backup rotation match the kernel behavior; on_missing is enforced (1.1.0 never fired it — every discovered reference was pre-seeded into its lookup map). POSIX sh: runs under dash/ash/bash — no bash or GNU tools required. Dual engine: shell renders inside the job workspace; engine: ssh (set `host:`) renders into an absolute directory on each target host. Values must be single-line; mapped multi-line values are rejected.",
+      "description_zh": "将 dotenv 风格模板（env.example）展开为 env 文件——用步骤自身环境变量中的值替换 ${secrets.NAME} 占位符。在调用侧映射每个引用的 secret：`env: <values_prefix><NAME>: ${secrets.NAME}`——secret 走标准脱敏 env 通道、在使用处声明。以插件步骤替代内核 `config.render` 块。缺失策略 fail/warn/blank、输出权限与备份轮换与内核行为一致；on_missing 真正生效（1.1.0 将所有发现的引用预置进查找表，策略从不触发）。POSIX sh：dash/ash/bash 均可运行，不依赖 bash 或 GNU 工具。双引擎：shell 在任务工作区内渲染；engine: ssh（设置 `host:`）在目标主机的绝对目录内渲染。值需为单行；映射到多行值的引用会被拒绝。",
+      "author": "buz maintainers",
+      "publisher": "official",
+      "license": "Apache-2.0",
+      "source_repo": "https://github.com/schiplat/buz-plugins/blob/master/plugins/buz/env-render/1.1.1.yaml",
       "engine": "shell",
       "default_timeout": "2m",
       "requires_buz": ">=1.8.1"
