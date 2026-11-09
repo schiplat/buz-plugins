@@ -14,14 +14,44 @@ steps:
 
 ## Repository manifests
 
-Three generated files at the source root (`plugins/`) — each answers a
-different question:
+Three generated files at the source root (`plugins/`) — plus one per-plugin
+`meta.json` — each answers a different question:
 
 | file | answers | refreshed |
 |------|---------|-----------|
 | [`plugins/index.json`](plugins/index.json) | **what exists** — signed `sequence` + `issued_at` header, then every plugin version with content sha256 and scalar meta | CI on green master; snapshot tags attach a copy |
 | [`plugins/reviews.json`](plugins/reviews.json) | **what humans approved** — the review ledger (content hashes) | human review + CI badge refresh |
 | [`plugins/revision.json`](plugins/revision.json) | **what is freshest** — drift sentinel (commit sha + time) | CI, written last |
+| `plugins/buz/<id>/meta.json` | **what one plugin contains** — its versions, files, and hashes (fetched for a single-plugin refresh) | same run as the index |
+
+All of them are generated **from the same tree, in one run** — index →
+per-plugin `meta.json` → `revision.json` last, then the review ledger refresh
+before signing. A source root may also carry `deprecations.json`: an overlay
+that flags published versions as deprecated (carried into index/meta as
+`deprecated`) without editing their immutable YAML or changing content hashes. Consistency is enforced, not assumed:
+
+- `scripts/check_manifest_consistency.py` (run by the `validate` job) fails
+  when a version in `index.json` has no review entry bound to the same
+  `sha256`, when the ledger binds an older hash, or when an indexed version is
+  missing from (or disagrees with) its plugin's `meta.json`. A missing badge
+  is exactly what `require_reviewed` deployments reject; a stale `meta.json`
+  is what a single-plugin refresh would serve.
+- The index/meta drift gate regenerates and compares via `git status`, so a
+  `meta.json` that was never committed (untracked) fails too — `git diff` alone
+  would not see it.
+- `.github/workflows/reconcile-manifests.yml` (daily) re-runs the same
+  generation order and **opens a PR** when the committed manifests no longer
+  match the specs.
+
+> **The deployed site is the runtime truth.** CI refreshes the manifests on
+> green `master` and writes them back with a bot commit, but that push is
+> best-effort — the master ruleset blocks `GITHUB_TOKEN` pushes on personal
+> accounts, and the `reconcile-manifests` PR is the permitted path. The site
+> (`plugins.buz.schiplat.com/plugins/`) is therefore always current; the copies
+> in git are the last reconciled snapshot. Air-gapped mirrors should take a
+> catalog snapshot tag or the site's manifest set, and run
+> `scripts/check_manifest_consistency.py` after each update — a plain
+> `git clone` of `master` can lag behind the published catalog.
 
 The index may also carry a detached signature (`index.json.sig`) so a Manager
 can prove the index itself was not rewritten, mirrors included: generate it
@@ -42,7 +72,10 @@ highest sequence it accepted and refuses a lower one, so an older catalogue
 cannot be replayed; `issued_at` records when that catalogue version was
 issued.
 
-Mirrors compare two `revision.json` files to detect drift without pulling
+`revision.json` records the commit the manifests were generated **from**, not
+the current `HEAD` — it is written last, so a mirror that sees a new revision
+knows the index beside it is complete. Mirrors compare two `revision.json`
+files (from the deployed sites, not from git) to detect drift without pulling
 the full index. Never hand-edit hashes — `scripts/gen_index.py` /
 `gen_reviews.py` (or the `buz-plugin` CLI) generate them from the specs.
 CI generates the manifests with `buz-plugin index` and immediately re-verifies

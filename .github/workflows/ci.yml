@@ -100,12 +100,24 @@ jobs:
 
       - name: Index and meta drift check (regenerate and compare)
         run: |
+          # Porcelain status also sees UNTRACKED files: a newly generated
+          # meta.json for a plugin directory that never committed one must
+          # fail this gate, while `git diff` would silently ignore it.
           python3 scripts/gen_index.py
-          if ! git diff --quiet -- plugins/index.json ':(glob)plugins/**/meta.json'; then
-            git diff --stat -- plugins/index.json ':(glob)plugins/**/meta.json'
-            echo "::error::generated manifests are stale — run scripts/gen_index.py and commit the result"
+          CHANGED="$(git status --porcelain -- plugins/index.json ':(glob)plugins/**/meta.json')"
+          if [ -n "$CHANGED" ]; then
+            printf '%s\n' "$CHANGED"
+            echo "::error::generated manifests are stale or untracked — run scripts/gen_index.py and commit the result"
             exit 1
           fi
+
+      # index.json advertises versions; reviews.json is what require_reviewed
+      # deployments trust. A version in one but not the other (or a review
+      # bound to an older hash) makes the catalog ship a template the review
+      # gate rejects — the drift this gate exists to catch. Fix it by
+      # refreshing the ledger, never by editing hashes.
+      - name: Manifest consistency (index ↔ reviews)
+        run: python3 scripts/check_manifest_consistency.py
 
       - name: Public fork PR validation notice
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true
@@ -250,10 +262,12 @@ jobs:
       # The bot push back to master is best-effort: the master ruleset
       # (deletion / non-fast-forward / required checks) blocks GITHUB_TOKEN
       # pushes and Integration bypass is unsupported on personal accounts.
-      # The deployed CF Pages dist already carries the refreshed file, so a
-      # blocked repo write-back only delays the git-side sync until the next
-      # human PR.
-      - name: Commit refreshed reviews.json
+      # The deployed CF Pages dist already carries the refreshed files, so a
+      # blocked write-back only delays the git-side copies. That lag is not
+      # silent: this step annotates it, and the reconcile-manifests schedule
+      # opens a PR with the regenerated manifests (PRs are allowed where
+      # pushes are not).
+      - name: Commit refreshed manifests
         continue-on-error: true
         run: |
           # build_site stages the manifests under dist/plugins/ (the Manager
@@ -286,7 +300,17 @@ jobs:
               git rebase --abort
               git pull --rebase -X ours origin "${GITHUB_REF_NAME}"
             fi
-            git push
+            if git push; then
+              echo "manifest write-back pushed to ${GITHUB_REF_NAME}" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "::warning title=Manifest write-back blocked::the deployed site is current; the git copies lag until reconcile-manifests opens a refresh PR"
+              {
+                echo ""
+                echo "**Manifest write-back blocked.** The deployed site carries the refreshed"
+                echo "manifests; the git copies will be re-synced by the \`reconcile-manifests\`"
+                echo "schedule (it opens a PR, which the ruleset permits)."
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
           fi
 
   release-index:

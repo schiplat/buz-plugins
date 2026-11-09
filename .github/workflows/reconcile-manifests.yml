@@ -1,0 +1,121 @@
+name: reconcile-manifests
+
+# The generated manifests are written back to master by the deploy job, but
+# that push is best-effort: the master ruleset blocks GITHUB_TOKEN pushes on
+# personal accounts. The deployed site therefore stays current while the git
+# copies lag. This schedule is the safety net — it re-runs the same
+# generation order CI uses and opens a PR (PRs are allowed where pushes are
+# not) when the committed manifests no longer match the specs.
+#
+# Not a fix for "revision trails HEAD": revision.json records the commit the
+# manifests were generated FROM, so it is always one merge behind by
+# construction. Only catalog/ledger/meta drift opens a PR; a stale sentinel
+# alone is reported, not "fixed".
+
+on:
+  schedule:
+    # Daily, off-peak UTC. Change the minute freely; nothing depends on it.
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: reconcile-manifests
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: master
+          fetch-depth: 0
+          # A PAT lets the created PR trigger normal pull_request checks;
+          # GITHUB_TOKEN-created PRs do not start workflows. The push to a
+          # non-protected branch works with either token.
+          token: ${{ secrets.BUZ_REPO_PAT_V2 || secrets.BUZ_REPO_PAT || secrets.BUZ_PLUGIN_REPO_TOKEN || github.token }}
+
+      - name: Install Python dependencies
+        run: python3 -m pip install --user pyyaml
+
+      # Same order as the deploy job: index → per-plugin meta → revision last,
+      # then the ledger refresh (reviews are signed before the site build).
+      - name: Regenerate manifests
+        run: |
+          set -euo pipefail
+          REV="$(git rev-parse --short HEAD)"
+          AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          python3 scripts/gen_index.py --revision "$REV" --updated-at "$AT"
+          python3 scripts/gen_reviews.py --auto --date "$(date -u +%F)" --commit "$REV"
+
+      # Same invariant the PR gate enforces: a version the index advertises
+      # without a review bound to its exact content is what require_reviewed
+      # deployments reject. Fail loudly instead of opening a PR that would
+      # stay red.
+      - name: Verify index ↔ reviews consistency
+        run: python3 scripts/check_manifest_consistency.py
+
+      - name: Report drift and open a refresh PR when the catalog moved
+        env:
+          GH_TOKEN: ${{ secrets.BUZ_REPO_PAT_V2 || secrets.BUZ_REPO_PAT || secrets.BUZ_PLUGIN_REPO_TOKEN || github.token }}
+        run: |
+          set -euo pipefail
+          HEAD_SHA="$(git rev-parse --short HEAD)"
+          {
+            echo "### Manifest state"
+            echo ""
+            echo "| | value |"
+            echo "|---|---|"
+            echo "| source HEAD | \`$HEAD_SHA\` |"
+            echo "| committed revision | \`$(python3 -c 'import json;print(json.load(open("plugins/revision.json"))["revision"])')\` |"
+            SITE_REV="$(curl -fsSL --max-time 15 \
+              https://plugins.buz.schiplat.com/plugins/revision.json \
+              | python3 -c 'import sys,json;print(json.load(sys.stdin).get("revision",""))' 2>/dev/null || true)"
+            echo "| deployed site revision | \`${SITE_REV:-unreachable}\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -n "${SITE_REV:-}" ] && [ "$SITE_REV" != "$HEAD_SHA" ]; then
+            echo "::warning title=Deployed catalog lags HEAD::site publishes $SITE_REV, source HEAD is $HEAD_SHA — check the deploy-site job"
+          fi
+
+          if ! python3 scripts/manifest_drift.py; then
+            : # material drift — fall through and open the PR
+          else
+            # Nothing material changed. Regeneration re-stamped the ledger
+            # with today's date and rewrote the sentinel; discard both so the
+            # job stays green without a daily no-op PR.
+            git checkout -- plugins/reviews.json plugins/revision.json
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "No material drift — catalog, ledger, and meta match the specs." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          MANIFESTS="plugins/index.json plugins/reviews.json plugins/revision.json"
+          git config user.name "buz-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c automation/manifest-refresh
+          git add -- $MANIFESTS ':(glob)plugins/**/meta.json'
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Catalog drift detected — opening/updating the refresh PR." >> "$GITHUB_STEP_SUMMARY"
+          git commit -m "ci: refresh generated manifests"
+          git push --force origin automation/manifest-refresh
+
+          BODY='The committed manifests no longer match `plugins/` specs (the deploy job'
+          BODY="$BODY"'s write-back is blocked by the master ruleset). This PR is generated by'
+          BODY="$BODY"' `reconcile-manifests`: index → meta → revision (last), then the review'
+          BODY="$BODY"' ledger refresh, in the same order the deploy job uses.'
+          BODY="$BODY"$'\n\n'"Merging it re-syncs the git copies with what the site already publishes. \`.sig\` files are produced by the next deploy build."
+
+          if [ "$(gh pr list --head automation/manifest-refresh --state open --json number --jq 'length')" = "0" ]; then
+            gh pr create \
+              --base master \
+              --head automation/manifest-refresh \
+              --title "ci: refresh generated manifests" \
+              --body "$BODY"
+          else
+            echo "refresh PR already open — branch updated in place" >> "$GITHUB_STEP_SUMMARY"
+          fi

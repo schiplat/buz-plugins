@@ -153,6 +153,98 @@ class GenIndexTests(unittest.TestCase):
         )
 
 
+class DeprecationOverlayTests(unittest.TestCase):
+    """`plugins/deprecations.json` flags published versions without editing them.
+
+    Editing a released spec would change its content hash and break
+    `@sha256:` pins, so deprecation is metadata carried by the generated
+    index/meta only.
+    """
+
+    def write_tree(self, tmp, spec="id: buz/a\nversion: 1.0.0\nengine: shell\nrun: echo hi\n", deprecations=None):
+        root = Path(tmp) / "plugins"
+        plugin_dir = root / "buz" / "a"
+        plugin_dir.mkdir(parents=True)
+        (plugin_dir / "1.0.0.yaml").write_text(spec)
+        if deprecations is not None:
+            (root / "deprecations.json").write_text(json.dumps(deprecations))
+        return root
+
+    def run_index(self, root):
+        return subprocess.run(
+            [sys.executable, str(SCRIPTS / "gen_index.py"), "--plugins-dir", str(root)],
+            capture_output=True,
+            text=True,
+        )
+
+    def test_deprecation_lands_in_index_and_meta_without_changing_the_hash(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as tmp:
+            spec = "id: buz/a\nversion: 1.0.0\nengine: shell\nrun: echo hi\n"
+            root = self.write_tree(
+                tmp,
+                spec=spec,
+                deprecations={
+                    "deprecations": [
+                        {"id": "buz/a", "version": "1.0.0", "reason": "use 1.1.0"}
+                    ]
+                },
+            )
+            result = self.run_index(root)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            index = json.loads((root / "index.json").read_text())
+            entry = index["steps"][0]
+            self.assertEqual(entry["deprecated"], "use 1.1.0")
+            self.assertEqual(
+                entry["sha256"],
+                __import__("hashlib").sha256(spec.encode()).hexdigest(),
+                "overlay must not alter the content hash",
+            )
+            meta = json.loads((root / "buz" / "a" / "meta.json").read_text())
+            self.assertEqual(meta["versions"][0]["deprecated"], "use 1.1.0")
+
+    def test_unknown_deprecation_target_fails(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as tmp:
+            root = self.write_tree(
+                tmp,
+                deprecations={
+                    "deprecations": [
+                        {"id": "buz/a", "version": "9.9.9", "reason": "typo"}
+                    ]
+                },
+            )
+            result = self.run_index(root)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("match no published version", result.stderr)
+
+    def test_duplicate_or_empty_reasons_are_rejected(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as tmp:
+            root = self.write_tree(
+                tmp,
+                deprecations={
+                    "deprecations": [
+                        {"id": "buz/a", "version": "1.0.0", "reason": "one"},
+                        {"id": "buz/a", "version": "1.0.0", "reason": "two"},
+                    ]
+                },
+            )
+            result = self.run_index(root)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("duplicate deprecation", result.stderr)
+
+        with tempfile.TemporaryDirectory(dir=ROOT) as tmp:
+            root = self.write_tree(
+                tmp,
+                deprecations={
+                    "deprecations": [
+                        {"id": "buz/a", "version": "1.0.0", "reason": "  "}
+                    ]
+                },
+            )
+            result = self.run_index(root)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("empty reason", result.stderr)
+
+
 class EgressTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -1003,6 +1095,258 @@ class ReviewMergeTests(unittest.TestCase):
             result = json.loads(path.read_text())
             self.assertEqual([r["id"] for r in result["reviews"]], ["new/step", "other/step"])
             self.assertEqual(list(Path(tmp).iterdir()), [path])
+
+
+class ManifestConsistencyTests(unittest.TestCase):
+    """index.json ↔ reviews.json invariant (scripts/check_manifest_consistency.py).
+
+    Every indexed (id, version) must carry a review bound to the same content
+    sha256; a missing or stale entry is what makes `require_reviewed`
+    deployments reject a version that the catalog advertises.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.checker = load_script("check_manifest_consistency")
+
+    @staticmethod
+    def sha(char: str) -> str:
+        return char * 64
+
+    def check(self, steps, reviews):
+        return self.checker.check({"steps": steps}, {"reviews": reviews})
+
+    def test_consistent_manifests_pass(self):
+        errors, warnings = self.check(
+            [{"id": "buz/a", "version": "1.0.0", "sha256": self.sha("a")}],
+            [{"id": "buz/a", "version": "1.0.0", "sha256": self.sha("a"), "source": "ci"}],
+        )
+        self.assertEqual((errors, warnings), ([], []))
+
+    def test_missing_version_for_blessed_id_points_at_auto_refresh(self):
+        errors, _ = self.check(
+            [{"id": "buz/a", "version": "1.1.1", "sha256": self.sha("b")}],
+            [{"id": "buz/a", "version": "1.0.0", "sha256": self.sha("a"), "source": "human"}],
+        )
+        self.assertEqual(len(errors), 1)
+        self.assertIn("buz/a@1.1.1", errors[0])
+        self.assertIn("gen_reviews.py --auto", errors[0])
+
+    def test_missing_version_for_unblessed_id_requires_manual_first_review(self):
+        errors, _ = self.check(
+            [{"id": "author/new", "version": "1.0.0", "sha256": self.sha("c")}],
+            [],
+        )
+        self.assertEqual(len(errors), 1)
+        self.assertIn("first review", errors[0])
+        self.assertIn("author/new", errors[0])
+        self.assertNotIn("--auto", errors[0])
+
+    def test_stale_review_hash_is_rejected(self):
+        errors, _ = self.check(
+            [{"id": "buz/a", "version": "1.0.0", "sha256": self.sha("b")}],
+            [{"id": "buz/a", "version": "1.0.0", "sha256": self.sha("a"), "source": "ci"}],
+        )
+        self.assertEqual(len(errors), 1)
+        self.assertIn("content changed after review", errors[0])
+
+    def test_review_for_removed_version_is_only_a_warning(self):
+        errors, warnings = self.check(
+            [{"id": "buz/a", "version": "1.0.0", "sha256": self.sha("a")}],
+            [
+                {"id": "buz/a", "version": "1.0.0", "sha256": self.sha("a")},
+                {"id": "buz/a", "version": "0.9.0", "sha256": self.sha("d")},
+            ],
+        )
+        self.assertEqual(errors, [])
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("buz/a@0.9.0", warnings[0])
+
+    def test_duplicate_index_pair_is_rejected(self):
+        errors, _ = self.check(
+            [
+                {"id": "buz/a", "version": "1.0.0", "sha256": self.sha("a")},
+                {"id": "buz/a", "version": "1.0.0", "sha256": self.sha("a")},
+            ],
+            [{"id": "buz/a", "version": "1.0.0", "sha256": self.sha("a")}],
+        )
+        self.assertTrue(any("duplicate index entry" in error for error in errors))
+
+    def test_conflicting_review_entries_are_rejected(self):
+        errors, _ = self.check(
+            [{"id": "buz/a", "version": "1.0.0", "sha256": self.sha("a")}],
+            [
+                {"id": "buz/a", "version": "1.0.0", "sha256": self.sha("a")},
+                {"id": "buz/a", "version": "1.0.0", "sha256": self.sha("b")},
+            ],
+        )
+        self.assertTrue(any("conflicting review entries" in error for error in errors))
+
+    def test_malformed_sha_is_rejected(self):
+        errors, _ = self.check(
+            [{"id": "buz/a", "version": "1.0.0", "sha256": "not-a-hash"}],
+            [{"id": "buz/a", "version": "1.0.0", "sha256": "not-a-hash"}],
+        )
+        self.assertTrue(any("64 lowercase hex" in error for error in errors))
+
+    def meta_check(self, tmp, version="1.0.0", sha=None, meta=None):
+        sha = sha or self.sha("a")
+        plugin_dir = Path(tmp) / "plugins" / "buz" / "a"
+        plugin_dir.mkdir(parents=True, exist_ok=True)
+        (plugin_dir / f"{version}.yaml").write_text("id: buz/a\n")
+        if meta is not None:
+            (plugin_dir / "meta.json").write_text(json.dumps(meta))
+        index = {
+            "steps": [
+                {
+                    "id": "buz/a",
+                    "version": version,
+                    "sha256": sha,
+                    "file": f"buz/a/{version}.yaml",
+                }
+            ]
+        }
+        return self.checker.check_meta(index, Path(tmp) / "plugins")
+
+    @staticmethod
+    def meta_doc(version, sha, meta_id="buz/a"):
+        return {
+            "id": meta_id,
+            "versions": [{"version": version, "sha256": sha}],
+        }
+
+    def test_meta_listing_the_indexed_version_passes(self):
+        sha = self.sha("a")
+        with tempfile.TemporaryDirectory() as tmp:
+            errors, _ = self.meta_check(
+                tmp, meta=self.meta_doc("1.0.0", sha)
+            )
+        self.assertEqual(errors, [])
+
+    def test_missing_meta_file_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            errors, _ = self.meta_check(tmp)
+        self.assertEqual(len(errors), 1)
+        self.assertIn("is missing", errors[0])
+        self.assertIn("gen_index.py", errors[0])
+
+    def test_meta_without_the_indexed_version_is_rejected(self):
+        sha = self.sha("a")
+        with tempfile.TemporaryDirectory() as tmp:
+            errors, _ = self.meta_check(
+                tmp, version="1.1.1", meta=self.meta_doc("1.0.0", sha)
+            )
+        self.assertEqual(len(errors), 1)
+        self.assertIn("not listed in", errors[0])
+
+    def test_meta_with_a_different_hash_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            errors, _ = self.meta_check(
+                tmp, meta=self.meta_doc("1.0.0", self.sha("b"))
+            )
+        self.assertEqual(len(errors), 1)
+        self.assertIn("regenerate the manifest", errors[0])
+
+    def test_meta_with_a_foreign_id_is_rejected(self):
+        sha = self.sha("a")
+        with tempfile.TemporaryDirectory() as tmp:
+            errors, _ = self.meta_check(
+                tmp, meta=self.meta_doc("1.0.0", sha, meta_id="buz/other")
+            )
+        self.assertTrue(any("declares id" in error for error in errors))
+
+
+class ManifestDriftTests(unittest.TestCase):
+    """Material drift vs. re-stamped timestamps (scripts/manifest_drift.py).
+
+    `gen_reviews.py --auto` rewrites every ci entry's `reviewed_at` and
+    `review_commit` on each run. A byte comparison would open a daily no-op
+    PR; only content-binding fields count as drift.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.drift = load_script("manifest_drift")
+
+    @staticmethod
+    def entry(**overrides):
+        base = {
+            "id": "buz/a",
+            "version": "1.0.0",
+            "sha256": "a" * 64,
+            "source": "ci",
+            "reviewed_at": "2026-11-01",
+            "review_commit": "aaa1111",
+            "scope": "official-ci: validate",
+        }
+        base.update(overrides)
+        return base
+
+    def material(self, *entries):
+        return self.drift.ledger_material({"reviews": list(entries)})
+
+    def test_restamped_timestamps_are_not_drift(self):
+        old = self.material(self.entry())
+        new = self.material(
+            self.entry(reviewed_at="2026-11-09", review_commit="bbb2222")
+        )
+        self.assertEqual(old, new)
+
+    def test_scope_only_changes_are_not_drift(self):
+        self.assertEqual(
+            self.material(self.entry()),
+            self.material(self.entry(scope="different wording")),
+        )
+
+    def test_new_version_is_drift(self):
+        self.assertNotEqual(
+            self.material(self.entry()),
+            self.material(self.entry(), self.entry(version="1.1.0")),
+        )
+
+    def test_rebound_hash_is_drift(self):
+        self.assertNotEqual(
+            self.material(self.entry()),
+            self.material(self.entry(sha256="b" * 64)),
+        )
+
+    def test_source_change_is_drift(self):
+        self.assertNotEqual(
+            self.material(self.entry()),
+            self.material(self.entry(source="human")),
+        )
+
+    def test_changed_detects_untracked_files(self):
+        # `git diff --quiet` ignores untracked files, so a freshly generated
+        # meta.json for an uncommitted plugin directory would look clean.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plugin_dir = root / "plugins" / "buz" / "a"
+            plugin_dir.mkdir(parents=True)
+            subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+            cwd = os.getcwd()
+            try:
+                os.chdir(root)
+                (plugin_dir / "meta.json").write_text("{}")
+                self.assertTrue(
+                    self.drift.changed(":(glob)plugins/**/meta.json"),
+                    "untracked meta.json is drift",
+                )
+                subprocess.run(["git", "add", "-A"], cwd=root, check=True)
+                subprocess.run(
+                    ["git", "-c", "user.email=t@e", "-c", "user.name=t",
+                     "commit", "-qm", "base"],
+                    cwd=root,
+                    check=True,
+                )
+                self.assertFalse(self.drift.changed(":(glob)plugins/**/meta.json"))
+                (plugin_dir / "meta.json").write_text('{"x": 1}')
+                self.assertTrue(
+                    self.drift.changed(":(glob)plugins/**/meta.json"),
+                    "modified meta.json is drift",
+                )
+            finally:
+                os.chdir(cwd)
 
 
 class PluginReadmeTests(unittest.TestCase):
