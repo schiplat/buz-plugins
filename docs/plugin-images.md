@@ -4,9 +4,43 @@ Authoring conventions for templates that ship a tool image (image reference
 lifecycle, registering a family, run-block rules): see
 [image-template-conventions.md](image-template-conventions.md).
 
-Images target Linux `amd64` (x86_64) only. A push to `master` automatically triggers builds when an image build context changes — the OSS/S3 upload families under `plugins/buz/oss-upload` and `plugins/buz/s3-upload`, or the language toolchain families under `plugins/buz/setup-rust`, `plugins/buz/setup-ruby`, `plugins/buz/setup-php`, `plugins/buz/setup-lua`, `plugins/buz/setup-python`, `plugins/buz/setup-node`, `plugins/buz/setup-java`, and `plugins/buz/setup-go`. Template YAML edits do not rebuild an image (its digest does not depend on the spec text). The workflow builds only the corresponding image family; if multiple plugin families change in one push, it builds each as a separate matrix job. Documentation, workflow files, nested directories, and unrelated paths do not trigger a build. Automatic image tags use `1.0.<GitHub Actions run ID>`, making each run unique. The workflow is push-triggered only; it has no manual dispatch entry point. Configure `DOCKERHUB_USERNAME` as a repository Actions variable and `DOCKERHUB_TOKEN` as a repository Actions secret. The workflow refuses an existing version tag and writes a successful build's digest to the run summary.
+Images target Linux `amd64` (x86_64) only. A push to `master` automatically triggers builds when an image build context changes — the OSS/S3 upload families under `plugins/buz/oss-upload` and `plugins/buz/s3-upload`, or the language toolchain families under `plugins/buz/setup-rust`, `plugins/buz/setup-ruby`, `plugins/buz/setup-php`, `plugins/buz/setup-lua`, `plugins/buz/setup-python`, `plugins/buz/setup-node`, `plugins/buz/setup-java`, and `plugins/buz/setup-go`. Template YAML edits do not rebuild an image (its digest does not depend on the spec text). The workflow builds only the corresponding image family; if multiple plugin families change in one push, it builds each as a separate matrix job. Documentation, workflow files, nested directories, and unrelated paths do not trigger a build. Automatic image tags use `X.Y.Z-build.<run number>.<run attempt>`, making each run unique. The workflow is push-triggered only; it has no manual dispatch entry point. Configure `DOCKERHUB_USERNAME` as a repository Actions variable and `DOCKERHUB_TOKEN` as a repository Actions secret. The workflow refuses an existing version tag and writes a successful build's digest to the run summary.
 
-After each successful matrix build, the workflow uploads that family's manifest digest and opens or updates a family-specific PR pinning its template to `image@sha256:...`. If both families are selected and one build fails, the successful family can still open its PR; fix the failed build before retrying it. Identical digests do not create empty PRs. The PR branch is `automation/pin-<family>`.
+## Versioning contract
+
+**镜像版本 ≠ 模板版本;digest 才是锁。** The rules that make this safe:
+
+- Each image family has exactly **one** rolling build tag sequence
+  (`X.Y.Z-build.<run>.<attempt>`) plus a set of **immutable manifest
+  digests**. Template specs never reference a mutable tag: every published
+  spec pins `image@sha256:<64 hex>`, and pulling by digest yields byte-for-byte
+  the reviewed build.
+- **A template version is the immutable pair** (call contract + pinned
+  digest). Editing `image/Dockerfile` never retroactively changes what an
+  already-published template version runs — the pin flow refuses to replace an
+  existing digest and creates a new patch version instead (`1.0.2` stays on
+  its digest; the new build lands in `1.0.3`).
+- **`image/` describes the next build only.** The tree holds one Dockerfile
+  per family; the recipe behind a historical digest lives in git history. The
+  mapping is recorded in each family's build ledger,
+  `<plugin>/image/BUILDS.md`, appended automatically by the pin workflow on
+  every pin event:
+
+  ```
+  | digest | pinned into | Dockerfile commit | workflow run | date |
+  ```
+
+  Read it as the authoritative answer to "which template version runs which
+  image, and where was that image's recipe built".
+- **Pre-pin window**: the initial `1.0.0` spec is updated *in place* while it
+  still references the placeholder `:1.0.0` tag (before its first digest pin).
+  During that window the same `@1.0.0` resolves to different images over
+  time — this is the intended unpublished state; complete the first pin
+  promptly after registering a family.
+
+## Build → pin flow
+
+After each successful matrix build, the workflow uploads that family's manifest digest and opens or updates a family-specific PR pinning its template to `image@sha256:...` and appending the event to the family's `image/BUILDS.md` ledger. If both families are selected and one build fails, the successful family can still open its PR; fix the failed build before retrying it. Identical digests do not create empty PRs. The PR branch is `automation/pin-<family>`.
 
 The PR job uses `GITHUB_TOKEN` by default and requires `contents: write` and `pull-requests: write` repository workflow permissions. To make the generated PR trigger the full CI workflow, configure an Actions secret named `BUZ_PLUGIN_GITHUB_PR_TOKEN` with a fine-grained PAT or GitHub App token that can read and write repository contents and pull requests. Without this token, GitHub suppresses most new workflow runs created with `GITHUB_TOKEN`; the PR is still created, but checks may require a maintainer-triggered run. Keep the token narrowly scoped and rotate it according to its expiration policy.
 
@@ -14,7 +48,19 @@ Auto-merge is currently paused while the repository is private and its branch pr
 
 The run-ID version tag identifies the build, while templates use immutable manifest digests. The initial `1.0.0` template is only updated in place when pinning the first image release from its `:1.0.0` tag. Later template versions are immutable: if a build produces a new digest after the `1.0.2` trigger template exists, the digest PR creates `1.0.3` rather than rewriting `1.0.2`; identical digests do not create an empty PR. A version tag by itself is not an immutable production pin. The `[skip image build]` marker on generated pin PR titles and commits prevents the PR merge from triggering another image build; if a push combines a pin commit with other commits, non-pin commits are still inspected for changed plugin paths.
 
-The current upload templates are `1.0.2` and retain the previously verified manifest digests until the build triggered by this template change completes and any resulting digest PR is manually reviewed and merged. Removing the old `1.0.0` template files does not remove or change those Docker images.
+Removing an old template file does not remove or change its Docker image; the digest stays pullable for every pipeline still pinned to that version.
+
+## Future hardening
+
+- **Base-image digest pinning** (`FROM golang:1.26-bookworm@sha256:…`): today
+  base tags are mutable, so rebuilding the same Dockerfile produces a
+  different digest. Pinning base images makes rebuilds deterministic. Landing
+  this changes every family's digest once — plan it as one coordinated bump
+  together with multi-arch (below), since both are digest-changing events.
+- **Multi-arch**: images are `linux/amd64`-only. Apple Silicon / arm64 hosts
+  need `linux/arm64` legs (buildx manifest list); because a manifest-list
+  digest differs from the single-arch digest, this is also a coordinated
+  pin bump across all families.
 
 ## Runtime requirements and credentials
 

@@ -239,7 +239,7 @@ jobs:
           branch="automation/pin-${IMAGE_FAMILY}"
           git fetch origin master
           git switch -C "$branch" origin/master
-          python3 scripts/pin_plugin_image.py --family "$IMAGE_FAMILY" --digest "$digest"
+          python3 scripts/pin_plugin_image.py --family "$IMAGE_FAMILY" --digest "$digest" --commit "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID"
           case "$IMAGE_FAMILY" in
             oss-tools) plugin_dir=plugins/buz/oss-upload ;;
             aws-tools) plugin_dir=plugins/buz/s3-upload ;;
@@ -318,7 +318,7 @@ jobs:
           branch="automation/pin-${IMAGE_FAMILY}"
           git fetch origin master
           git switch -C "$branch" origin/master
-          python3 scripts/pin_plugin_image.py --family "$IMAGE_FAMILY" --digest "$(<"$RUNNER_TEMP/plugin-image-digest/digest.txt")"
+          python3 scripts/pin_plugin_image.py --family "$IMAGE_FAMILY" --digest "$(<"$RUNNER_TEMP/plugin-image-digest/digest.txt")" --commit "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID"
           git add -A "$plugin_dir"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
