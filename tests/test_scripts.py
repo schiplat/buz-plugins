@@ -1794,10 +1794,6 @@ class EnvRenderTests(unittest.TestCase):
             self.assertIn("backup_keep=3", result.stdout)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class PluginRequestWishlistTests(unittest.TestCase):
     """The plugin-request wishlist: issue template + marketplace wiring."""
 
@@ -1830,3 +1826,71 @@ class PluginRequestWishlistTests(unittest.TestCase):
         self.assertIn("T.request", app)
         ui = (ROOT / "frontend/src/ui-text.ts").read_text()
         self.assertIn("Request a plugin", ui)
+
+
+class ResolveBaseDigestsTests(unittest.TestCase):
+    """Base-image digest pinning (scripts/resolve_base_digests.py)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.pinner = load_script("resolve_base_digests")
+
+    def test_split_image_ref(self):
+        cases = {
+            "debian:bookworm-slim": ("docker.io", "library/debian", "bookworm-slim"),
+            "library/golang:1.26-bookworm": ("docker.io", "library/golang", "1.26-bookworm"),
+            "golang": ("docker.io", "library/golang", "latest"),
+            "registry.example.com:5000/team/app:1.0": (
+                "registry.example.com:5000",
+                "team/app",
+                "1.0",
+            ),
+            "golang@sha256:" + "a" * 64: ("docker.io", "library/golang", "latest"),
+        }
+        for image, expected in cases.items():
+            with self.subTest(image=image):
+                self.assertEqual(self.pinner.split_image_ref(image), expected)
+
+    def test_pin_file_rewrites_refreshes_and_is_idempotent(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dockerfile = Path(tmp) / "image" / "Dockerfile"
+            dockerfile.parent.mkdir(parents=True)
+            dockerfile.write_text("FROM golang:1.26-bookworm\nRUN set -eux;\n")
+            fake = lambda registry, repo, tag: "sha256:" + "c" * 64
+            changed = self.pinner.pin_file(dockerfile, fake)
+            self.assertEqual(len(changed), 1)
+            self.assertIn(
+                f"FROM golang:1.26-bookworm@sha256:{'c' * 64}", dockerfile.read_text()
+            )
+            # Same digest again → byte-identical, nothing reported.
+            self.assertEqual(self.pinner.pin_file(dockerfile, fake), [])
+            # Upstream moved → the digest refreshes, the tag stays readable.
+            moved = lambda registry, repo, tag: "sha256:" + "d" * 64
+            changed = self.pinner.pin_file(dockerfile, moved)
+            self.assertEqual(len(changed), 1)
+            self.assertIn(
+                f"FROM golang:1.26-bookworm@sha256:{'d' * 64}", dockerfile.read_text()
+            )
+
+    def test_check_mode_reports_stale_without_writing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dockerfile = Path(tmp) / "image" / "Dockerfile"
+            dockerfile.parent.mkdir(parents=True)
+            dockerfile.write_text("FROM debian:bookworm-slim\n")
+            fake = lambda registry, repo, tag: "sha256:" + "e" * 64
+            with patch.object(self.pinner, "DOCKERFILES", [dockerfile]):
+                with self.assertRaisesRegex(SystemExit, "stale or unpinned"):
+                    self.pinner.main(["--check"], resolver=fake)
+                self.assertEqual(
+                    dockerfile.read_text(),
+                    "FROM debian:bookworm-slim\n",
+                    "--check must not write",
+                )
+                self.pinner.main([], resolver=fake)
+                self.assertIn("@sha256:", dockerfile.read_text())
+                # Current digests → --check passes silently.
+                self.pinner.main(["--check"], resolver=fake)
+
+
+if __name__ == "__main__":
+    unittest.main()
