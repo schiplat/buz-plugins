@@ -134,7 +134,7 @@ jobs:
 
       - name: Public fork PR validation notice
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true
-        run: echo "Private buz-manager validation and the manifest drift check are skipped for fork PRs because their jobs receive no repository PAT. Public checks and tests remain required."
+        run: echo "Private buz-manager validation and the manifest/README gates are skipped for fork PRs because their jobs receive no repository PAT. Public checks and tests remain required."
 
   # Execution-level shell-compat gate: run the test suite (which executes
   # buz/env-render's run block under /bin/sh) inside the two most restrictive
