@@ -87,12 +87,12 @@ immediately re-verifies the index with `--check` (`index.json` +
 `index.json.sig` are published together). The `validate` gate runs `buz-plugin index --check` against the committed
 manifests; fork PRs skip it together with the other private-binary checks.
 
-The two generators are the same contract in two languages, so **every publish
-signs the committed catalog**: the site and tag jobs pin `--sequence` /
-`--updated-at` from the committed header, and
-`scripts/check_release_index.py` compares the regenerated `index.json` and
-every per-plugin `meta.json` field by field against it, plus the rollback rule
-against the previous release. A pinned tool that cannot reproduce a manifest
+**Every publish signs the committed catalog**: the site and tag jobs pin
+`--sequence` / `--updated-at` from the committed header, and
+`buz-plugin check-release` compares the regenerated `index.json` and every
+per-plugin `meta.json` field by field against it, plus the rollback rule
+against the previous release. The frozen Python reference implementations
+live under [`legacy/python/`](legacy/python/). A pinned tool that cannot reproduce a manifest
 field (this is how the `2026.11.10` snapshot shipped without its `deprecated`
 markers) fails the publish instead of shipping a different catalog; the fix is
 to bump `BUZ_PLUGIN_VERSION` to a release that carries the field, never to
