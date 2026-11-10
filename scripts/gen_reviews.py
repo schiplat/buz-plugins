@@ -159,22 +159,20 @@ def semver_key(version: str) -> tuple[int, int, int]:
 def merge_reviews(
     existing: list[dict], new_entries: list[dict], keep_manual: bool
 ) -> list[dict]:
-    """Upsert exact content reviews without erasing unrelated evidence."""
-    if keep_manual:
-        replaced = {(entry["id"], entry["version"]) for entry in new_entries}
-        retained = [
-            entry
-            for entry in existing
-            if entry.get("source") != AUTO_SOURCE
-            and (entry.get("id"), entry.get("version")) not in replaced
-        ]
-    else:
-        replaced = {(entry["id"], entry["version"]) for entry in new_entries}
-        retained = [
-            entry
-            for entry in existing
-            if (entry.get("id"), entry.get("version")) not in replaced
-        ]
+    """Upsert exact content reviews without erasing human evidence.
+
+    A `human` entry is the org's first-review record — an auto badge refresh
+    never replaces it (keep_manual): the fresh `ci` badge and the human
+    first-review coexist, both bound to the same content hash. Manual mode
+    (keep_manual=False) DOES replace the record for the pairs it emits — a
+    fresh human re-review supersedes the old one (no duplicates)."""
+    replaced = {(entry["id"], entry["version"]) for entry in new_entries}
+    retained = [
+        entry
+        for entry in existing
+        if (entry.get("id"), entry.get("version")) not in replaced
+        or (keep_manual and entry.get("source") == "human")
+    ]
     return new_entries + retained
 
 

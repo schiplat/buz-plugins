@@ -36,7 +36,10 @@ carry none of those claims — they are distributed, not certified.
    content hash (or a review bound to an older one), and the daily
    `reconcile-manifests` run opens a PR when the committed manifests drift from
    the specs. Under `require_reviewed`, an inconsistent pair means the catalog
-   advertises a template the Manager will refuse.
+   advertises a template the Manager will refuse. Human first-review records
+   are never erased by an auto refresh: both entries coexist (the `ci` badge
+   carries tracking, the `human` entry keeps the reviewer provenance); a
+   manual re-review is the only thing that supersedes one.
 3. **Egress baseline.** Each official template declares where it may connect:
    literal hosts as an upper bound, and every network-touching input listed
    exactly. Changing the baseline is part of review — the file is the

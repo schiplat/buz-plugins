@@ -1075,7 +1075,38 @@ class ReviewMergeTests(unittest.TestCase):
             self.gen_reviews.semver_key("1.9.0"),
         )
 
-    def test_auto_upsert_preserves_existing_manual_review(self):
+    def test_auto_never_replaces_a_human_first_review(self):
+        # bab008c-era regression: an auto refresh replaced env-render 1.0.0's
+        # human first review with a ci badge, erasing the reviewer provenance
+        # from the ledger (it only survived in git history).
+        existing = [
+            {
+                "id": "buz/env-render",
+                "version": "1.0.0",
+                "sha256": "cc" + "0" * 62,
+                "reviewed_at": "2026-11-07",
+                "review_commit": "ddd9cec",
+                "scope": "official bootstrap: reviewed run block",
+                "source": "human",
+            }
+        ]
+        fresh = {
+            "id": "buz/env-render",
+            "version": "1.0.0",
+            "sha256": "cc" + "0" * 62,
+            "reviewed_at": "2026-11-10",
+            "review_commit": "aaa1111",
+            "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
+            "source": "ci",
+        }
+        merged = self.gen_reviews.merge_reviews(existing, [fresh], keep_manual=True)
+        humans = [entry for entry in merged if entry.get("source") == "human"]
+        assert humans, "human first review must survive an auto refresh"
+        assert humans[0]["review_commit"] == "ddd9cec"
+        cis = [entry for entry in merged if entry.get("source") == "ci"]
+        assert len(cis) == 1, "stale ci entry still replaced by the fresh one"
+
+    def test_manual_upsert_preserves_pinned_versions_and_unrelated_records(self):
         existing = [
             {"id": "buz/official", "version": "1.0.0", "sha256": "stale", "source": "ci"},
             {"id": "author/step", "version": "1.0.0", "sha256": "human", "source": "human"},
