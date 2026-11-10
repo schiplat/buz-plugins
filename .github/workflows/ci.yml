@@ -158,7 +158,7 @@ jobs:
           GH_TOKEN: ${{ secrets.BUZ_PLUGIN_REPO_TOKEN || secrets.BUZ_REPO_PAT || secrets.BUZ_REPO_PAT_V2 }}
           # Pinned: a tool release may change the index contract, and that must
           # be a deliberate bump, not a silent follow-the-latest.
-          BUZ_PLUGIN_VERSION: "2.1.4"
+          BUZ_PLUGIN_VERSION: "2.1.5"
         run: |
           set -euo pipefail
           DIR="$RUNNER_TEMP/buz-plugin"
@@ -175,14 +175,13 @@ jobs:
       - name: Generate the index
         run: |
           set -euo pipefail
-          REV="${GITHUB_SHA}"
           AT="$(git log -1 --format=%cI)"
           if ! command -v buz-plugin >/dev/null 2>&1; then
             echo "::warning title=Index unsigned::buz-plugin unavailable (no credential for the private repo) - falling back to scripts/gen_index.py"
-            python3 scripts/gen_index.py --revision "$REV" --updated-at "$AT"
+            python3 scripts/gen_index.py --updated-at "$AT"
             exit 0
           fi
-          buz-plugin index --revision "$REV" --updated-at "$AT"
+          buz-plugin index --updated-at "$AT"
 
       # The ledger must be refreshed BEFORE signing: reviews.json.sig covers
       # the refreshed ledger, and a Manager with the trust anchor on refuses
@@ -206,7 +205,6 @@ jobs:
             echo "::warning title=Index unsigned::signing key unavailable (fork PR?) — index and review ledger are published unsigned"
             exit 0
           fi
-          REV="${GITHUB_SHA}"
           AT="$(git log -1 --format=%cI)"
           umask 077
           KEY="$RUNNER_TEMP/signing-key.json"
@@ -214,8 +212,16 @@ jobs:
           trap 'rm -f "$KEY"' EXIT
           # Re-runs generation (byte-identical for unchanged entries) and
           # signs index.json AND reviews.json in one pass.
-          buz-plugin index --revision "$REV" --updated-at "$AT" --sign-key "$KEY"
-          buz-plugin index --check --revision "$REV" --updated-at "$AT" --sign-key "$KEY"
+          buz-plugin index --updated-at "$AT" --sign-key "$KEY"
+          buz-plugin index --check --updated-at "$AT" --sign-key "$KEY"
+
+      # Catalog-derived drift sentinel, written LAST (index → meta → revision):
+      # a mirror that observes a new revision knows the index beside it is
+      # complete. The value depends only on the published (id, version,
+      # sha256) triples, so the committed copy and this build always agree —
+      # it cannot trail HEAD like a build stamp would.
+      - name: Derive the drift sentinel
+        run: python3 scripts/gen_revision.py
 
       - name: Stage deployable directory (site + index + plugin files)
         run: |
@@ -327,7 +333,7 @@ jobs:
       - name: Install buz-plugin
         env:
           GH_TOKEN: ${{ secrets.BUZ_PLUGIN_REPO_TOKEN || secrets.BUZ_REPO_PAT || secrets.BUZ_REPO_PAT_V2 }}
-          BUZ_PLUGIN_VERSION: "2.1.4"
+          BUZ_PLUGIN_VERSION: "2.1.5"
         run: |
           set -euo pipefail
           DIR="$RUNNER_TEMP/buz-plugin"
@@ -345,15 +351,16 @@ jobs:
           BUZ_PLUGIN_SIGNING_KEY: ${{ secrets.BUZ_PLUGIN_SIGNING_KEY }}
         run: |
           set -euo pipefail
-          REV="${GITHUB_SHA}"
           AT="$(git log -1 --format=%cI)"
           umask 077
           KEY="$RUNNER_TEMP/signing-key.json"
           printf '%s' "$BUZ_PLUGIN_SIGNING_KEY" > "$KEY"
           trap 'rm -f "$KEY"' EXIT
           # Signs index.json AND the committed reviews.json in one pass.
-          buz-plugin index --revision "$REV" --updated-at "$AT" --sign-key "$KEY"
-          buz-plugin index --check --revision "$REV" --updated-at "$AT" --sign-key "$KEY"
+          buz-plugin index --updated-at "$AT" --sign-key "$KEY"
+          buz-plugin index --check --updated-at "$AT" --sign-key "$KEY"
+          # Snapshot self-consistency: the sentinel must name this catalog.
+          python3 scripts/gen_revision.py
 
       - name: Attach index.json to the release
         uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.2.2
@@ -363,3 +370,4 @@ jobs:
             plugins/index.json.sig
             plugins/reviews.json
             plugins/reviews.json.sig
+            plugins/revision.json

@@ -21,7 +21,7 @@ Three generated files at the source root (`plugins/`) — plus one per-plugin
 |------|---------|-----------|
 | [`plugins/index.json`](plugins/index.json) | **what exists** — signed `sequence` + `issued_at` header, then every plugin version with content sha256 and scalar meta | CI on green master; snapshot tags attach a copy |
 | [`plugins/reviews.json`](plugins/reviews.json) | **what humans approved** — the review ledger (content hashes) | human review + CI badge refresh |
-| [`plugins/revision.json`](plugins/revision.json) | **what is freshest** — drift sentinel (commit sha + time) | CI, written last |
+| [`plugins/revision.json`](plugins/revision.json) | **which catalog this is** — drift sentinel (digest over published versions + issue time); catalog-derived, so it cannot trail `HEAD` | derived from the index on every run |
 | `plugins/buz/<id>/meta.json` | **what one plugin contains** — its versions, files, and hashes (fetched for a single-plugin refresh) | same run as the index |
 
 All of them are generated **from the same tree, in one run** — index →
@@ -72,16 +72,20 @@ highest sequence it accepted and refuses a lower one, so an older catalogue
 cannot be replayed; `issued_at` records when that catalogue version was
 issued.
 
-`revision.json` records the commit the manifests were generated **from**, not
-the current `HEAD` — it is written last, so a mirror that sees a new revision
+`revision.json` names the **catalog**, not a build: its value is a digest over
+the published `(id, version, sha256)` triples (`scripts/gen_revision.py`), so
+the same catalog always produces the same sentinel and the committed copy
+cannot trail `HEAD`. It is written last, so a mirror that sees a new revision
 knows the index beside it is complete. Mirrors compare two `revision.json`
 files (from the deployed sites, not from git) to detect drift without pulling
-the full index. Never hand-edit hashes — `scripts/gen_index.py` /
-`gen_reviews.py` (or the `buz-plugin` CLI) generate them from the specs.
-CI generates the manifests with `buz-plugin index` and immediately re-verifies
-them with `--check` (`index.json` + `index.json.sig` are published together).
-`scripts/gen_index.py` remains only as a fallback for when the toolchain
-binary cannot be fetched.
+the full index, and `scripts/check_manifest_consistency.py` fails when the
+committed sentinel no longer matches the index. Never hand-edit hashes —
+`scripts/gen_index.py` / `gen_revision.py` / `gen_reviews.py` (or the
+`buz-plugin` CLI) generate them from the specs.
+CI generates the manifests with `buz-plugin index`, derives the sentinel, and
+immediately re-verifies the index with `--check` (`index.json` +
+`index.json.sig` are published together). `scripts/gen_index.py` remains only
+as a fallback for when the toolchain binary cannot be fetched.
 See [governance](docs/governance.md) for the review process.
 
 ## Templates
