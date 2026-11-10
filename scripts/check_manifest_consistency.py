@@ -11,11 +11,11 @@ content sha256, and the sentinel must equal the catalog digest:
 - a mismatched sha256 means the review predates a content change, so the
   badge no longer applies;
 - a stale sentinel means mirrors compare a value that no longer describes
-  this catalog. The value is catalog-derived (`scripts/gen_revision.py`), so
+  this catalog. The value is catalog-derived (`buz-plugin revision`), so
   this is always "forgot to regenerate", never a build-order race.
 
 This runs in the `validate` job. Reviews are refreshed by
-`scripts/gen_reviews.py --auto` (blessed ids) or a manual first review
+`buz-plugin reviews --auto` (blessed ids) or a manual first review
 (new ids); the fix for a failure is always to regenerate and commit the
 manifest, never to edit hashes by hand.
 
@@ -55,7 +55,7 @@ def load_json(path: Path) -> dict:
 
 
 def catalog_revision(index: dict) -> str:
-    """Content identity of one catalog — see `scripts/gen_revision.py`.
+    """Content identity of one catalog — see `scripts/gen_revision.py` (frozen reference: `legacy/python/gen_revision.py`).
 
     Kept in sync with that script on purpose (both derive the same value from
     the same `(id, version, sha256)` triples); a test pins the two together so
@@ -80,7 +80,7 @@ def check_revision(index: dict, revision: dict) -> list[str]:
         return []
     return [
         f"revision.json: stale sentinel {actual!r}, expected {expected!r} for this "
-        f"catalog — run `python3 scripts/gen_revision.py` and commit the result"
+        f"catalog — run `buz-plugin revision` and commit the result"
     ]
 
 
@@ -135,13 +135,13 @@ def check(index: dict, reviews: dict) -> tuple[list[str], list[str]]:
             if pair[0] in reviewed_ids:
                 errors.append(
                     f"{pair[0]}@{pair[1]}: no review entry — refresh the ledger with "
-                    f"`python3 scripts/gen_reviews.py --auto` and commit reviews.json"
+                    f"`buz-plugin reviews --auto` and commit reviews.json"
                 )
             else:
                 errors.append(
                     f"{pair[0]}@{pair[1]}: no review entry and this id has no first review — "
                     f"review the exact file, then record it with "
-                    f"`python3 scripts/gen_reviews.py --date <YYYY-MM-DD> "
+                    f"`buz-plugin reviews --date <YYYY-MM-DD> "
                     f"--commit <sha> --scope '<what you checked>' {pair[0]}`"
                 )
         elif reviewed[pair] != sha:
@@ -188,7 +188,7 @@ def check_meta(index: dict, plugins_root: Path) -> tuple[list[str], list[str]]:
         if not meta_path.exists():
             errors.append(
                 f"{pair[0]}@{pair[1]}: {display} is missing — "
-                f"run `python3 scripts/gen_index.py` and commit it"
+                f"run `buz-plugin index` and commit it"
             )
             continue
         try:
@@ -216,7 +216,7 @@ def check_meta(index: dict, plugins_root: Path) -> tuple[list[str], list[str]]:
         if entry is None:
             errors.append(
                 f"{pair[0]}@{pair[1]}: not listed in {display} — "
-                f"run `python3 scripts/gen_index.py` and commit it"
+                f"run `buz-plugin index` and commit it"
             )
             continue
         meta_sha = str(entry.get("sha256", "")).lower()

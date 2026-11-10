@@ -7,11 +7,11 @@ dist/
 # appended via scripts/gen_reviews.py after human review.
 !reviews.json
 
-# plugins/<ns>/index.json is committed too: the per-namespace full-meta
-# manifest (id/version/sha256 plus the scalar meta incl. requires_buz) is the
-# compatibility contract — git clones and offline consumers get it without
-# the deployed site. CI regenerates a byte-identical copy for deploys and
-# release assets (--merged writes the repo-root site view).
+# plugins/index.json and plugins/buz/<id>/meta.json ARE committed: the
+# full-meta manifests (id/version/sha256 plus the scalar meta incl.
+# requires_buz) are the compatibility contract — git clones and offline
+# consumers get them without the deployed site. CI regenerates byte-identical
+# copies for deploys and release assets.
 
 # Signing keys NEVER live in the repo (the signature proves the index was not
 # rewritten; a committed key would prove nothing). Generate with

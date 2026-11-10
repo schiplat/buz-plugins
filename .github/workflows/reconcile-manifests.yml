@@ -40,8 +40,21 @@ jobs:
           # non-protected branch works with either token.
           token: ${{ secrets.BUZ_REPO_PAT_V2 || secrets.BUZ_REPO_PAT || secrets.BUZ_PLUGIN_REPO_TOKEN || github.token }}
 
-      - name: Install Python dependencies
-        run: python3 -m pip install --user pyyaml
+      - name: Install buz-plugin (release binary)
+        env:
+          GH_TOKEN: ${{ secrets.BUZ_PLUGIN_REPO_TOKEN || secrets.BUZ_REPO_PAT || secrets.BUZ_REPO_PAT_V2 }}
+          BUZ_PLUGIN_VERSION: "2.1.6"
+        run: |
+          set -euo pipefail
+          DIR="$RUNNER_TEMP/buz-plugin"
+          mkdir -p "$DIR"
+          gh release download "v${BUZ_PLUGIN_VERSION}" \
+            --repo schiplat/buz \
+            --pattern "buz-plugin-${BUZ_PLUGIN_VERSION}-linux-x86_64.tar.gz" \
+            --dir "$DIR"
+          tar -xzf "$DIR/buz-plugin-${BUZ_PLUGIN_VERSION}-linux-x86_64.tar.gz" -C "$DIR"
+          echo "$DIR" >> "$GITHUB_PATH"
+          "$DIR/buz-plugin" --version
 
       # Same order as the deploy job: index → per-plugin meta → revision last,
       # then the ledger refresh (reviews are signed before the site build).
@@ -50,9 +63,9 @@ jobs:
           set -euo pipefail
           REV="$(git rev-parse --short HEAD)"
           AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          python3 scripts/gen_index.py --updated-at "$AT"
-          python3 scripts/gen_revision.py
-          python3 scripts/gen_reviews.py --auto --date "$(date -u +%F)" --commit "$REV"
+          buz-plugin index --updated-at "$AT"
+          buz-plugin revision
+          buz-plugin reviews --auto --date "$(date -u +%F)" --commit "$REV"
 
       # Same invariant the PR gate enforces: a version the index advertises
       # without a review bound to its exact content is what require_reviewed
@@ -67,7 +80,7 @@ jobs:
         run: |
           set -euo pipefail
           HEAD_SHA="$(git rev-parse --short HEAD)"
-          DERIVED_REV="$(python3 scripts/gen_revision.py --print)"
+          DERIVED_REV="$(buz-plugin revision --print)"
           {
             echo "### Manifest state"
             echo ""

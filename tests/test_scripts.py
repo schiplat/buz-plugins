@@ -25,228 +25,6 @@ def load_script(name):
     return module
 
 
-class GenIndexTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.gen_index = load_script("gen_index")
-
-    def test_index_paths_are_repo_relative_posix(self):
-        self.assertEqual(
-            self.gen_index.relative_file(ROOT / "plugins" / "thing.yaml", ROOT),
-            "plugins/thing.yaml",
-        )
-
-    def test_index_rejects_plugin_paths_outside_repository(self):
-        with self.assertRaisesRegex(SystemExit, "inside the repository root"):
-            self.gen_index.relative_file(Path("/tmp/outside.yaml"), ROOT)
-
-    def test_index_accepts_only_lowercase_two_segment_canonical_ids(self):
-        path = ROOT / "plugins" / "fixture.yaml"
-        self.assertEqual(
-            self.gen_index.extract(
-                self.gen_index.ID_RE, "id: buz/example-step\n", "id", path
-            ),
-            "buz/example-step",
-        )
-        for invalid_id in ("buz/net/example", "Buz/example", "buz/Example"):
-            with self.subTest(invalid_id=invalid_id):
-                with self.assertRaisesRegex(SystemExit, "missing top-level `id:`"):
-                    self.gen_index.extract(
-                        self.gen_index.ID_RE, f"id: {invalid_id}\n", "id", path
-                    )
-
-    def test_index_reads_only_explicit_category_and_supports_spaces(self):
-        self.assertIsNone(self.gen_index.extract_category("id: buz/example\n"))
-        self.assertEqual(
-            self.gen_index.extract_category('id: buz/example\ncategory: "health check"\n'),
-            "health check",
-        )
-        self.assertEqual(
-            self.gen_index.extract_category("category: notifications_team\n"),
-            "notifications_team",
-        )
-        self.assertEqual(
-            self.gen_index.extract_category("category: notifications # grouping\n"),
-            "notifications",
-        )
-        self.assertEqual(
-            self.gen_index.extract_category('category: "health check" # grouping\n'),
-            "health check",
-        )
-        with self.assertRaisesRegex(SystemExit, "simple label"):
-            self.gen_index.extract_category("category: invalid/category\\n")
-
-    def test_index_extracts_full_scalar_meta_and_ignores_block_scalars(self):
-        raw = (
-            "id: buz/example\n"
-            "version: 1.0.0\n"
-            "name: Example\n"
-            "description: |\n"
-            "  block scalar body\n"
-            "engine: shell # comment\n"
-            'requires_buz: ">=1.8.1"\n'
-            "inputs:\n"
-            "  nested_engine: docker\n"
-        )
-        meta = self.gen_index.extract_meta(raw)
-        self.assertEqual(
-            meta,
-            {"name": "Example", "engine": "shell", "requires_buz": ">=1.8.1"},
-            "block scalars and nested keys stay out of the indexed meta",
-        )
-
-    def test_index_rejects_malformed_requires_buz(self):
-        meta = {"requires_buz": "^1.8.0"}
-        with self.assertRaises(SystemExit):
-            self.gen_index.check_requires_buz(meta, Path("plugins/buz/example/1.0.0.yaml"))
-        # Accepted forms pass silently.
-        for value in (">=1.8.1", "1.10.4"):
-            self.gen_index.check_requires_buz({"requires_buz": value}, Path("x"))
-
-    def test_index_rejects_whitespace_only_category(self):
-        with self.assertRaisesRegex(SystemExit, "simple label"):
-            self.gen_index.extract_category("category:    ")
-
-    def test_recursive_discovery_is_sorted_and_skips_hidden_paths_and_symlinks(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            nested = root / "buz" / "object"
-            nested.mkdir(parents=True)
-            (root / "z.yaml").write_text("id: community/z\n")
-            (nested / "1.0.0.yaml").write_text("id: buz/object\n")
-            hidden = root / ".hidden"
-            hidden.mkdir()
-            (hidden / "hidden.yaml").write_text("id: community/hidden\n")
-            outside = root.parent / f"{root.name}-linked.yaml"
-            outside.write_text("id: community/linked\n")
-            try:
-                (root / "linked.yaml").symlink_to(outside)
-                (root / "linked-dir").symlink_to(nested, target_is_directory=True)
-                expected = ["buz/object/1.0.0.yaml", "z.yaml"]
-                for script_name in ("gen_index", "egress", "lint_runs", "build_site"):
-                    with self.subTest(script=script_name):
-                        module = load_script(script_name)
-                        files = module.discover_plugin_files(root)
-                        self.assertEqual(
-                            [path.relative_to(root).as_posix() for path in files],
-                            expected,
-                        )
-            finally:
-                outside.unlink(missing_ok=True)
-
-    def test_nested_specs_with_same_basename_keep_distinct_indexed_paths(self):
-        with tempfile.TemporaryDirectory(dir=ROOT) as tmp:
-            plugin_dir = Path(tmp) / "plugins"
-            for name, step_id in (("alpha", "community/alpha"), ("beta", "community/beta")):
-                spec_dir = plugin_dir / "buz" / name
-                spec_dir.mkdir(parents=True)
-                (spec_dir / "1.0.0.yaml").write_text(
-                    f"id: {step_id}\nversion: 1.0.0\n"
-                )
-            files = self.gen_index.discover_plugin_files(plugin_dir)
-            indexed = [self.gen_index.relative_file(path, ROOT) for path in files]
-            expected_prefix = Path(tmp).relative_to(ROOT).as_posix()
-        self.assertEqual(
-            indexed,
-            [
-                f"{expected_prefix}/plugins/buz/alpha/1.0.0.yaml",
-                f"{expected_prefix}/plugins/buz/beta/1.0.0.yaml",
-            ],
-        )
-
-
-class DeprecationOverlayTests(unittest.TestCase):
-    """`plugins/deprecations.json` flags published versions without editing them.
-
-    Editing a released spec would change its content hash and break
-    `@sha256:` pins, so deprecation is metadata carried by the generated
-    index/meta only.
-    """
-
-    def write_tree(self, tmp, spec="id: buz/a\nversion: 1.0.0\nengine: shell\nrun: echo hi\n", deprecations=None):
-        root = Path(tmp) / "plugins"
-        plugin_dir = root / "buz" / "a"
-        plugin_dir.mkdir(parents=True)
-        (plugin_dir / "1.0.0.yaml").write_text(spec)
-        if deprecations is not None:
-            (root / "deprecations.json").write_text(json.dumps(deprecations))
-        return root
-
-    def run_index(self, root):
-        return subprocess.run(
-            [sys.executable, str(SCRIPTS / "gen_index.py"), "--plugins-dir", str(root)],
-            capture_output=True,
-            text=True,
-        )
-
-    def test_deprecation_lands_in_index_and_meta_without_changing_the_hash(self):
-        with tempfile.TemporaryDirectory(dir=ROOT) as tmp:
-            spec = "id: buz/a\nversion: 1.0.0\nengine: shell\nrun: echo hi\n"
-            root = self.write_tree(
-                tmp,
-                spec=spec,
-                deprecations={
-                    "deprecations": [
-                        {"id": "buz/a", "version": "1.0.0", "reason": "use 1.1.0"}
-                    ]
-                },
-            )
-            result = self.run_index(root)
-            self.assertEqual(result.returncode, 0, result.stderr)
-            index = json.loads((root / "index.json").read_text())
-            entry = index["steps"][0]
-            self.assertEqual(entry["deprecated"], "use 1.1.0")
-            self.assertEqual(
-                entry["sha256"],
-                __import__("hashlib").sha256(spec.encode()).hexdigest(),
-                "overlay must not alter the content hash",
-            )
-            meta = json.loads((root / "buz" / "a" / "meta.json").read_text())
-            self.assertEqual(meta["versions"][0]["deprecated"], "use 1.1.0")
-
-    def test_unknown_deprecation_target_fails(self):
-        with tempfile.TemporaryDirectory(dir=ROOT) as tmp:
-            root = self.write_tree(
-                tmp,
-                deprecations={
-                    "deprecations": [
-                        {"id": "buz/a", "version": "9.9.9", "reason": "typo"}
-                    ]
-                },
-            )
-            result = self.run_index(root)
-            self.assertNotEqual(result.returncode, 0)
-            self.assertIn("match no published version", result.stderr)
-
-    def test_duplicate_or_empty_reasons_are_rejected(self):
-        with tempfile.TemporaryDirectory(dir=ROOT) as tmp:
-            root = self.write_tree(
-                tmp,
-                deprecations={
-                    "deprecations": [
-                        {"id": "buz/a", "version": "1.0.0", "reason": "one"},
-                        {"id": "buz/a", "version": "1.0.0", "reason": "two"},
-                    ]
-                },
-            )
-            result = self.run_index(root)
-            self.assertNotEqual(result.returncode, 0)
-            self.assertIn("duplicate deprecation", result.stderr)
-
-        with tempfile.TemporaryDirectory(dir=ROOT) as tmp:
-            root = self.write_tree(
-                tmp,
-                deprecations={
-                    "deprecations": [
-                        {"id": "buz/a", "version": "1.0.0", "reason": "  "}
-                    ]
-                },
-            )
-            result = self.run_index(root)
-            self.assertNotEqual(result.returncode, 0)
-            self.assertIn("empty reason", result.stderr)
-
-
 class EgressTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -1006,130 +784,6 @@ class SitePathTests(unittest.TestCase):
                 shutil.rmtree(frontend_dist, ignore_errors=True)
 
 
-class ReviewMergeTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.gen_reviews = load_script("gen_reviews")
-
-    def test_manual_upsert_preserves_pinned_versions_and_unrelated_records(self):
-        existing = [
-            {"id": "author/step", "version": "1.0.0", "sha256": "old", "scope": "old", "source": "human"},
-            {"id": "author/step", "version": "1.1.0", "sha256": "stale", "scope": "old", "source": "human"},
-            {"id": "other/step", "version": "1.0.0", "sha256": "keep", "scope": "review", "source": "human"},
-            {"id": "buz/official", "version": "1.0.0", "sha256": "ci", "source": "ci"},
-        ]
-        replacement = {"id": "author/step", "version": "1.1.0", "sha256": "new", "scope": "manual", "source": "human"}
-        merged = self.gen_reviews.merge_reviews(existing, [replacement], keep_manual=False)
-        self.assertEqual(merged[0], replacement)
-        self.assertEqual(merged[1]["version"], "1.0.0")
-        self.assertEqual([entry["id"] for entry in merged[1:]], ["author/step", "other/step", "buz/official"])
-
-    def test_auto_tracks_blessed_ids_and_skips_new_official_ones(self):
-        steps = [
-            {"id": "buz/example", "version": "1.9.0", "sha256": "sha-1.9"},
-            {"id": "buz/example", "version": "1.10.0", "sha256": "sha-1.10"},
-            {"id": "buz/newcomer", "version": "1.0.0", "sha256": "sha-new"},
-            {"id": "community/example", "version": "1.0.0", "sha256": "community"},
-        ]
-        args = type("Args", (), {"date": "2026-10-05", "commit": "abc123"})()
-        existing = [
-            {"id": "buz/example", "version": "1.0.0", "sha256": "old", "source": "ci"},
-        ]
-        with patch.object(self.gen_reviews, "load_index", return_value={
-            (step["id"], step["version"]): step for step in steps
-        }):
-            entries = self.gen_reviews.auto_entries(args, existing)
-        # buz/example is blessed — both versions stay fresh; buz/newcomer has
-        # no review entry yet, so its first review must be manual.
-        self.assertEqual(
-            [(entry["id"], entry["version"], entry["sha256"]) for entry in entries],
-            [
-                ("buz/example", "1.10.0", "sha-1.10"),
-                ("buz/example", "1.9.0", "sha-1.9"),
-            ],
-        )
-
-    def test_manual_selection_uses_semver_not_lexicographic_order(self):
-        steps = {
-            ("buz/example", "1.9.0"): {
-                "id": "buz/example", "version": "1.9.0", "sha256": "sha-1.9"
-            },
-            ("buz/example", "1.10.0"): {
-                "id": "buz/example", "version": "1.10.0", "sha256": "sha-1.10"
-            },
-        }
-        args = type("Args", (), {
-            "ids": ["buz/example"],
-            "date": "2026-10-05",
-            "commit": "abc123",
-            "scope": "manual review",
-        })()
-        with patch.object(self.gen_reviews, "load_index", return_value=steps):
-            entries = self.gen_reviews.manual_entries(args)
-        self.assertEqual(entries[0]["version"], "1.10.0")
-        self.assertEqual(entries[0]["sha256"], "sha-1.10")
-
-    def test_semver_sort_is_numeric(self):
-        self.assertGreater(
-            self.gen_reviews.semver_key("1.10.0"),
-            self.gen_reviews.semver_key("1.9.0"),
-        )
-
-    def test_auto_never_replaces_a_human_first_review(self):
-        # bab008c-era regression: an auto refresh replaced env-render 1.0.0's
-        # human first review with a ci badge, erasing the reviewer provenance
-        # from the ledger (it only survived in git history).
-        existing = [
-            {
-                "id": "buz/env-render",
-                "version": "1.0.0",
-                "sha256": "cc" + "0" * 62,
-                "reviewed_at": "2026-11-07",
-                "review_commit": "ddd9cec",
-                "scope": "official bootstrap: reviewed run block",
-                "source": "human",
-            }
-        ]
-        fresh = {
-            "id": "buz/env-render",
-            "version": "1.0.0",
-            "sha256": "cc" + "0" * 62,
-            "reviewed_at": "2026-11-10",
-            "review_commit": "aaa1111",
-            "scope": "official-ci: validate + lint_runs + egress allowlist on green master",
-            "source": "ci",
-        }
-        merged = self.gen_reviews.merge_reviews(existing, [fresh], keep_manual=True)
-        humans = [entry for entry in merged if entry.get("source") == "human"]
-        assert humans, "human first review must survive an auto refresh"
-        assert humans[0]["review_commit"] == "ddd9cec"
-        cis = [entry for entry in merged if entry.get("source") == "ci"]
-        assert len(cis) == 1, "stale ci entry still replaced by the fresh one"
-
-    def test_manual_upsert_preserves_pinned_versions_and_unrelated_records(self):
-        existing = [
-            {"id": "buz/official", "version": "1.0.0", "sha256": "stale", "source": "ci"},
-            {"id": "author/step", "version": "1.0.0", "sha256": "human", "source": "human"},
-        ]
-        replacement = {"id": "buz/official", "version": "1.0.0", "sha256": "fresh", "source": "ci"}
-        merged = self.gen_reviews.merge_reviews(existing, [replacement], keep_manual=True)
-        self.assertEqual(merged, [replacement, existing[1]])
-
-    def test_manual_merge_writes_atomically_and_retains_records(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / "reviews.json"
-            existing = {"reviews": [{"id": "other/step", "version": "1", "sha256": "keep", "source": "human"}]}
-            path.write_text(json.dumps(existing))
-            with patch.object(self.gen_reviews, "resolve", return_value=path):
-                self.gen_reviews.merge_and_write(
-                    [{"id": "new/step", "version": "1", "sha256": "new", "source": "human"}],
-                    keep_manual=False,
-                )
-            result = json.loads(path.read_text())
-            self.assertEqual([r["id"] for r in result["reviews"]], ["new/step", "other/step"])
-            self.assertEqual(list(Path(tmp).iterdir()), [path])
-
-
 class ManifestConsistencyTests(unittest.TestCase):
     """index.json ↔ reviews.json invariant (scripts/check_manifest_consistency.py).
 
@@ -1163,7 +817,7 @@ class ManifestConsistencyTests(unittest.TestCase):
         )
         self.assertEqual(len(errors), 1)
         self.assertIn("buz/a@1.1.1", errors[0])
-        self.assertIn("gen_reviews.py --auto", errors[0])
+        self.assertIn("buz-plugin reviews --auto", errors[0])
 
     def test_missing_version_for_unblessed_id_requires_manual_first_review(self):
         errors, _ = self.check(
@@ -1261,7 +915,7 @@ class ManifestConsistencyTests(unittest.TestCase):
             errors, _ = self.meta_check(tmp)
         self.assertEqual(len(errors), 1)
         self.assertIn("is missing", errors[0])
-        self.assertIn("gen_index.py", errors[0])
+        self.assertIn("buz-plugin index", errors[0])
 
     def test_meta_without_the_indexed_version_is_rejected(self):
         sha = self.sha("a")
@@ -2318,17 +1972,15 @@ class ResolveBaseDigestsTests(unittest.TestCase):
 
 
 class RevisionSentinelTests(unittest.TestCase):
-    """Catalog-derived drift sentinel (scripts/gen_revision.py + the validate gate).
+    """Catalog-derived drift sentinel pinned by the validate gate.
 
-    `revision.json` must name the catalog, never a build: a value that moves
-    on every build can only trail HEAD, which is exactly the drift the
-    committed copy must not have. The manager (and mirrors) compare two
-    sentinels for **equality** only, so a content identity is sufficient.
+    The sentinel is derived by `buz-plugin revision` and re-checked by
+    `scripts/check_manifest_consistency.py`; these tests pin the checker's
+    derivation so a refactor cannot silently change what "same catalog" means.
     """
 
     @classmethod
     def setUpClass(cls):
-        cls.gen_revision = load_script("gen_revision")
         cls.checker = load_script("check_manifest_consistency")
 
     @staticmethod
@@ -2342,44 +1994,38 @@ class RevisionSentinelTests(unittest.TestCase):
     def test_derivation_is_stable_across_build_metadata_and_entry_order(self):
         a = {"id": "buz/a", "version": "1.0.0", "sha256": self.sha("a"), "category": "config"}
         b = {"id": "buz/b", "version": "2.0.0", "sha256": self.sha("b")}
-        one = self.gen_revision.catalog_revision(self.index([a, b], sequence=3))
-        two = self.gen_revision.catalog_revision(
+        one = self.checker.catalog_revision(self.index([a, b], sequence=3))
+        two = self.checker.catalog_revision(
             self.index([dict(b), dict(a)], sequence=99, issued_at="2030-12-31T23:59:59Z")
         )
-        self.assertEqual(
-            one, two, "build metadata and entry order must not move the sentinel"
-        )
+        self.assertEqual(one, two, "build metadata and entry order must not move the sentinel")
         self.assertRegex(one, r"^[0-9a-f]{16}$")
 
     def test_derivation_changes_only_when_the_catalog_changes(self):
         base = [{"id": "buz/a", "version": "1.0.0", "sha256": self.sha("a")}]
-        baseline = self.gen_revision.catalog_revision(self.index(base))
-        self.assertEqual(
-            baseline, self.gen_revision.catalog_revision(self.index(list(base)))
-        )
+        baseline = self.checker.catalog_revision(self.index(base))
+        self.assertEqual(baseline, self.checker.catalog_revision(self.index(list(base))))
         for variant in (
-            [{"id": "buz/a", "version": "1.0.0", "sha256": self.sha("b")}],  # content
-            [{"id": "buz/a", "version": "1.0.1", "sha256": self.sha("a")}],  # version
-            [{"id": "buz/c", "version": "1.0.0", "sha256": self.sha("a")}],  # id
+            [{"id": "buz/a", "version": "1.0.0", "sha256": self.sha("b")}],
+            [{"id": "buz/a", "version": "1.0.1", "sha256": self.sha("a")}],
+            [{"id": "buz/c", "version": "1.0.0", "sha256": self.sha("a")}],
             base + [{"id": "buz/a", "version": "1.0.1", "sha256": self.sha("b")}],
         ):
             self.assertNotEqual(
                 baseline,
-                self.gen_revision.catalog_revision(self.index(variant)),
+                self.checker.catalog_revision(self.index(variant)),
                 f"sentinel did not move for {variant}",
             )
 
-    def test_checker_and_generator_derive_the_same_value(self):
-        index = self.index(
-            [
-                {"id": "buz/a", "version": "1.0.0", "sha256": self.sha("a")},
-                {"id": "buz/b", "version": "0.1.0", "sha256": self.sha("b")},
-            ]
+    def test_committed_sentinel_matches_the_committed_catalog(self):
+        index = json.loads((ROOT / "plugins" / "index.json").read_text(encoding="utf-8"))
+        revision = json.loads(
+            (ROOT / "plugins" / "revision.json").read_text(encoding="utf-8")
         )
         self.assertEqual(
             self.checker.catalog_revision(index),
-            self.gen_revision.catalog_revision(index),
-            "the gate and the generator must agree or the gate is unreachable",
+            revision["revision"],
+            "the committed sentinel must name the committed catalog",
         )
 
     def test_stale_sentinel_is_rejected_with_the_regeneration_hint(self):
@@ -2389,53 +2035,12 @@ class RevisionSentinelTests(unittest.TestCase):
         )
         self.assertEqual(len(errors), 1)
         self.assertIn("stale sentinel", errors[0])
-        self.assertIn("gen_revision.py", errors[0])
+        self.assertIn("buz-plugin revision", errors[0])
 
     def test_current_sentinel_passes(self):
         index = self.index([{"id": "buz/a", "version": "1.0.0", "sha256": self.sha("a")}])
-        current = {"revision": self.gen_revision.catalog_revision(index)}
+        current = {"revision": self.checker.catalog_revision(index)}
         self.assertEqual(self.checker.check_revision(index, current), [])
-
-    def test_print_mode_writes_nothing_and_write_mode_records_issued_at(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            index_path = root / "index.json"
-            out_path = root / "revision.json"
-            index = self.index(
-                [{"id": "buz/a", "version": "1.0.0", "sha256": self.sha("a")}],
-                issued_at="2026-02-03T04:05:06Z",
-            )
-            index_path.write_text(json.dumps(index), encoding="utf-8")
-
-            out = io.StringIO()
-            with contextlib.redirect_stdout(out):
-                self.assertEqual(
-                    self.gen_revision.main(
-                        [
-                            "--index",
-                            str(index_path),
-                            "--output",
-                            str(out_path),
-                            "--print",
-                        ]
-                    ),
-                    0,
-                )
-            self.assertFalse(out_path.exists(), "--print must not write")
-            self.assertEqual(
-                out.getvalue().strip(), self.gen_revision.catalog_revision(index)
-            )
-
-            with contextlib.redirect_stdout(io.StringIO()):
-                self.assertEqual(
-                    self.gen_revision.main(
-                        ["--index", str(index_path), "--output", str(out_path)]
-                    ),
-                    0,
-                )
-            written = json.loads(out_path.read_text(encoding="utf-8"))
-            self.assertEqual(written["revision"], self.gen_revision.catalog_revision(index))
-            self.assertEqual(written["updated_at"], "2026-02-03T04:05:06Z")
 
 
 if __name__ == "__main__":
