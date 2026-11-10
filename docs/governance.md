@@ -31,7 +31,7 @@ carry none of those claims — they are distributed, not certified.
 2. **CI hash tracking.** After that, green master re-binds the hash on every
    content change: `buz-plugin validate` (schema), `lint_runs` (malice
    heuristics + the POSIX-sh compat gate), and the egress baseline must all pass.
-   The ledger stays honest mechanically: `check_manifest_consistency.py` fails
+   The ledger stays honest mechanically: `buz-plugin check-manifests` fails
    any PR where a version in `index.json` has no review bound to the same
    content hash (or a review bound to an older one), and the daily
    `reconcile-manifests` run opens a PR when the committed manifests drift from
