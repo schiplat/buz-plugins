@@ -41,9 +41,6 @@ jobs:
       - name: Lint run blocks (heuristic patterns)
         run: python3 scripts/lint_runs.py plugins
 
-      - name: Check plugin READMEs
-        run: python3 scripts/check_plugin_readmes.py plugins
-
       - name: Check private validator availability
         id: validator-token
         env:
@@ -85,7 +82,7 @@ jobs:
         if: steps.validator-token.outputs.available == 'true'
         env:
           GH_TOKEN: ${{ secrets.BUZ_PLUGIN_REPO_TOKEN || secrets.BUZ_REPO_PAT || secrets.BUZ_REPO_PAT_V2 }}
-          BUZ_PLUGIN_VERSION: "2.1.6"
+          BUZ_PLUGIN_VERSION: "2.1.7"
         run: |
           set -euo pipefail
           DIR="$RUNNER_TEMP/buz-plugin"
@@ -127,8 +124,13 @@ jobs:
       # bound to an older hash) makes the catalog ship a template the review
       # gate rejects — the drift this gate exists to catch. Fix it by
       # refreshing the ledger, never by editing hashes.
-      - name: Manifest consistency (index ↔ reviews)
-        run: python3 scripts/check_manifest_consistency.py
+      - name: Manifest consistency (index ↔ reviews ↔ meta)
+        if: steps.validator-token.outputs.available == 'true'
+        run: buz-plugin check-manifests --plugins-dir plugins
+
+      - name: Plugin READMEs
+        if: steps.validator-token.outputs.available == 'true'
+        run: buz-plugin check-readmes --plugins-dir plugins
 
       - name: Public fork PR validation notice
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true
@@ -159,8 +161,11 @@ jobs:
 
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Run tests (/bin/sh execution level)
-        run: python3 tests/test_scripts.py
+      - name: Run the env-render run block (/bin/sh execution level)
+        # The execution-level gate only needs the run block: every other test is
+        # static and platform-independent. Running the whole suite under dash/ash
+        # made the matrix 10x slower without adding coverage.
+        run: python3 tests/test_scripts.py EnvRenderTests
 
   build-site:
     runs-on: ubuntu-latest
@@ -171,6 +176,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Record the committed catalog
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         # Publishers sign exactly these bytes. The gate below compares the
         # regenerated catalog against this copy: a pinned tool that cannot
         # reproduce a manifest field (e.g. the `deprecated` overlay) must fail
@@ -198,6 +204,7 @@ jobs:
       # missing credential must not block the site build. Absence is surfaced
       # as a warning annotation and the index is generated unsigned.
       - name: Install buz-plugin
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         id: buz-plugin
         continue-on-error: true
         env:
@@ -208,7 +215,7 @@ jobs:
           GH_TOKEN: ${{ secrets.BUZ_PLUGIN_REPO_TOKEN || secrets.BUZ_REPO_PAT || secrets.BUZ_REPO_PAT_V2 }}
           # Pinned: a tool release may change the index contract, and that must
           # be a deliberate bump, not a silent follow-the-latest.
-          BUZ_PLUGIN_VERSION: "2.1.6"
+          BUZ_PLUGIN_VERSION: "2.1.7"
         run: |
           set -euo pipefail
           DIR="$RUNNER_TEMP/buz-plugin"
@@ -223,6 +230,7 @@ jobs:
           "$DIR/buz-plugin" --version
 
       - name: Generate the index
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
           set -euo pipefail
           COMMITTED="$RUNNER_TEMP/committed/index.json"
@@ -265,11 +273,9 @@ jobs:
           echo "no previously published catalog — no rollback baseline" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Verify the catalog is the committed one
-        # Hard gate on master (this is the publish path). On pull requests the
-        # pin may legitimately lag behind a field the committed catalog uses;
-        # the failure is surfaced as a warning so unrelated work is not
-        # blocked, while master stops deploying a divergent catalog.
-        continue-on-error: ${{ github.event_name != 'push' || github.ref != 'refs/heads/master' }}
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        # Hard gate on the publish path: a pinned tool that cannot reproduce
+        # the committed catalog must stop the deploy, not ship around it.
         env:
           PUBLISHED: ${{ steps.published.outputs.path }}
         run: |
@@ -284,27 +290,18 @@ jobs:
       # the refreshed ledger, and a Manager with the trust anchor on refuses
       # an unsigned (or stale-signed) ledger outright.
       - name: Refresh the review ledger
-        run: |
-          set -euo pipefail
-          if ! command -v buz-plugin >/dev/null 2>&1; then
-            echo "::warning title=Ledger not refreshed::buz-plugin unavailable — the PR preview uses the committed ledger"
-            exit 0
-          fi
-          buz-plugin reviews --auto --commit "${GITHUB_SHA::7}"
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: buz-plugin reviews --auto --commit "${GITHUB_SHA::7}"
 
       - name: Sign the index and the review ledger
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         env:
           BUZ_PLUGIN_SIGNING_KEY: ${{ secrets.BUZ_PLUGIN_SIGNING_KEY }}
         run: |
           set -euo pipefail
-          if ! command -v buz-plugin >/dev/null 2>&1; then
-            echo "::warning title=Index unsigned::buz-plugin unavailable — index and review ledger are published unsigned"
-            exit 0
-          fi
           if [ -z "${BUZ_PLUGIN_SIGNING_KEY:-}" ]; then
-            # Fork PRs receive no secrets; the manifests still have to be valid.
-            echo "::warning title=Index unsigned::signing key unavailable (fork PR?) — index and review ledger are published unsigned"
-            exit 0
+            echo "::error title=Signing key missing::the publish path must sign the index and the review ledger"
+            exit 1
           fi
           AT="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["issued_at"])' "$RUNNER_TEMP/committed/index.json")"
           SEQ="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["sequence"])' "$RUNNER_TEMP/committed/index.json")"
@@ -324,12 +321,9 @@ jobs:
       # sha256) triples, so the committed copy and this build always agree —
       # it cannot trail HEAD like a build stamp would.
       - name: Derive the drift sentinel
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
           set -euo pipefail
-          if ! command -v buz-plugin >/dev/null 2>&1; then
-            echo "::warning title=Sentinel not regenerated::buz-plugin unavailable — the PR preview uses the committed revision.json"
-            exit 0
-          fi
           buz-plugin revision
           if ! cmp -s plugins/revision.json "$RUNNER_TEMP/committed/revision.json"; then
             echo "::error title=Revision drift::revision.json no longer names the committed catalog — the publish must carry the committed manifests, not a re-derivation"
@@ -360,6 +354,10 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # A PAT (not GITHUB_TOKEN) lets the write-back push through the master
+          # ruleset. The reconcile schedule stays as the safety net.
+          token: ${{ secrets.BUZ_REPO_PAT_V2 || secrets.BUZ_REPO_PAT || secrets.BUZ_PLUGIN_REPO_TOKEN || github.token }}
 
       - name: Download site artifact
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
@@ -460,7 +458,7 @@ jobs:
           # Pinned: a tool release may change the index contract, and that must
           # be a deliberate bump, not a silent follow-the-latest. A pin that
           # cannot reproduce the committed catalog fails the gate below.
-          BUZ_PLUGIN_VERSION: "2.1.6"
+          BUZ_PLUGIN_VERSION: "2.1.7"
         run: |
           set -euo pipefail
           DIR="$RUNNER_TEMP/buz-plugin"

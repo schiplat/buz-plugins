@@ -43,7 +43,7 @@ jobs:
       - name: Install buz-plugin (release binary)
         env:
           GH_TOKEN: ${{ secrets.BUZ_PLUGIN_REPO_TOKEN || secrets.BUZ_REPO_PAT || secrets.BUZ_REPO_PAT_V2 }}
-          BUZ_PLUGIN_VERSION: "2.1.6"
+          BUZ_PLUGIN_VERSION: "2.1.7"
         run: |
           set -euo pipefail
           DIR="$RUNNER_TEMP/buz-plugin"
@@ -72,7 +72,7 @@ jobs:
       # deployments reject. Fail loudly instead of opening a PR that would
       # stay red.
       - name: Verify index ↔ reviews consistency
-        run: python3 scripts/check_manifest_consistency.py
+        run: buz-plugin check-manifests --plugins-dir plugins
 
       - name: Report drift and open a refresh PR when the catalog moved
         env:
@@ -99,15 +99,12 @@ jobs:
             echo "::warning title=Deployed catalog lags source::site publishes $SITE_REV, source derives $DERIVED_REV from HEAD $HEAD_SHA — check the deploy-site job"
           fi
 
-          if ! python3 scripts/manifest_drift.py; then
-            : # material drift — fall through and open the PR
-          else
-            # Nothing material changed. Regeneration re-stamped the ledger
-            # with today's date and rewrote the sentinel; discard both so the
-            # job stays green without a daily no-op PR.
-            git checkout -- plugins/reviews.json plugins/revision.json
+          # Reviews are byte-stable while their content hash is unchanged
+          # (`buz-plugin reviews --auto`), so any status entry under plugins/ is
+          # material drift — no separate comparator needed.
+          if [ -z "$(git status --porcelain -- plugins/)" ]; then
             echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "No material drift — catalog, ledger, and meta match the specs." >> "$GITHUB_STEP_SUMMARY"
+            echo "No drift — catalog, ledger, and meta match the specs." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
 

@@ -30,7 +30,7 @@ before signing. A source root may also carry `deprecations.json`: an overlay
 that flags published versions as deprecated (carried into index/meta as
 `deprecated`) without editing their immutable YAML or changing content hashes. Consistency is enforced, not assumed:
 
-- `scripts/check_manifest_consistency.py` (run by the `validate` job) fails
+- `buz-plugin check-manifests` (run by the `validate` job) fails
   when a version in `index.json` has no review entry bound to the same
   `sha256`, when the ledger binds an older hash, or when an indexed version is
   missing from (or disagrees with) its plugin's `meta.json`. A missing badge
@@ -50,7 +50,7 @@ that flags published versions as deprecated (carried into index/meta as
 > (`plugins.buz.schiplat.com/plugins/`) is therefore always current; the copies
 > in git are the last reconciled snapshot. Air-gapped mirrors should take a
 > catalog snapshot tag or the site's manifest set, and run
-> `scripts/check_manifest_consistency.py` after each update — a plain
+> `buz-plugin check-manifests` after each update — a plain
 > `git clone` of `master` can lag behind the published catalog.
 
 The index may also carry a detached signature (`index.json.sig`) so a Manager
@@ -78,7 +78,7 @@ the same catalog always produces the same sentinel and the committed copy
 cannot trail `HEAD`. It is written last, so a mirror that sees a new revision
 knows the index beside it is complete. Mirrors compare two `revision.json`
 files (from the deployed sites, not from git) to detect drift without pulling
-the full index, and `scripts/check_manifest_consistency.py` fails when the
+the full index, and `buz-plugin check-manifests` fails when the
 committed sentinel no longer matches the index. Never hand-edit hashes —
 `buz-plugin index` / `revision` / `reviews` generate them from the specs.
 The frozen Python reference implementations live under `legacy/python/`.
@@ -135,7 +135,7 @@ The example includes both Shell and digest-pinned Docker templates. Planning pri
 
 ## Authoring
 
-Step specs use `plugins/<namespace>/<name>/<version>.yaml` (for example `plugins/buz/<name>/<version>.yaml`). The namespace/name path follows the canonical step ID; multiple versions may coexist, and only YAML files are indexed. Every plugin directory must ship a non-empty `README.md` documenting the step's purpose, inputs, and a usage example — CI enforces this (`scripts/check_plugin_readmes.py`). Plugin names use a single technology noun (`docker`, `archive`, `setup-<lang>`) rather than verb phrases — the pipeline context supplies the verb. Governance and trust model — what the marketplace certifies, the official/community tiers, and the ssh engine policy: [docs/governance.md](docs/governance.md). Plugin-specific Docker build assets belong alongside that plugin in an `image/` subdirectory and are not scanned as templates. The canonical ID format is `<namespace>/<name>` (for example `buz/<name>`); optional `category` metadata is separate and never part of the ID. The `id` field is the canonical identity everywhere: use the complete ID in `uses:`, review commands, issues, and provenance. `@version` belongs on pipeline `uses:` references, while issue/review identifiers should use the ID itself (the issue title includes `@version` where useful). Required fields: `id`, `version` (`X.Y.Z`), `engine`, `run`. Inputs support `type` (string/number/boolean/choice/list), `required`, `default`, `masking`, `pattern`, `options`. Optional fields: `name`, `category`, `description`, `description_zh`, `author`, `author_url`, `source_repo`, `keywords`, `publisher` (`official` | `community`), `license`, `default_timeout`.
+Step specs use `plugins/<namespace>/<name>/<version>.yaml` (for example `plugins/buz/<name>/<version>.yaml`). The namespace/name path follows the canonical step ID; multiple versions may coexist, and only YAML files are indexed. Every plugin directory must ship a non-empty `README.md` documenting the step's purpose, inputs, and a usage example — CI enforces this (`buz-plugin check-readmes`). Plugin names use a single technology noun (`docker`, `archive`, `setup-<lang>`) rather than verb phrases — the pipeline context supplies the verb. Governance and trust model — what the marketplace certifies, the official/community tiers, and the ssh engine policy: [docs/governance.md](docs/governance.md). Plugin-specific Docker build assets belong alongside that plugin in an `image/` subdirectory and are not scanned as templates. The canonical ID format is `<namespace>/<name>` (for example `buz/<name>`); optional `category` metadata is separate and never part of the ID. The `id` field is the canonical identity everywhere: use the complete ID in `uses:`, review commands, issues, and provenance. `@version` belongs on pipeline `uses:` references, while issue/review identifiers should use the ID itself (the issue title includes `@version` where useful). Required fields: `id`, `version` (`X.Y.Z`), `engine`, `run`. Inputs support `type` (string/number/boolean/choice/list), `required`, `default`, `masking`, `pattern`, `options`. Optional fields: `name`, `category`, `description`, `description_zh`, `author`, `author_url`, `source_repo`, `keywords`, `publisher` (`official` | `community`), `license`, `default_timeout`.
 
 Community templates must declare `author` and `source_repo` — attribution is part of inclusion.
 

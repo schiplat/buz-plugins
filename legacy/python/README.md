@@ -10,6 +10,9 @@ more**:
 | `gen_revision.py` | `buz-plugin revision` |
 | `gen_reviews.py` | `buz-plugin reviews` |
 | `check_release_index.py` | `buz-plugin check-release` |
+| `check_manifest_consistency.py` | `buz-plugin check-manifests` |
+| `check_plugin_readmes.py` | `buz-plugin check-readmes` |
+| `manifest_drift.py` | retired — `reviews --auto` is byte-stable while content is unchanged, so `reconcile-manifests` can trust `git status` |
 
 They are kept only as a readable reference for the exact output contract
 (field order, sorting, byte-stable regeneration). Do not edit them to "fix"

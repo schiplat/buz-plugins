@@ -15,7 +15,7 @@ in [plugin-images.md](plugin-images.md); this page is the authoring contract.
 
 ```text
 plugins/<namespace>/<name>/
-├── README.md           # required — repo rule, enforced by check_plugin_readmes.py in CI
+├── README.md           # required — repo rule, enforced by `buz-plugin check-readmes` in CI
 ├── 1.0.0.yaml          # one file per template version, X.Y.Z == `version:` field
 ├── 1.0.1.yaml          # later versions are added, never rewritten (see lifecycle)
 ├── 1.1.0.yaml          # new input contracts get a new immutable template version
