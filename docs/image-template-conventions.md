@@ -193,7 +193,7 @@ python3 tests/test_scripts.py                          # script + wiring tests
 python3 scripts/lint_runs.py plugins                   # run-block heuristics
 python3 scripts/egress.py --print --expect egress-allowlist.json
 python3 scripts/check_plugin_images.py                 # workflow structure gate
-python3 scripts/gen_index.py --output /tmp/index.json  # index dry run
+buz-plugin index --plugins-dir plugins --check  # index dry run
 buz-manager plugin-validate $(find plugins -name '*.y?ml' -not -path '*/.*')
 sh -n <extracted run block>                            # optional: syntax check
 ```

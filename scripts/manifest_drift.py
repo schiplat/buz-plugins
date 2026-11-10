@@ -62,7 +62,7 @@ def changed(pathspec: str) -> bool:
     """Whether regeneration touched `pathspec` — including untracked files.
 
     `git diff --quiet` ignores files that were never committed, so a missing
-    `meta.json` (generated anew by `gen_index.py`) would look clean. Porcelain
+    `meta.json` (generated anew by `buz-plugin index`) would look clean. Porcelain
     status lists modified, staged, and untracked entries alike.
     """
     result = subprocess.run(

@@ -81,6 +81,23 @@ jobs:
           sudo install -m 0755 "$(find . -type f -path '*/bin/buz-manager' | head -1)" /usr/local/bin/buz-manager
           buz-manager --version
 
+      - name: Install buz-plugin (release binary)
+        if: steps.validator-token.outputs.available == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.BUZ_PLUGIN_REPO_TOKEN || secrets.BUZ_REPO_PAT || secrets.BUZ_REPO_PAT_V2 }}
+          BUZ_PLUGIN_VERSION: "2.1.6"
+        run: |
+          set -euo pipefail
+          DIR="$RUNNER_TEMP/buz-plugin"
+          mkdir -p "$DIR"
+          gh release download "v${BUZ_PLUGIN_VERSION}" \
+            --repo schiplat/buz \
+            --pattern "buz-plugin-${BUZ_PLUGIN_VERSION}-linux-x86_64.tar.gz" \
+            --dir "$DIR"
+          tar -xzf "$DIR/buz-plugin-${BUZ_PLUGIN_VERSION}-linux-x86_64.tar.gz" -C "$DIR"
+          echo "$DIR" >> "$GITHUB_PATH"
+          "$DIR/buz-plugin" --version
+
       - name: Validate plugin specs
         if: steps.validator-token.outputs.available == 'true'
         run: |
@@ -98,18 +115,12 @@ jobs:
       - name: Validate image release workflow structure
         run: python3 scripts/check_plugin_images.py
 
-      - name: Index and meta drift check (regenerate and compare)
-        run: |
-          # Porcelain status also sees UNTRACKED files: a newly generated
-          # meta.json for a plugin directory that never committed one must
-          # fail this gate, while `git diff` would silently ignore it.
-          python3 scripts/gen_index.py
-          CHANGED="$(git status --porcelain -- plugins/index.json ':(glob)plugins/**/meta.json')"
-          if [ -n "$CHANGED" ]; then
-            printf '%s\n' "$CHANGED"
-            echo "::error::generated manifests are stale or untracked — run scripts/gen_index.py and commit the result"
-            exit 1
-          fi
+      - name: Index and meta drift check (pinned generator)
+        # `--check` regenerates in memory and compares every manifest on disk,
+        # so stale or missing index/meta files fail with the drifted field
+        # named. It writes nothing — the committed copy stays the source.
+        if: steps.validator-token.outputs.available == 'true'
+        run: buz-plugin index --check
 
       # index.json advertises versions; reviews.json is what require_reviewed
       # deployments trust. A version in one but not the other (or a review
@@ -121,7 +132,7 @@ jobs:
 
       - name: Public fork PR validation notice
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true
-        run: echo "Private buz-manager validation is skipped for fork PRs because their jobs receive no repository PAT."
+        run: echo "Private buz-manager validation and the manifest drift check are skipped for fork PRs because their jobs receive no repository PAT. Public checks and tests remain required."
 
   # Execution-level shell-compat gate: run the test suite (which executes
   # buz/env-render's run block under /bin/sh) inside the two most restrictive
@@ -159,6 +170,17 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
+      - name: Record the committed catalog
+        # Publishers sign exactly these bytes. The gate below compares the
+        # regenerated catalog against this copy: a pinned tool that cannot
+        # reproduce a manifest field (e.g. the `deprecated` overlay) must fail
+        # the publish instead of shipping a different catalog for the same tag.
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/committed"
+          cp plugins/index.json "$RUNNER_TEMP/committed/index.json"
+          cp plugins/revision.json "$RUNNER_TEMP/committed/revision.json"
+
       - name: Install Node (marketplace site build)
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
@@ -186,7 +208,7 @@ jobs:
           GH_TOKEN: ${{ secrets.BUZ_PLUGIN_REPO_TOKEN || secrets.BUZ_REPO_PAT || secrets.BUZ_REPO_PAT_V2 }}
           # Pinned: a tool release may change the index contract, and that must
           # be a deliberate bump, not a silent follow-the-latest.
-          BUZ_PLUGIN_VERSION: "2.1.5"
+          BUZ_PLUGIN_VERSION: "2.1.6"
         run: |
           set -euo pipefail
           DIR="$RUNNER_TEMP/buz-plugin"
@@ -203,21 +225,72 @@ jobs:
       - name: Generate the index
         run: |
           set -euo pipefail
-          AT="$(git log -1 --format=%cI)"
+          COMMITTED="$RUNNER_TEMP/committed/index.json"
+          # Explicit header pins: a publisher never advances the sequence or
+          # restamps the catalog. The committed index is the only source, so
+          # the site and a release sign the same bytes for the same catalog.
+          SEQ="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["sequence"])' "$COMMITTED")"
+          AT="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["issued_at"])' "$COMMITTED")"
           if ! command -v buz-plugin >/dev/null 2>&1; then
-            echo "::warning title=Index unsigned::buz-plugin unavailable (no credential for the private repo) - falling back to scripts/gen_index.py"
-            python3 scripts/gen_index.py --updated-at "$AT"
+            if [ "${{ github.ref }}" = "refs/heads/master" ]; then
+              echo "::error title=buz-plugin required::the publish path regenerates and signs the catalog with the pinned buz-plugin; bump BUZ_PLUGIN_VERSION or restore the download credential"
+              exit 1
+            fi
+            echo "::warning title=Index not regenerated::buz-plugin unavailable (no credential for the private repo) — the PR preview uses the committed manifests"
             exit 0
           fi
-          buz-plugin index --updated-at "$AT"
+          buz-plugin index --sequence "$SEQ" --updated-at "$AT"
+
+      - name: Fetch the previously published catalog
+        id: published
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/published"
+          # The newest release other than this ref: a re-run of the same tag
+          # must compare against its predecessor, not against itself.
+          for tag in $(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=20" --jq '.[].tag_name'); do
+            if [ "$tag" = "${GITHUB_REF_NAME}" ]; then
+              continue
+            fi
+            if gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
+                --pattern index.json --dir "$RUNNER_TEMP/published" --clobber >/dev/null 2>&1; then
+              echo "rollback baseline: $tag" >> "$GITHUB_STEP_SUMMARY"
+              echo "path=$RUNNER_TEMP/published/index.json" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          echo "no previously published catalog — no rollback baseline" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify the catalog is the committed one
+        # Hard gate on master (this is the publish path). On pull requests the
+        # pin may legitimately lag behind a field the committed catalog uses;
+        # the failure is surfaced as a warning so unrelated work is not
+        # blocked, while master stops deploying a divergent catalog.
+        continue-on-error: ${{ github.event_name != 'push' || github.ref != 'refs/heads/master' }}
+        env:
+          PUBLISHED: ${{ steps.published.outputs.path }}
+        run: |
+          set -euo pipefail
+          args=(--committed "$RUNNER_TEMP/committed/index.json" --generated plugins/index.json --plugins-dir plugins)
+          if [ -n "${PUBLISHED:-}" ]; then
+            args+=(--published "$PUBLISHED")
+          fi
+          buz-plugin check-release "${args[@]}"
 
       # The ledger must be refreshed BEFORE signing: reviews.json.sig covers
       # the refreshed ledger, and a Manager with the trust anchor on refuses
       # an unsigned (or stale-signed) ledger outright.
       - name: Refresh the review ledger
         run: |
-          pip install pyyaml
-          python3 scripts/gen_reviews.py --auto --commit "${GITHUB_SHA::7}"
+          set -euo pipefail
+          if ! command -v buz-plugin >/dev/null 2>&1; then
+            echo "::warning title=Ledger not refreshed::buz-plugin unavailable — the PR preview uses the committed ledger"
+            exit 0
+          fi
+          buz-plugin reviews --auto --commit "${GITHUB_SHA::7}"
 
       - name: Sign the index and the review ledger
         env:
@@ -233,15 +306,17 @@ jobs:
             echo "::warning title=Index unsigned::signing key unavailable (fork PR?) — index and review ledger are published unsigned"
             exit 0
           fi
-          AT="$(git log -1 --format=%cI)"
+          AT="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["issued_at"])' "$RUNNER_TEMP/committed/index.json")"
+          SEQ="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["sequence"])' "$RUNNER_TEMP/committed/index.json")"
           umask 077
           KEY="$RUNNER_TEMP/signing-key.json"
           printf '%s' "$BUZ_PLUGIN_SIGNING_KEY" > "$KEY"
           trap 'rm -f "$KEY"' EXIT
-          # Re-runs generation (byte-identical for unchanged entries) and
-          # signs index.json AND reviews.json in one pass.
-          buz-plugin index --updated-at "$AT" --sign-key "$KEY"
-          buz-plugin index --check --updated-at "$AT" --sign-key "$KEY"
+          # Re-runs generation at the committed header (byte-identical when the
+          # tool reproduces the catalog) and signs index.json AND reviews.json
+          # in one pass.
+          buz-plugin index --sequence "$SEQ" --updated-at "$AT" --sign-key "$KEY"
+          buz-plugin index --check --sequence "$SEQ" --updated-at "$AT" --sign-key "$KEY"
 
       # Catalog-derived drift sentinel, written LAST (index → meta → revision):
       # a mirror that observes a new revision knows the index beside it is
@@ -249,7 +324,18 @@ jobs:
       # sha256) triples, so the committed copy and this build always agree —
       # it cannot trail HEAD like a build stamp would.
       - name: Derive the drift sentinel
-        run: python3 scripts/gen_revision.py
+        run: |
+          set -euo pipefail
+          if ! command -v buz-plugin >/dev/null 2>&1; then
+            echo "::warning title=Sentinel not regenerated::buz-plugin unavailable — the PR preview uses the committed revision.json"
+            exit 0
+          fi
+          buz-plugin revision
+          if ! cmp -s plugins/revision.json "$RUNNER_TEMP/committed/revision.json"; then
+            echo "::error title=Revision drift::revision.json no longer names the committed catalog — the publish must carry the committed manifests, not a re-derivation"
+            diff -u "$RUNNER_TEMP/committed/revision.json" plugins/revision.json | head -20 || true
+            exit 1
+          fi
 
       - name: Stage deployable directory (site + index + plugin files)
         run: |
@@ -358,10 +444,23 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
+      - name: Record the committed catalog
+        # This job signs `plugins/index.json`, never a re-derivation of it.
+        # The copy is kept so the gate can prove the pinned tool reproduced
+        # the committed catalog field for field before anything is signed.
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/committed"
+          cp plugins/index.json "$RUNNER_TEMP/committed/index.json"
+          cp plugins/revision.json "$RUNNER_TEMP/committed/revision.json"
+
       - name: Install buz-plugin
         env:
           GH_TOKEN: ${{ secrets.BUZ_PLUGIN_REPO_TOKEN || secrets.BUZ_REPO_PAT || secrets.BUZ_REPO_PAT_V2 }}
-          BUZ_PLUGIN_VERSION: "2.1.5"
+          # Pinned: a tool release may change the index contract, and that must
+          # be a deliberate bump, not a silent follow-the-latest. A pin that
+          # cannot reproduce the committed catalog fails the gate below.
+          BUZ_PLUGIN_VERSION: "2.1.6"
         run: |
           set -euo pipefail
           DIR="$RUNNER_TEMP/buz-plugin"
@@ -374,21 +473,60 @@ jobs:
           echo "$DIR" >> "$GITHUB_PATH"
           "$DIR/buz-plugin" --version
 
-      - name: Generate and sign index.json
+      - name: Fetch the previously published catalog
+        id: published
         env:
-          BUZ_PLUGIN_SIGNING_KEY: ${{ secrets.BUZ_PLUGIN_SIGNING_KEY }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          AT="$(git log -1 --format=%cI)"
+          mkdir -p "$RUNNER_TEMP/published"
+          # The newest release other than this ref: a re-run of the same tag
+          # must compare against its predecessor, not against itself.
+          for tag in $(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=20" --jq '.[].tag_name'); do
+            if [ "$tag" = "${GITHUB_REF_NAME}" ]; then
+              continue
+            fi
+            if gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
+                --pattern index.json --dir "$RUNNER_TEMP/published" --clobber >/dev/null 2>&1; then
+              echo "rollback baseline: $tag" >> "$GITHUB_STEP_SUMMARY"
+              echo "path=$RUNNER_TEMP/published/index.json" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          echo "no previously published catalog — no rollback baseline" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Generate, verify, and sign index.json
+        env:
+          BUZ_PLUGIN_SIGNING_KEY: ${{ secrets.BUZ_PLUGIN_SIGNING_KEY }}
+          PUBLISHED: ${{ steps.published.outputs.path }}
+        run: |
+          set -euo pipefail
+          COMMITTED="$RUNNER_TEMP/committed/index.json"
+          SEQ="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["sequence"])' "$COMMITTED")"
+          AT="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["issued_at"])' "$COMMITTED")"
           umask 077
           KEY="$RUNNER_TEMP/signing-key.json"
           printf '%s' "$BUZ_PLUGIN_SIGNING_KEY" > "$KEY"
           trap 'rm -f "$KEY"' EXIT
+          # Generate unsigned first: the gate must see the bytes before any
+          # signature exists, so a divergent catalog is never signed. The
+          # explicit header pins make an implicit sequence advance impossible.
+          buz-plugin index --sequence "$SEQ" --updated-at "$AT"
+          args=(--committed "$COMMITTED" --generated plugins/index.json --plugins-dir plugins)
+          if [ -n "${PUBLISHED:-}" ]; then
+            args+=(--published "$PUBLISHED")
+          fi
+          buz-plugin check-release "${args[@]}"
           # Signs index.json AND the committed reviews.json in one pass.
-          buz-plugin index --updated-at "$AT" --sign-key "$KEY"
-          buz-plugin index --check --updated-at "$AT" --sign-key "$KEY"
+          buz-plugin index --sequence "$SEQ" --updated-at "$AT" --sign-key "$KEY"
+          buz-plugin index --check --sequence "$SEQ" --updated-at "$AT" --sign-key "$KEY"
           # Snapshot self-consistency: the sentinel must name this catalog.
-          python3 scripts/gen_revision.py
+          buz-plugin revision
+          if ! cmp -s plugins/revision.json "$RUNNER_TEMP/committed/revision.json"; then
+            echo "::error title=Revision drift::revision.json no longer names the committed catalog — publish the committed manifests, not a re-derivation"
+            diff -u "$RUNNER_TEMP/committed/revision.json" plugins/revision.json | head -20 || true
+            exit 1
+          fi
 
       - name: Attach index.json to the release
         uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.2.2

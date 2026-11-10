@@ -362,7 +362,7 @@ def main() -> None:
     # consumes index.json and the raw plugin files from the same origin).
     index_path = root / "plugins" / "index.json"
     if not index_path.exists():
-        raise SystemExit("plugins/index.json not found — run scripts/gen_index.py first")
+        raise SystemExit("plugins/index.json not found — run `buz-plugin index` first")
     # Stage the manifests at their source-root paths: the Manager's base URL
     # is <site>/plugins/, so index/reviews/revision must resolve under
     # plugins/ — a root-level copy would parse but its file: targets 404.
