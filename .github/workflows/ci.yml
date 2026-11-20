@@ -14,8 +14,6 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    # Fork PRs have no repository secrets and may explicitly skip this step.
-    # Trusted pushes and same-repository PRs must have the PAT or fail closed.
     env:
       BUZ_VERSION: ${{ vars.BUZ_VERSION }}
     steps:
@@ -41,31 +39,13 @@ jobs:
       - name: Lint run blocks (heuristic patterns)
         run: python3 scripts/lint_runs.py plugins
 
-      - name: Check private validator availability
-        id: validator-token
-        env:
-          # Same fallback chain as the buz-plugin install below: any of the
-          # three may carry read access to the private schiplat/buz releases.
-          GH_TOKEN: ${{ secrets.BUZ_PLUGIN_REPO_TOKEN || secrets.BUZ_REPO_PAT || secrets.BUZ_REPO_PAT_V2 }}
-        run: |
-          if [ -n "$GH_TOKEN" ]; then
-            echo "available=true" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
-            echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "Fork PR: private buz-manager validation is skipped; public checks and tests remain required." >&2
-          else
-            echo "A token with read access to schiplat/buz releases (BUZ_PLUGIN_REPO_TOKEN / BUZ_REPO_PAT / BUZ_REPO_PAT_V2) is required for private buz-manager validation on trusted pushes and internal PRs." >&2
-            exit 1
-          fi
-
       - name: Install buz-manager (release binary)
-        if: steps.validator-token.outputs.available == 'true'
         env:
-          GH_TOKEN: ${{ secrets.BUZ_PLUGIN_REPO_TOKEN || secrets.BUZ_REPO_PAT || secrets.BUZ_REPO_PAT_V2 }}
+          GH_TOKEN: ${{ github.token }}
           BUZ_VERSION: ${{ vars.BUZ_VERSION }}
         run: |
-          # The authoritative private repo — releases must come from
-          # schiplat/buz so validation never runs against a stale binary.
+          # The authoritative repo — releases must come from schiplat/buz
+          # so validation never runs against a stale binary.
           API="https://api.github.com/repos/schiplat/buz/releases"
           if [ -n "$BUZ_VERSION" ]; then
             RELEASE=$(curl -sfL -H "Authorization: Bearer $GH_TOKEN" "$API/tags/$BUZ_VERSION")
@@ -79,9 +59,8 @@ jobs:
           buz-manager --version
 
       - name: Install buz-plugin (release binary)
-        if: steps.validator-token.outputs.available == 'true'
         env:
-          GH_TOKEN: ${{ secrets.BUZ_PLUGIN_REPO_TOKEN || secrets.BUZ_REPO_PAT || secrets.BUZ_REPO_PAT_V2 }}
+          GH_TOKEN: ${{ github.token }}
           BUZ_PLUGIN_VERSION: "2.1.7"
         run: |
           set -euo pipefail
@@ -96,7 +75,6 @@ jobs:
           "$DIR/buz-plugin" --version
 
       - name: Validate plugin specs
-        if: steps.validator-token.outputs.available == 'true'
         run: |
           mapfile -d '' specs < <(find plugins -type d -name '.*' -prune -o -type f \
             \( -name '*.yaml' -o -name '*.yml' \) ! -path '*/.*' -print0 | sort -z)
@@ -116,7 +94,6 @@ jobs:
         # `--check` regenerates in memory and compares every manifest on disk,
         # so stale or missing index/meta files fail with the drifted field
         # named. It writes nothing — the committed copy stays the source.
-        if: steps.validator-token.outputs.available == 'true'
         run: buz-plugin index --check
 
       # index.json advertises versions; reviews.json is what require_reviewed
@@ -125,16 +102,10 @@ jobs:
       # gate rejects — the drift this gate exists to catch. Fix it by
       # refreshing the ledger, never by editing hashes.
       - name: Manifest consistency (index ↔ reviews ↔ meta)
-        if: steps.validator-token.outputs.available == 'true'
         run: buz-plugin check-manifests --plugins-dir plugins
 
       - name: Plugin READMEs
-        if: steps.validator-token.outputs.available == 'true'
         run: buz-plugin check-readmes --plugins-dir plugins
-
-      - name: Public fork PR validation notice
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true
-        run: echo "Private buz-manager validation and the manifest/README gates are skipped for fork PRs because their jobs receive no repository PAT. Public checks and tests remain required."
 
   # Execution-level shell-compat gate: run the test suite (which executes
   # buz/env-render's run block under /bin/sh) inside the two most restrictive
@@ -208,11 +179,7 @@ jobs:
         id: buz-plugin
         continue-on-error: true
         env:
-          # Read access to the PRIVATE schiplat/buz release. Any of the three
-          # may carry it depending on how the account is set up, so try them in
-          # order: a narrowly scoped plugin token, the account token that is
-          # already authorized for the repo, then the validator-mirror token.
-          GH_TOKEN: ${{ secrets.BUZ_PLUGIN_REPO_TOKEN || secrets.BUZ_REPO_PAT || secrets.BUZ_REPO_PAT_V2 }}
+          GH_TOKEN: ${{ github.token }}
           # Pinned: a tool release may change the index contract, and that must
           # be a deliberate bump, not a silent follow-the-latest.
           BUZ_PLUGIN_VERSION: "2.1.7"
@@ -241,10 +208,10 @@ jobs:
           AT="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["issued_at"])' "$COMMITTED")"
           if ! command -v buz-plugin >/dev/null 2>&1; then
             if [ "${{ github.ref }}" = "refs/heads/master" ]; then
-              echo "::error title=buz-plugin required::the publish path regenerates and signs the catalog with the pinned buz-plugin; bump BUZ_PLUGIN_VERSION or restore the download credential"
+              echo "::error title=buz-plugin required::the publish path regenerates and signs the catalog with the pinned buz-plugin; check the release download"
               exit 1
             fi
-            echo "::warning title=Index not regenerated::buz-plugin unavailable (no credential for the private repo) — the PR preview uses the committed manifests"
+            echo "::warning title=Index not regenerated::buz-plugin unavailable — the PR preview uses the committed manifests"
             exit 0
           fi
           buz-plugin index --sequence "$SEQ" --updated-at "$AT"
@@ -454,7 +421,7 @@ jobs:
 
       - name: Install buz-plugin
         env:
-          GH_TOKEN: ${{ secrets.BUZ_PLUGIN_REPO_TOKEN || secrets.BUZ_REPO_PAT || secrets.BUZ_REPO_PAT_V2 }}
+          GH_TOKEN: ${{ github.token }}
           # Pinned: a tool release may change the index contract, and that must
           # be a deliberate bump, not a silent follow-the-latest. A pin that
           # cannot reproduce the committed catalog fails the gate below.
